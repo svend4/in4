@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Выбор моделей, квантизация и оптимизация инференса</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #d4bfff; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #73d0ff; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #1a0d2a 0%, #0d1a2a 100%); border: 1px solid #d4bfff; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+  .cmd { background: #0f1419; border: 1px solid #1f2430; border-radius: 8px; padding: 14px; margin: 10px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: #bae67e; overflow-x: auto; white-space: pre-wrap; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .vs > div { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 14px; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .badge-purple { background: #1a0d2a; color: #d4bfff; }
+  .toc { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .toc a { display: block; padding: 3px 0; color: #607080; }
+  .toc a:hover { color: #73d0ff; }
+  .diagram { background: #0a0e14; border: 2px solid #d4bfff; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; white-space: pre-wrap; }
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>Выбор моделей, квантизация и оптимизация инференса</h1>
+<p class="sub">Часть 9 серии исследований. Февраль 2026. Полный справочник: от выбора модели до максимальной производительности</p>
+
+<div class="highlight">
+<strong>Цель:</strong> Помочь выбрать оптимальную модель + квантизацию для вашего железа. Включает формулы расчёта памяти, таблицы производительности, дерево решений, и полные инструкции по скачиванию, конвертации и бенчмаркам.
+</div>
+
+<div class="toc">
+<strong>Содержание:</strong>
+<a href="#catalog">1. Каталог моделей 2025–2026</a>
+<a href="#dense-moe">2. Dense vs MoE: что выбрать</a>
+<a href="#quant-ref">3. Квантизация: полный справочник GGUF</a>
+<a href="#memory">4. Формулы расчёта памяти</a>
+<a href="#decision">5. Дерево решений: какую квантизацию выбрать</a>
+<a href="#speed">6. Скорость инференса: формулы и расчёты</a>
+<a href="#speculative">7. Speculative decoding</a>
+<a href="#kv-cache">8. KV Cache оптимизация</a>
+<a href="#params">9. Оптимизация параметров запуска</a>
+<a href="#perf-table">10. Таблица производительности: модель × железо</a>
+<a href="#scenarios">11. Рекомендации по сценариям</a>
+<a href="#tools">12. Инструменты: скачивание, конвертация, бенчмарки</a>
+<a href="#verdict">13. Итоговые рекомендации</a>
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2 id="catalog">1. Каталог моделей 2025–2026</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Параметры</th>
+    <th>Тип</th>
+    <th>Актив. парам.</th>
+    <th>Контекст</th>
+    <th>Лицензия</th>
+    <th>GGUF</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr>
+    <td><strong>Llama 3.2 1B</strong></td><td>1.2B</td><td>Dense</td><td>1.2B</td><td>128K</td><td>Llama 3.2</td><td><span class="badge badge-green">Да</span></td><td>Edge, IoT, мобильные</td>
+  </tr>
+  <tr>
+    <td><strong>Llama 3.2 3B</strong></td><td>3.2B</td><td>Dense</td><td>3.2B</td><td>128K</td><td>Llama 3.2</td><td><span class="badge badge-green">Да</span></td><td>SBC, бюджетные устройства</td>
+  </tr>
+  <tr>
+    <td><strong>Llama 3.1 8B</strong></td><td>8B</td><td>Dense</td><td>8B</td><td>128K</td><td>Llama 3.1</td><td><span class="badge badge-green">Да</span></td><td>Универсальная базовая</td>
+  </tr>
+  <tr>
+    <td><strong>Llama 3.3 70B</strong></td><td>70B</td><td>Dense</td><td>70B</td><td>128K</td><td>Llama 3.3</td><td><span class="badge badge-green">Да</span></td><td>Высокое качество</td>
+  </tr>
+  <tr>
+    <td><strong>Llama 3.1 405B</strong></td><td>405B</td><td>Dense</td><td>405B</td><td>128K</td><td>Llama 3.1</td><td><span class="badge badge-green">Да</span></td><td>Максимальное качество</td>
+  </tr>
+  <tr>
+    <td><strong>Qwen 2.5 7B</strong></td><td>7.6B</td><td>Dense</td><td>7.6B</td><td>128K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td>Код, многоязычная</td>
+  </tr>
+  <tr>
+    <td><strong>Qwen 2.5 32B</strong></td><td>32B</td><td>Dense</td><td>32B</td><td>128K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td>Баланс качество/размер</td>
+  </tr>
+  <tr>
+    <td><strong>Qwen 2.5 72B</strong></td><td>72B</td><td>Dense</td><td>72B</td><td>128K</td><td>Qwen</td><td><span class="badge badge-green">Да</span></td><td>Топ-качество</td>
+  </tr>
+  <tr>
+    <td><strong>Qwen3-30B-A3B</strong></td><td>30B</td><td><span class="badge badge-purple">MoE</span></td><td><strong>3B</strong></td><td>128K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td><span class="badge badge-green">Звезда SBC!</span></td>
+  </tr>
+  <tr>
+    <td><strong>QwQ-32B</strong></td><td>32B</td><td>Dense</td><td>32B</td><td>128K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td>Reasoning/рассуждения</td>
+  </tr>
+  <tr>
+    <td><strong>DeepSeek R1 8B (distill)</strong></td><td>8B</td><td>Dense</td><td>8B</td><td>128K</td><td>MIT</td><td><span class="badge badge-green">Да</span></td><td>Reasoning на бюджете</td>
+  </tr>
+  <tr>
+    <td><strong>DeepSeek V3 671B</strong></td><td>671B</td><td><span class="badge badge-purple">MoE</span></td><td><strong>37B</strong></td><td>128K</td><td>DeepSeek</td><td><span class="badge badge-green">Да</span></td><td>Топ MoE модель</td>
+  </tr>
+  <tr>
+    <td><strong>Mixtral 8x22B</strong></td><td>176B</td><td><span class="badge badge-purple">MoE</span></td><td><strong>44B</strong></td><td>64K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td>MoE среднего класса</td>
+  </tr>
+  <tr>
+    <td><strong>Gemma 3 27B</strong></td><td>27B</td><td>Dense</td><td>27B</td><td>128K</td><td>Gemma</td><td><span class="badge badge-green">Да</span></td><td>Google-качество, мультимодальная</td>
+  </tr>
+  <tr>
+    <td><strong>Phi-4 14B</strong></td><td>14B</td><td>Dense</td><td>14B</td><td>16K</td><td>MIT</td><td><span class="badge badge-green">Да</span></td><td>Компактная, код+reasoning</td>
+  </tr>
+  <tr>
+    <td><strong>Mistral Small 24B</strong></td><td>24B</td><td>Dense</td><td>24B</td><td>32K</td><td>Apache 2.0</td><td><span class="badge badge-green">Да</span></td><td>Лёгкая, быстрая</td>
+  </tr>
+  <tr>
+    <td><strong>Command R+ 104B</strong></td><td>104B</td><td>Dense</td><td>104B</td><td>128K</td><td>CC-BY-NC</td><td><span class="badge badge-green">Да</span></td><td>RAG, корпоративная</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2 id="dense-moe">2. Dense vs MoE: что выбрать для домашнего кластера</h2>
+<div class="s">
+
+<div class="vs">
+<div>
+<h3 style="color:#73d0ff;">Dense модели</h3>
+<p><strong>Все параметры активны</strong> на каждом токене.</p>
+<p>- RAM = пропорционально общим параметрам<br>
+- Bandwidth = пропорционально общим параметрам<br>
+- Качество = предсказуемое, стабильное<br>
+- Пример: Llama 70B — 70B параметров, все используются</p>
+<p><strong>Формула скорости:</strong><br>
+<code>tok/s ≈ bandwidth / model_size</code></p>
+</div>
+<div>
+<h3 style="color:#d4bfff;">MoE модели</h3>
+<p><strong>Только часть параметров активна</strong> на каждом токене (эксперты).</p>
+<p>- RAM = пропорционально ОБЩИМ параметрам (все эксперты в памяти)<br>
+- Bandwidth = пропорционально АКТИВНЫМ параметрам (только выбранные эксперты)<br>
+- Качество = на уровне dense модели с активными параметрами<br>
+- Пример: Qwen3-30B-A3B — 30B общих, но только 3B активны</p>
+<p><strong>Формула скорости:</strong><br>
+<code>tok/s ≈ bandwidth / active_size</code></p>
+</div>
+</div>
+
+<div class="good">
+<strong>Почему MoE — идеальны для SBC и мини-ПК:</strong><br>
+Qwen3-30B-A3B: 30B параметров → ~5.5 ГБ в Q4_0 → влезает на 4× Pi 5 (8 ГБ каждый).<br>
+Но качество ≈ dense 3B модели (или даже лучше — больше «знаний» за счёт 30B общих параметров).<br>
+Скорость определяется 3B активных параметров → <strong>13 tok/s на Pi-кластере!</strong><br>
+Dense модель 3B влезла бы на один Pi 5, но MoE 30B-A3B умнее при той же скорости.
+</div>
+
+<h3>Когда какой тип выбирать</h3>
+<table>
+  <tr><th>Сценарий</th><th>Dense</th><th>MoE</th></tr>
+  <tr><td>Максимальное качество, достаточно RAM</td><td class="speed">Llama 70B, Qwen 72B</td><td>-</td></tr>
+  <tr><td>Ограничена RAM, нужна «умность»</td><td>-</td><td class="speed">Qwen3-30B-A3B, DeepSeek V3</td></tr>
+  <tr><td>SBC кластер (32–64 ГБ)</td><td>Llama 8B</td><td class="speed">Qwen3-30B-A3B (намного умнее!)</td></tr>
+  <tr><td>Ограничена bandwidth</td><td>-</td><td class="speed">MoE читает меньше данных на токен</td></tr>
+  <tr><td>GPU с малым VRAM (&lt;16 ГБ)</td><td>Llama 8B, Phi-4 14B</td><td>Qwen3-30B-A3B (если RAM хватает)</td></tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2 id="quant-ref">3. Квантизация: полный справочник GGUF</h2>
+<div class="s">
+
+<p><strong>Квантизация</strong> — сжатие весов модели из FP16 (16 бит) в меньшее число бит. Уменьшает потребление RAM и ускоряет инференс за счёт небольшой потери качества.</p>
+
+<h3>Все типы квантизации GGUF</h3>
+<table>
+  <tr>
+    <th>Квантизация</th>
+    <th>Бит/вес</th>
+    <th>Сжатие vs FP16</th>
+    <th>Llama 7B (ГБ)</th>
+    <th>Llama 70B (ГБ)</th>
+    <th>Потеря качества</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr><td>F16</td><td>16.0</td><td>1×</td><td>13.5</td><td>140</td><td>Нет</td><td>Если RAM не ограничена</td></tr>
+  <tr><td>BF16</td><td>16.0</td><td>1×</td><td>13.5</td><td>140</td><td>~0</td><td>GPU с BF16 support</td></tr>
+  <tr><td>Q8_0</td><td>8.5</td><td>1.9×</td><td>7.2</td><td>74</td><td>Минимальная (&lt;0.1% PPL)</td><td>Максимальное качество при сжатии</td></tr>
+  <tr><td><strong>Q6_K</strong></td><td>6.6</td><td>2.4×</td><td>5.5</td><td>57</td><td>Очень малая (&lt;0.3% PPL)</td><td>Отличный баланс</td></tr>
+  <tr><td>Q5_K_M</td><td>5.7</td><td>2.8×</td><td>4.8</td><td>49</td><td>Малая (&lt;0.5% PPL)</td><td>Хороший баланс</td></tr>
+  <tr><td>Q5_K_S</td><td>5.5</td><td>2.9×</td><td>4.7</td><td>48</td><td>Малая</td><td>Чуть меньше Q5_K_M</td></tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>Q4_K_M</strong></td><td><strong>4.8</strong></td><td><strong>3.3×</strong></td><td><strong>4.1</strong></td><td><strong>42</strong></td><td>Умеренная (~1% PPL)</td><td><span class="badge badge-green">ЗОЛОТОЙ СТАНДАРТ</span></td>
+  </tr>
+  <tr><td>Q4_K_S</td><td>4.6</td><td>3.5×</td><td>3.9</td><td>40</td><td>Умеренная</td><td>Чуть меньше Q4_K_M</td></tr>
+  <tr><td>Q4_0</td><td>4.5</td><td>3.6×</td><td>3.8</td><td>39</td><td>Умеренная</td><td>Старый формат, для совместимости</td></tr>
+  <tr><td>IQ4_XS</td><td>4.3</td><td>3.7×</td><td>3.6</td><td>37</td><td>Умеренная (~1.2% PPL)</td><td>Ещё компактнее с importance matrix</td></tr>
+  <tr><td>Q3_K_M</td><td>3.9</td><td>4.1×</td><td>3.3</td><td>34</td><td>Заметная (~2% PPL)</td><td>Если RAM критически мало</td></tr>
+  <tr><td>Q3_K_S</td><td>3.5</td><td>4.6×</td><td>3.0</td><td>30</td><td>Заметная</td><td>Не рекомендуется</td></tr>
+  <tr><td>IQ3_XXS</td><td>3.1</td><td>5.2×</td><td>2.6</td><td>27</td><td>Значительная (~3% PPL)</td><td>Ультра-сжатие</td></tr>
+  <tr><td>Q2_K</td><td>3.4</td><td>4.7×</td><td>2.8</td><td>29</td><td>Значительная (~4% PPL)</td><td>Крайний случай</td></tr>
+  <tr><td>IQ2_XXS</td><td>2.1</td><td>7.6×</td><td>1.8</td><td>18</td><td>Большая (~8% PPL)</td><td>Экстремальное сжатие</td></tr>
+  <tr><td>IQ1_S</td><td>1.6</td><td>10×</td><td>1.3</td><td>14</td><td>Очень большая (&gt;15% PPL)</td><td>Экспериментально</td></tr>
+</table>
+
+<div class="warn">
+<strong>PPL (perplexity)</strong> — мера качества модели. Меньше = лучше. Потеря 1% PPL при квантизации Q4_K_M практически незаметна в реальном использовании. Потеря 8%+ (IQ2_XXS) уже ощутимо снижает качество ответов.
+</div>
+
+<div class="good">
+<strong>Q4_K_M — золотой стандарт квантизации:</strong> Сжатие в 3.3× при потере &lt;1% качества. Llama 70B уменьшается с 140 ГБ до 42 ГБ. Это рекомендация по умолчанию для большинства пользователей. Используйте Q6_K/Q5_K_M только если RAM позволяет и нужно максимальное качество.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2 id="memory">4. Формулы расчёта памяти</h2>
+<div class="s">
+
+<div class="diagram">Общая формула:
+  RAM_total = RAM_model + RAM_kv_cache + RAM_overhead
+
+RAM_model (модель):
+  RAM_model = parameters × bits_per_weight / 8
+  Пример: Llama 70B Q4_K_M = 70×10⁹ × 4.8 / 8 = 42 ГБ
+
+RAM_kv_cache (KV-кеш для контекста):
+  RAM_kv = 2 × n_layers × n_kv_heads × head_dim × context_len × bytes_per_elem
+
+  Llama 70B: 2 × 80 × 8 × 128 × 4096 × 2 (FP16) = 1.34 ГБ (при ctx=4096)
+  Llama 70B: 2 × 80 × 8 × 128 × 32768 × 2 (FP16) = 10.7 ГБ (при ctx=32K)
+
+  С KV cache Q8_0 квантизацией: ÷2 (0.67 ГБ при ctx=4096)
+  С KV cache Q4_0 квантизацией: ÷4 (0.34 ГБ при ctx=4096)
+
+RAM_overhead:
+  ~500 МБ – 2 ГБ (зависит от бэкенда, batch size, буферы)
+
+Итого для Llama 70B Q4_K_M, ctx=4096:
+  42 + 1.34 + 1.0 ≈ 44.3 ГБ</div>
+
+<h3>Таблица: требования памяти для популярных моделей</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Q4_K_M (ГБ)</th>
+    <th>Q6_K (ГБ)</th>
+    <th>Q8_0 (ГБ)</th>
+    <th>F16 (ГБ)</th>
+    <th>+ KV 4K (ГБ)</th>
+    <th>Итого Q4_K_M+KV</th>
+  </tr>
+  <tr><td>Llama 3.2 1B</td><td>0.8</td><td>1.1</td><td>1.4</td><td>2.5</td><td>0.03</td><td class="speed">1.3</td></tr>
+  <tr><td>Llama 3.2 3B</td><td>2.0</td><td>2.6</td><td>3.4</td><td>6.4</td><td>0.07</td><td class="speed">2.6</td></tr>
+  <tr><td>Llama 3.1 8B</td><td>4.9</td><td>6.6</td><td>8.5</td><td>16</td><td>0.25</td><td class="speed">5.7</td></tr>
+  <tr><td>Phi-4 14B</td><td>8.5</td><td>11.2</td><td>14.5</td><td>28</td><td>0.35</td><td class="speed">9.4</td></tr>
+  <tr><td>Mistral Small 24B</td><td>14.5</td><td>19</td><td>24.5</td><td>48</td><td>0.5</td><td class="speed">15.5</td></tr>
+  <tr><td>Gemma 3 27B</td><td>16.5</td><td>21.5</td><td>28</td><td>54</td><td>0.6</td><td class="speed">17.6</td></tr>
+  <tr><td>QwQ-32B / Qwen 2.5 32B</td><td>19.5</td><td>25.5</td><td>33</td><td>64</td><td>0.7</td><td class="speed">20.7</td></tr>
+  <tr><td><strong>Llama 3.3 70B</strong></td><td><strong>42</strong></td><td>57</td><td>74</td><td>140</td><td>1.3</td><td class="speed"><strong>44</strong></td></tr>
+  <tr><td>Qwen 2.5 72B</td><td>44</td><td>58</td><td>76</td><td>144</td><td>1.3</td><td class="speed">46</td></tr>
+  <tr><td>Command R+ 104B</td><td>63</td><td>82</td><td>107</td><td>208</td><td>2.0</td><td class="speed">66</td></tr>
+  <tr><td>Llama 3.1 405B</td><td>245</td><td>320</td><td>415</td><td>810</td><td>5.5</td><td class="speed">252</td></tr>
+  <tr><td>DeepSeek V3 671B</td><td>350</td><td>460</td><td>600</td><td>1342</td><td>3.5</td><td class="speed">355</td></tr>
+</table>
+
+<div class="note">
+<strong>Для MoE моделей:</strong> RAM определяется ОБЩИМИ параметрами (все эксперты хранятся в памяти), а скорость — АКТИВНЫМИ. Qwen3-30B-A3B: RAM = ~17 ГБ (Q4_0 для 30B), но скорость как у 3B dense.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2 id="decision">5. Дерево решений: какую квантизацию выбрать</h2>
+<div class="s">
+
+<div class="diagram">                    ┌─────────────────────┐
+                    │  Сколько RAM/VRAM   │
+                    │  доступно для модели?│
+                    └─────────┬───────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            │                 │                 │
+       ≥ model FP16     ≥ model Q6_K     ≥ model Q4_K_M
+            │                 │                 │
+        ┌───┴───┐        ┌───┴───┐        ┌───┴───┐
+        │  F16  │        │ Q6_K  │        │Q4_K_M │ ← РЕКОМЕНДОВАНО
+        │(лучшее│        │(отл.  │        │(золотой│
+        │качество│       │качество│       │стандарт│
+        └───────┘        └───────┘        └───────┘
+                                               │
+                              Не хватает RAM для Q4_K_M?
+                              │
+                ┌─────────────┼─────────────────┐
+                │             │                 │
+          ≥ model Q3_K_M  ≥ model IQ3    Ещё меньше
+                │             │                 │
+           ┌────┴────┐  ┌────┴────┐     ┌──────┴──────┐
+           │ Q3_K_M  │  │IQ3_XXS │     │ IQ2_XXS /   │
+           │(заметная│  │(значит. │     │ Q2_K        │
+           │ потеря) │  │ потеря) │     │(БОЛЬШАЯ     │
+           └─────────┘  └─────────┘     │ потеря!)    │
+                                        └─────────────┘
+
+ПРАВИЛО: Лучше меньшая модель с хорошей квантизацией,
+         чем большая модель с агрессивной квантизацией!
+
+         Llama 8B Q4_K_M > Llama 70B IQ2_XXS (по качеству на токен)</div>
+
+<div class="red">
+<strong>Распространённая ошибка:</strong> «У меня 16 ГБ RAM, хочу 70B модель — возьму IQ2_XXS (18 ГБ)». Не делайте этого! 70B в IQ2_XXS теряет >8% качества и работает хуже, чем <strong>Qwen 32B в Q4_K_M</strong> (19.5 ГБ) — которая влезет, будет быстрее, и качественнее.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2 id="speed">6. Скорость инференса: формулы и расчёты</h2>
+<div class="s">
+
+<h3>Два режима работы LLM</h3>
+<div class="vs">
+<div>
+<h3 style="color:#73d0ff;">Prefill (обработка промпта)</h3>
+<p><strong>Compute-bound</strong> — ограничен FLOPS процессора.</p>
+<p><code>Время = 2 × params × tokens / FLOPS</code></p>
+<p>Llama 70B, 1000 токенов промпта, M4 Pro (4.5 TFLOPS FP16):<br>
+<code>2 × 70×10⁹ × 1000 / 4.5×10¹² = 31 сек</code></p>
+<p>На GPU RTX 4090 (82 TFLOPS FP16):<br>
+<code>2 × 70×10⁹ × 1000 / 82×10¹² = 1.7 сек</code></p>
+</div>
+<div>
+<h3 style="color:#bae67e;">Decode (генерация токенов)</h3>
+<p><strong>Memory-bandwidth-bound</strong> — ограничен пропускной способностью памяти.</p>
+<p><code>Теор. tok/s = bandwidth / model_size</code></p>
+<p>Llama 70B Q4_K_M (42 ГБ), M4 Pro (273 ГБ/с):<br>
+<code>273 / 42 = 6.5 tok/s (теоретический макс.)</code><br>
+Реально: ~4–5 tok/s (60–75% от теоретического)</p>
+<p>Framework Desktop Strix Halo (256 ГБ/с):<br>
+<code>256 / 42 = 6.1 tok/s → реально ~4–5 tok/s</code></p>
+</div>
+</div>
+
+<h3>Теоретический максимум tok/s для каждого железа</h3>
+<table>
+  <tr>
+    <th>Устройство</th>
+    <th>Bandwidth</th>
+    <th>Llama 8B Q4 (4.9 ГБ)</th>
+    <th>QwQ-32B Q4 (19.5 ГБ)</th>
+    <th>Llama 70B Q4 (42 ГБ)</th>
+  </tr>
+  <tr>
+    <td>Raspberry Pi 5 (8 ГБ)</td>
+    <td>34 ГБ/с</td>
+    <td class="speed">6.9 → ~4–5</td>
+    <td>Не влезает</td>
+    <td>Не влезает</td>
+  </tr>
+  <tr>
+    <td>Orange Pi 5 Plus (32 ГБ)</td>
+    <td>51 ГБ/с</td>
+    <td class="speed">10.4 → ~7–8</td>
+    <td class="speed">2.6 → ~1.5–2</td>
+    <td>Не влезает</td>
+  </tr>
+  <tr>
+    <td>Mac Mini M4 (16 ГБ)</td>
+    <td>120 ГБ/с</td>
+    <td class="speed">24.5 → ~18–20</td>
+    <td>Не влезает</td>
+    <td>Не влезает</td>
+  </tr>
+  <tr>
+    <td><strong>Mac Mini M4 Pro (64 ГБ)</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td class="speed">55.7 → ~40</td>
+    <td class="speed">14.0 → ~10–12</td>
+    <td class="speed"><strong>6.5 → ~4–5</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Framework Desktop (128 ГБ)</strong></td>
+    <td><strong>256 ГБ/с</strong></td>
+    <td class="speed">52.2 → ~38</td>
+    <td class="speed">13.1 → ~9–10</td>
+    <td class="speed"><strong>6.1 → ~4–5</strong></td>
+  </tr>
+  <tr>
+    <td>RTX 3090 (24 ГБ VRAM)</td>
+    <td>936 ГБ/с</td>
+    <td class="speed">191 → ~80–100</td>
+    <td class="speed">48 → ~30–35</td>
+    <td>Не влезает в VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>RTX 4090 (24 ГБ VRAM)</strong></td>
+    <td><strong>1008 ГБ/с</strong></td>
+    <td class="speed">206 → ~100+</td>
+    <td class="speed">51.7 → ~35–40</td>
+    <td>Не влезает в VRAM</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Почему реальность = 60–80% теории:</strong> Overhead от загрузки KV-кеша, вычислений attention, memory alignment, OS overhead, и GPU kernel launch latency. Apple Silicon ближе к теоретическому максимуму (75–80%) благодаря unified memory. NVIDIA GPU — 50–70% из-за PCIe overhead при CPU offload.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2 id="speculative">7. Speculative Decoding</h2>
+<div class="s">
+
+<p><strong>Speculative decoding</strong> — техника ускорения инференса в 2–3×. Маленькая «draft» модель быстро генерирует N кандидатов-токенов, а большая «target» модель проверяет их за один проход.</p>
+
+<div class="diagram">Без speculative decoding (70B):
+  Token 1: [compute 150ms] → Token 2: [compute 150ms] → ...
+  Итого: 150 мс/токен = 6.7 tok/s
+
+С speculative decoding (draft=1B, target=70B, N=5):
+  Draft: [generate 5 tokens: 5ms]
+  Target: [verify 5 tokens in 1 pass: ~180ms]
+  Если 3 из 5 приняты: 180ms / 3 = 60 мс/токен = 16.7 tok/s
+  Ускорение: 2.5×
+
+Acceptance rate зависит от:
+  - Качество draft модели (чем ближе к target — тем лучше)
+  - Сложность текста (простой текст = высокий acceptance)
+  - Типичный acceptance rate: 50–80%</div>
+
+<h3>Настройка в llama.cpp</h3>
+<div class="cmd"># Скачать draft модель (та же семья, но маленькая):
+# Для Llama 70B → draft = Llama 3.2 1B
+# Для QwQ-32B → draft = Qwen 2.5 1.5B
+
+# Запуск с speculative decoding:
+./llama-speculative \
+  --model llama-3.3-70b-Q4_K_M.gguf \
+  --model-draft llama-3.2-1b-Q8_0.gguf \
+  --n-gpu-layers 99 \
+  --n-gpu-layers-draft 99 \
+  --draft-max 8 \
+  --draft-min 2 \
+  --prompt "Explain quantum computing"
+
+# Параметры:
+# --draft-max N: максимум N токенов за одну спекуляцию (5–10)
+# --draft-min N: минимум N токенов (2–3)
+# --draft-p-min: мин. вероятность для принятия (0.5–0.9)</div>
+
+<h3>Настройка в prima.cpp</h3>
+<div class="cmd"># prima.cpp поддерживает speculative decoding распределённо:
+# Draft модель — на самом быстром GPU
+# Target модель — распределена по кластеру
+
+./prima-cli \
+  --model llama-3.3-70b-Q4_K_M.gguf \
+  --model-draft llama-3.2-1b-Q8_0.gguf \
+  --workers 192.168.1.101:8888,192.168.1.102:8888 \
+  --n-predict 256
+
+# Результат из статьи: QwQ-32B + spec. decoding = 26 tok/s!</div>
+
+<div class="good">
+<strong>Когда speculative decoding помогает:</strong><br>
+- Модели 30B+ (compute-heavy → много выигрыша от batch verification)<br>
+- GPU с высоким FLOPS (RTX 4090 — batch verify 8 токенов почти бесплатно)<br>
+- Простые задачи (перевод, суммаризация — высокий acceptance rate)<br><br>
+<strong>Когда НЕ помогает:</strong><br>
+- Модели &lt;14B (уже быстрые, overhead от draft не оправдан)<br>
+- CPU-only (нет batch processing ускорения)<br>
+- Сложные reasoning задачи (низкий acceptance rate)
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2 id="kv-cache">8. KV Cache оптимизация</h2>
+<div class="s">
+
+<p>KV Cache хранит Key и Value тензоры для всех предыдущих токенов — позволяет не пересчитывать attention для всего контекста при каждом токене.</p>
+
+<h3>Размер KV Cache для популярных моделей</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Слоёв</th>
+    <th>KV-голов</th>
+    <th>head_dim</th>
+    <th>KV при 4K (FP16)</th>
+    <th>KV при 32K (FP16)</th>
+    <th>KV при 128K (FP16)</th>
+  </tr>
+  <tr><td>Llama 8B</td><td>32</td><td>8 (GQA)</td><td>128</td><td>0.25 ГБ</td><td>2.0 ГБ</td><td>8.0 ГБ</td></tr>
+  <tr><td>QwQ-32B</td><td>64</td><td>8 (GQA)</td><td>128</td><td>0.5 ГБ</td><td>4.0 ГБ</td><td>16 ГБ</td></tr>
+  <tr><td>Llama 70B</td><td>80</td><td>8 (GQA)</td><td>128</td><td>1.3 ГБ</td><td>10.7 ГБ</td><td>42 ГБ</td></tr>
+  <tr><td>Llama 405B</td><td>126</td><td>8 (GQA)</td><td>128</td><td>2.1 ГБ</td><td>16.5 ГБ</td><td>66 ГБ</td></tr>
+</table>
+
+<div class="warn">
+<strong>KV cache на длинных контекстах ОГРОМЕН!</strong> Llama 70B при контексте 128K: KV cache = <strong>42 ГБ</strong> — столько же, сколько сама модель! На практике контекст 4–8K достаточен для 90% задач.
+</div>
+
+<h3>KV Cache квантизация</h3>
+<div class="cmd"># llama.cpp поддерживает квантизацию KV cache:
+./llama-cli \
+  --model model.gguf \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --ctx-size 8192
+
+# Q8_0 KV: потеря качества минимальна, экономия 50% RAM
+# Q4_0 KV: заметная потеря на длинных контекстах, экономия 75%
+
+# Flash Attention (экономия памяти + ускорение):
+./llama-cli \
+  --model model.gguf \
+  --flash-attn \
+  --ctx-size 8192</div>
+
+<div class="good">
+<strong>Рекомендация:</strong> Всегда используйте <code>--cache-type-k q8_0 --cache-type-v q8_0</code> для экономии RAM. Потеря качества незаметна, а экономия 50% KV cache позволяет увеличить контекст в 2× или освободить RAM для большей модели.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 9 ==================== -->
+<h2 id="params">9. Оптимизация параметров запуска</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Параметр</th>
+    <th>llama.cpp</th>
+    <th>Ollama</th>
+    <th>Что делает</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr>
+    <td><strong>n_threads</strong></td>
+    <td><code>-t N</code></td>
+    <td><code>OLLAMA_NUM_THREADS</code></td>
+    <td>CPU потоков для вычислений</td>
+    <td>= физические ядра (не HT!). Pi 5: 4. M4 Pro: 10</td>
+  </tr>
+  <tr>
+    <td><strong>n_gpu_layers</strong></td>
+    <td><code>-ngl N</code></td>
+    <td><code>num_gpu</code> в Modelfile</td>
+    <td>Сколько слоёв на GPU</td>
+    <td>99 (все) если VRAM хватает. Иначе — сколько влезет</td>
+  </tr>
+  <tr>
+    <td><strong>n_ctx</strong></td>
+    <td><code>-c N</code></td>
+    <td><code>num_ctx</code></td>
+    <td>Размер контекста (токены)</td>
+    <td>2048–8192 для чата. Больше = больше RAM</td>
+  </tr>
+  <tr>
+    <td><strong>n_batch</strong></td>
+    <td><code>-b N</code></td>
+    <td>-</td>
+    <td>Batch size для промпта</td>
+    <td>512 (по умолчанию). Увеличить до 2048 для длинных промптов</td>
+  </tr>
+  <tr>
+    <td><strong>mmap</strong></td>
+    <td><code>--mmap</code></td>
+    <td>По умолчанию</td>
+    <td>Memory-mapped loading</td>
+    <td>Включить (быстрая загрузка, ленивое чтение)</td>
+  </tr>
+  <tr>
+    <td><strong>mlock</strong></td>
+    <td><code>--mlock</code></td>
+    <td>-</td>
+    <td>Заблокировать модель в RAM</td>
+    <td>Включить если RAM хватает (предотвращает swap)</td>
+  </tr>
+  <tr>
+    <td><strong>flash_attn</strong></td>
+    <td><code>-fa</code></td>
+    <td>Авто</td>
+    <td>Flash Attention</td>
+    <td>Включить всегда (ускорение + экономия RAM)</td>
+  </tr>
+</table>
+
+<div class="cmd"># Оптимальная команда запуска llama.cpp для Mac Mini M4 Pro (64 ГБ):
+./llama-cli \
+  --model llama-3.3-70b-Q4_K_M.gguf \
+  -ngl 99 \
+  -t 10 \
+  -c 8192 \
+  -b 2048 \
+  --flash-attn \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --mmap \
+  --mlock \
+  --prompt "Hello"
+
+# Для Raspberry Pi 5 (8 ГБ):
+./llama-cli \
+  --model llama-3.2-3b-Q4_K_M.gguf \
+  -t 4 \
+  -c 2048 \
+  -b 512 \
+  --mmap \
+  --prompt "Hello"
+
+# Для RTX 3090 (24 ГБ VRAM, 64 ГБ RAM):
+./llama-cli \
+  --model qwq-32b-Q4_K_M.gguf \
+  -ngl 99 \
+  -t 8 \
+  -c 8192 \
+  -b 2048 \
+  --flash-attn \
+  --prompt "Hello"</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 10 ==================== -->
+<h2 id="perf-table">10. Таблица производительности: модель * железо (tok/s, генерация)</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Модель + квант.</th>
+    <th>Pi 5<br>8 ГБ</th>
+    <th>Orange Pi 5+<br>32 ГБ</th>
+    <th>Mac Mini M4<br>16 ГБ</th>
+    <th>Mac Mini M4 Pro<br>64 ГБ</th>
+    <th>Framework<br>128 ГБ</th>
+    <th>RTX 3090<br>24 ГБ</th>
+  </tr>
+  <tr><td>Llama 3.2 1B Q4_K_M</td><td class="speed">20–25</td><td class="speed">25–30</td><td class="speed">80+</td><td class="speed">100+</td><td class="speed">90+</td><td class="speed">200+</td></tr>
+  <tr><td>Llama 3.2 3B Q4_K_M</td><td class="speed">5–8</td><td class="speed">8–12</td><td class="speed">40–50</td><td class="speed">60+</td><td class="speed">55+</td><td class="speed">100+</td></tr>
+  <tr><td>Llama 3.1 8B Q4_K_M</td><td>2–4</td><td class="speed">5–7</td><td class="speed">18–22</td><td class="speed">35–40</td><td class="speed">30–35</td><td class="speed">80–100</td></tr>
+  <tr><td>Phi-4 14B Q4_K_M</td><td style="color:#ff6b6b;">OOM</td><td>2–4</td><td class="speed">10–14</td><td class="speed">20–25</td><td class="speed">18–22</td><td class="speed">50–60</td></tr>
+  <tr><td>Mistral Small 24B Q4_K_M</td><td style="color:#ff6b6b;">OOM</td><td>1–2</td><td style="color:#ff6b6b;">OOM</td><td class="speed">12–15</td><td class="speed">12–15</td><td class="speed">35–40</td></tr>
+  <tr><td>Gemma 3 27B Q4_K_M</td><td style="color:#ff6b6b;">OOM</td><td>1–2</td><td style="color:#ff6b6b;">OOM</td><td class="speed">10–13</td><td class="speed">10–12</td><td class="speed">30–35</td></tr>
+  <tr><td>QwQ-32B Q4_K_M</td><td style="color:#ff6b6b;">OOM</td><td>0.8–1.5</td><td style="color:#ff6b6b;">OOM</td><td class="speed">9–12</td><td class="speed">9–11</td><td class="speed">30–35</td></tr>
+  <tr><td><strong>Llama 70B Q4_K_M</strong></td><td style="color:#ff6b6b;">OOM</td><td style="color:#ff6b6b;">OOM</td><td style="color:#ff6b6b;">OOM</td><td class="speed"><strong>4–5</strong></td><td class="speed"><strong>4–5</strong></td><td style="color:#ff6b6b;">OOM (VRAM)</td></tr>
+  <tr><td>Qwen3-30B-A3B Q4_0 (MoE)</td><td class="speed">3–5*</td><td class="speed">6–10*</td><td class="speed">25–35</td><td class="speed">40–50</td><td class="speed">35–45</td><td class="speed">60–80</td></tr>
+  <tr><td>Llama 405B Q4_K_M</td><td style="color:#ff6b6b;">OOM</td><td style="color:#ff6b6b;">OOM</td><td style="color:#ff6b6b;">OOM</td><td style="color:#ff6b6b;">OOM</td><td>0.5–1.0**</td><td style="color:#ff6b6b;">OOM</td></tr>
+</table>
+<p style="font-size:0.8em; color:#607080;">* MoE: скорость определяется 3B активных параметров, не 30B. На кластере 4× Pi 5 = 13 tok/s (distributed-llama).<br>** С disk offloading через prima.cpp на кластере из 2 узлов.</p>
+
+<div class="good">
+<strong>Лучшие модели для каждого уровня железа:</strong><br>
+- <strong>Pi 5 / SBC</strong>: Qwen3-30B-A3B (MoE) через distributed-llama → 13 tok/s на кластере 4× Pi 5<br>
+- <strong>Mac Mini M4 16 ГБ</strong>: Llama 8B Q4_K_M → 18–22 tok/s<br>
+- <strong>Mac Mini M4 Pro 64 ГБ</strong>: Llama 70B Q4_K_M → 4–5 tok/s или QwQ-32B → 9–12 tok/s<br>
+- <strong>RTX 3090</strong>: QwQ-32B Q4_K_M → 30–35 tok/s (весь в VRAM). Лучший $/tok/s!
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 11 ==================== -->
+<h2 id="scenarios">11. Рекомендации по сценариям использования</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Лучшая модель</th>
+    <th>Почему</th>
+    <th>Минимальное железо</th>
+  </tr>
+  <tr>
+    <td><strong>Кодирование</strong></td>
+    <td>Qwen 2.5 Coder 32B Q4_K_M</td>
+    <td>Специально обучена на коде. HumanEval 90%+</td>
+    <td>24 ГБ RAM/VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>Reasoning / Математика</strong></td>
+    <td>QwQ-32B Q4_K_M</td>
+    <td>Chain-of-thought reasoning, превосходит GPT-4 на math</td>
+    <td>24 ГБ RAM/VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>Чат / Ассистент</strong></td>
+    <td>Llama 3.3 70B Q4_K_M</td>
+    <td>Лучший баланс качества и знаний</td>
+    <td>48 ГБ RAM</td>
+  </tr>
+  <tr>
+    <td><strong>Чат на бюджете</strong></td>
+    <td>Llama 3.1 8B Q4_K_M</td>
+    <td>Быстрая, качественная для 8B</td>
+    <td>6 ГБ RAM</td>
+  </tr>
+  <tr>
+    <td><strong>Суммаризация</strong></td>
+    <td>Gemma 3 27B Q4_K_M</td>
+    <td>Отличное следование инструкциям</td>
+    <td>20 ГБ RAM/VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>Перевод</strong></td>
+    <td>Qwen 2.5 32B Q4_K_M</td>
+    <td>Лучшая мультиязычность (CJK + европейские)</td>
+    <td>24 ГБ RAM/VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>Креативное письмо</strong></td>
+    <td>Llama 3.3 70B Q4_K_M</td>
+    <td>Богатый словарь, хороший стиль</td>
+    <td>48 ГБ RAM</td>
+  </tr>
+  <tr>
+    <td><strong>SBC кластер</strong></td>
+    <td>Qwen3-30B-A3B Q4_0 (MoE)</td>
+    <td>Лучшая tok/s для ограниченной bandwidth</td>
+    <td>4× Pi 5 8 ГБ ($585)</td>
+  </tr>
+  <tr>
+    <td><strong>Edge / IoT</strong></td>
+    <td>Llama 3.2 1B Q4_K_M или Gemma 3 1B</td>
+    <td>Ультра-компактная, 0.8 ГБ RAM</td>
+    <td>Любое устройство с 2 ГБ RAM</td>
+  </tr>
+  <tr>
+    <td><strong>RAG / Документы</strong></td>
+    <td>Command R+ 104B Q4_K_M или Qwen 72B</td>
+    <td>Оптимизирована для RAG и длинных контекстов</td>
+    <td>70+ ГБ RAM</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 12 ==================== -->
+<h2 id="tools">12. Инструменты: скачивание, конвертация, бенчмарки</h2>
+<div class="s">
+
+<h3>Скачивание моделей</h3>
+<div class="cmd"># Способ 1: huggingface-cli (рекомендуется)
+pip install huggingface_hub
+huggingface-cli download \
+  bartowski/Llama-3.3-70B-Instruct-GGUF \
+  Llama-3.3-70B-Instruct-Q4_K_M.gguf \
+  --local-dir ./models
+
+# Способ 2: wget напрямую
+wget https://huggingface.co/bartowski/Llama-3.3-70B-Instruct-GGUF/resolve/main/Llama-3.3-70B-Instruct-Q4_K_M.gguf
+
+# Способ 3: Ollama (автоматически скачивает)
+ollama pull llama3.3:70b-instruct-q4_K_M
+
+# Лучшие источники GGUF:
+# - bartowski (HuggingFace) — лучшие квантизации, importance matrix
+# - TheBloke — классический источник (менее активен)
+# - Official repos (Meta, Qwen) — оригинальные веса</div>
+
+<h3>Квантизация своими руками</h3>
+<div class="cmd"># Если нужна нестандартная квантизация:
+
+# 1. Скачать модель в safetensors/pytorch формате
+huggingface-cli download meta-llama/Llama-3.3-70B-Instruct --local-dir ./llama-70b
+
+# 2. Конвертировать в GGUF (FP16):
+cd llama.cpp
+python convert_hf_to_gguf.py ./llama-70b --outfile llama-70b-f16.gguf
+
+# 3. Квантизовать:
+./llama-quantize llama-70b-f16.gguf llama-70b-Q4_K_M.gguf Q4_K_M
+
+# Доступные типы квантизации:
+# Q8_0, Q6_K, Q5_K_M, Q5_K_S, Q4_K_M, Q4_K_S, Q4_0,
+# Q3_K_M, Q3_K_S, Q2_K, IQ4_XS, IQ3_XXS, IQ2_XXS, IQ1_S
+
+# С importance matrix (лучшее качество при агрессивной квантизации):
+./llama-quantize --imatrix imatrix.dat \
+  llama-70b-f16.gguf llama-70b-IQ4_XS.gguf IQ4_XS</div>
+
+<h3>Бенчмарки</h3>
+<div class="cmd"># llama-bench — встроенный бенчмарк:
+./llama-bench \
+  --model llama-70b-Q4_K_M.gguf \
+  -ngl 99 \
+  -t 10 \
+  --batch-size 512 \
+  --n-prompt 512 \
+  --n-gen 128
+
+# Выводит: prompt tok/s, generation tok/s, memory usage
+
+# Perplexity (измерение качества):
+./llama-perplexity \
+  --model llama-70b-Q4_K_M.gguf \
+  --file wiki.test.raw \
+  --ctx-size 512 \
+  --batch-size 512
+
+# Ожидание для Llama 70B:
+# F16:     PPL = 3.31
+# Q8_0:    PPL = 3.32 (+0.3%)
+# Q6_K:    PPL = 3.33 (+0.6%)
+# Q4_K_M:  PPL = 3.37 (+1.8%)
+# Q3_K_M:  PPL = 3.46 (+4.5%)
+# IQ2_XXS: PPL = 3.72 (+12.4%)</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 13 ==================== -->
+<h2 id="verdict">13. Итоговые рекомендации</h2>
+<div class="s">
+
+<h3>По бюджету</h3>
+<table>
+  <tr>
+    <th>Бюджет</th>
+    <th>Железо</th>
+    <th>Лучшая модель</th>
+    <th>tok/s</th>
+  </tr>
+  <tr><td class="price">$60–100</td><td>Pi 5 8 ГБ или б/у OptiPlex</td><td>Llama 3.2 3B Q4_K_M</td><td class="speed">5–8</td></tr>
+  <tr><td class="price">$500–600</td><td>4× Pi 5 8 ГБ кластер</td><td>Qwen3-30B-A3B (MoE)</td><td class="speed">13</td></tr>
+  <tr><td class="price">$600</td><td>Mac Mini M4 16 ГБ</td><td>Llama 8B Q4_K_M</td><td class="speed">18–22</td></tr>
+  <tr><td class="price">$800–1000</td><td>Б/у десктоп + RTX 3090</td><td>QwQ-32B Q4_K_M</td><td class="speed">30–35</td></tr>
+  <tr><td class="price">$2000</td><td>Framework Desktop 128 ГБ</td><td>Llama 70B Q4_K_M</td><td class="speed">4–5</td></tr>
+  <tr><td class="price">$2200</td><td>Mac Mini M4 Pro 64 ГБ</td><td>Llama 70B Q4_K_M</td><td class="speed">4–5</td></tr>
+  <tr><td class="price">$4000</td><td>2× Framework Desktop</td><td>Llama 405B Q4_K_M (prima.cpp)</td><td class="speed">0.5–1.5</td></tr>
+  <tr><td class="price">$8800</td><td>4× Mac Mini M4 Pro + EXO</td><td>Llama 70B</td><td class="speed">32</td></tr>
+</table>
+
+<div class="highlight">
+<strong>Три золотых правила:</strong><br><br>
+<strong>1.</strong> Используйте <strong>Q4_K_M</strong> по умолчанию. Переходите на Q6_K только если RAM позволяет, и на Q3_K_M только если не хватает.<br><br>
+<strong>2.</strong> Лучше <strong>меньшая модель с хорошей квантизацией</strong>, чем большая с агрессивной. QwQ-32B Q4_K_M >> Llama 70B IQ2_XXS.<br><br>
+<strong>3.</strong> Для SBC/мини-ПК с ограниченной bandwidth — <strong>MoE модели</strong> (Qwen3-30B-A3B) дают лучшее качество/скорость.
+</div>
+</div>
+
+<div class="footer">
+  Часть 9 серии «Домашние AI-кластеры 2026». Февраль 2026.<br>
+  Источники: llama.cpp docs, HuggingFace, bartowski quantizations, arXiv:2504.08791.<br>
+  <a href="networking-deep-dive-ru.html">← Часть 8 (Сети)</a> ·
+  <a href="favorites-prima-cpp-ru.html">← Часть 7 (Фавориты)</a> ·
+  <a href="production-deployment-ru.html">→ Часть 10 (Продакшн)</a> ·
+  <a href="cost-performance-calculator-ru.html">→ Часть 11 (Калькулятор)</a>
+</div>
+
+</body>
+</html>
