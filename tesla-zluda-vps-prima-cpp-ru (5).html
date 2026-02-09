@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesla GPU + CUDA на AMD + Облачные VPS × prima.cpp</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #ff946f; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.3em; color: #73d0ff; margin: 36px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 22px 0 10px 0; font-weight: 600; }
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #1a0d0a 0%, #1a1505 100%); border: 1px solid #ff946f; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  .mega { background: linear-gradient(135deg, #0d1a0a 0%, #0a1a1a 100%); border: 2px solid #bae67e; border-radius: 12px; padding: 18px; margin: 16px 0; }
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .badge-purple { background: #1a0d2a; color: #d4bfff; }
+  .diagram { background: #0a0e14; border: 2px solid #ff946f; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; white-space: pre-wrap; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Три дополнительных сценария × prima.cpp</h1>
+<p class="sub">Часть 8 серии. Февраль 2026. Tesla GPU, CUDA на AMD (ZLUDA/SCALE), облачные VPS-кластеры</p>
+
+<!-- ======================================================================= -->
+<!-- СЦЕНАРИЙ 1: TESLA GPU -->
+<!-- ======================================================================= -->
+<h2>⚡ Сценарий 1: Б/у NVIDIA Tesla GPU — «серверные карты без дисплея»</h2>
+
+<div class="s">
+<h3>Что это и почему дёшево?</h3>
+<p>NVIDIA Tesla — серверные ускорители для дата-центров. У них <strong>нет видеовыхода</strong> (ни HDMI, ни DisplayPort), нет вентилятора (пассивное охлаждение серверным обдувом), и они предназначены исключительно для вычислений. По мере того как дата-центры переходят на новые поколения (H100, B200), старые Tesla массово попадают на вторичный рынок по бросовым ценам.</p>
+
+<table>
+  <tr>
+    <th>GPU</th>
+    <th>Год</th>
+    <th>VRAM</th>
+    <th>Bandwidth</th>
+    <th>Tensor Cores</th>
+    <th>Цена б/у (2026)</th>
+    <th>LLM-инференс (8B Q4)</th>
+  </tr>
+  <tr>
+    <td><strong>Tesla P40</strong></td>
+    <td>2016</td>
+    <td>24 ГБ GDDR5</td>
+    <td>347 ГБ/с</td>
+    <td>❌ Нет</td>
+    <td class="price">$150–250</td>
+    <td>~25 tok/s (8B), ~50 tok/s (30B Qwen3)</td>
+  </tr>
+  <tr>
+    <td><strong>Tesla M40</strong></td>
+    <td>2015</td>
+    <td>12/24 ГБ GDDR5</td>
+    <td>288 ГБ/с</td>
+    <td>❌ Нет</td>
+    <td class="price">$80–150</td>
+    <td>~15–20 tok/s (8B)</td>
+  </tr>
+  <tr>
+    <td><strong>Tesla V100 16 ГБ</strong></td>
+    <td>2017</td>
+    <td>16 ГБ HBM2</td>
+    <td>900 ГБ/с</td>
+    <td>✅ 1-е поколение</td>
+    <td class="price">$500–700</td>
+    <td>~35–45 tok/s (8B)</td>
+  </tr>
+  <tr>
+    <td><strong>Tesla V100 32 ГБ</strong></td>
+    <td>2017</td>
+    <td>32 ГБ HBM2</td>
+    <td>900 ГБ/с</td>
+    <td>✅ 1-е поколение</td>
+    <td class="price">$900–1 300</td>
+    <td>~35–45 tok/s (8B), ~11 tok/s (32B)</td>
+  </tr>
+  <tr>
+    <td><strong>Tesla A30</strong></td>
+    <td>2021</td>
+    <td>24 ГБ HBM2e</td>
+    <td>933 ГБ/с</td>
+    <td>✅ 3-е поколение</td>
+    <td class="price">$600–900</td>
+    <td>~50–60 tok/s (8B)</td>
+  </tr>
+  <tr>
+    <td><strong>A40</strong></td>
+    <td>2020</td>
+    <td>48 ГБ GDDR6</td>
+    <td>696 ГБ/с</td>
+    <td>✅ 3-е поколение</td>
+    <td class="price">$1 500–2 500</td>
+    <td>~40–50 tok/s (8B), ~15 tok/s (32B)</td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td colspan="7" style="color:#bae67e;">Для сравнения: <strong>RTX 3090</strong> (24 ГБ, 936 ГБ/с, $800–900) → ~80 tok/s (8B), ~24 tok/s (32B)</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Нюансы установки Tesla:</strong> Нет вентилятора → нужен серверный корпус или кастомный вентилятор («snail blower», ~$15). Питание через специальный 8-pin EPS → нужен переходник ($7). Требуется PCIe x16 слот. Потребление P40: 250 Вт. Нет видеовыхода → нужна отдельная видеокарта для дисплея или headless-режим.
+</div>
+</div>
+
+<div class="s">
+<h3>🏆 Tesla P40 × prima.cpp — лучший $/VRAM для кластера</h3>
+
+<div class="diagram">КЛАСТЕР ИЗ TESLA P40 + prima.cpp:
+
+  Сценарий: 4× Tesla P40 в одном б/у серверe (Dell R720, Supermicro)
+  
+  Сервер б/у (eBay): $300–500 (2× Xeon E5-2690, 128 ГБ RAM)
+  4× Tesla P40:       $600–1 000 (по $150–250 каждая)
+  Охлаждение:         Серверное (встроенное)
+  ─────────────────────────────────────────────
+  Итого:              $900–1 500
+  VRAM:               96 ГБ (4 × 24 ГБ)
+  RAM:                128 ГБ
+  
+  llama.cpp (без prima.cpp, один сервер):
+  • 70B Q4 → 96 ГБ VRAM хватает! Multi-GPU split
+  • 2× P40 на 70B: ~6 tok/s (PCIe 3.0 overhead)
+  • 4× P40 на 70B: ~4–8 tok/s (diminishing returns)
+
+  ЗАЧЕМ prima.cpp?
+  • Если 4× P40 в ОДНОМ сервере → llama.cpp multi-GPU лучше
+  • Если P40 в РАЗНЫХ машинах → prima.cpp объединяет через сеть
+  • Если модель > 96 ГБ (405B) → prima.cpp + disk offloading</div>
+
+<div class="note">
+<strong>Ключевое:</strong> Tesla P40 за $150–250 даёт <strong>24 ГБ VRAM CUDA</strong> — это идеальный «строительный блок» для prima.cpp. Четыре P40 = 96 ГБ VRAM = 70B Q6 полностью в GPU-памяти. В отличие от RTX 3090 ($800), P40 стоит <strong>в 4–5 раз дешевле</strong> за тот же объём VRAM. Минус — скорость: P40 (Pascal, 2016) в 2–3× медленнее RTX 3090 (Ampere) на один токен из-за отсутствия Tensor Cores и медленной GDDR5.
+</div>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Tesla P40 + prima.cpp: конкретные конфигурации</h3>
+
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Цена</th>
+    <th>VRAM</th>
+    <th>70B Q4</th>
+    <th>32B Q4</th>
+    <th>prima.cpp нужна?</th>
+  </tr>
+  <tr>
+    <td>1× P40 в десктопе</td>
+    <td class="price">$200 + корпус</td>
+    <td>24 ГБ</td>
+    <td style="color:#ff6b6b;">Не влезает</td>
+    <td class="speed">~8–12 tok/s</td>
+    <td>Нет, llama.cpp</td>
+  </tr>
+  <tr>
+    <td>2× P40 в одном ПК</td>
+    <td class="price">$400</td>
+    <td>48 ГБ</td>
+    <td class="speed">~4–6 tok/s</td>
+    <td class="speed">~10–15 tok/s</td>
+    <td>Нет, llama.cpp multi-GPU</td>
+  </tr>
+  <tr>
+    <td><strong>P40 (ПК) + ноутбук (prima.cpp)</strong></td>
+    <td class="price">$200 + $0</td>
+    <td>24 ГБ + 16 ГБ RAM</td>
+    <td class="speed">~2–4 tok/s</td>
+    <td class="speed">~8–12 tok/s</td>
+    <td><span class="badge badge-green">Да!</span></td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>4× P40 в б/у сервере</strong></td>
+    <td class="price">$900–1 500</td>
+    <td>96 ГБ</td>
+    <td class="speed">~4–8 tok/s</td>
+    <td class="speed">~15–25 tok/s</td>
+    <td>Нет (один сервер)</td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>Сервер 4×P40 + домашний ПК (prima.cpp)</strong></td>
+    <td class="price">$1 000–1 700</td>
+    <td>96 ГБ + 32 ГБ RAM</td>
+    <td class="speed">~4–8 tok/s</td>
+    <td class="speed">~15–25 tok/s</td>
+    <td><span class="badge badge-green">Да (405B!)</span></td>
+  </tr>
+</table>
+</div>
+
+<div class="mega">
+<strong>🎯 Вердикт по Tesla GPU:</strong><br>
+<strong>P40 за $150–250 — самый дешёвый путь к 24 ГБ CUDA VRAM.</strong> Для prima.cpp это идеальный узел: Halda видит CUDA GPU и назначает максимум слоёв на GPU.<br><br>
+<strong>Лучшая сборка:</strong> Б/у сервер Dell R720/R730 ($300–500) + 2–4× P40 ($300–1 000) = <strong>70B за $600–1 500</strong>. Это дешевле ЛЮБОГО другого пути к 70B, кроме SBC-кластера (но SBC даёт 0.3 tok/s, а P40 даёт 4–8 tok/s).<br><br>
+<strong>Ограничение:</strong> P40 — Pascal (2016). Нет FP16 Tensor Cores → INT8/INT4 квантизация медленнее, чем на Ampere/Ada. NVIDIA может прекратить поддержку CUDA для compute capability 6.1 в будущем.
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- СЦЕНАРИЙ 2: CUDA НА AMD -->
+<!-- ======================================================================= -->
+<h2>🔴 Сценарий 2: Выход за пределы NVIDIA — AMD, Intel Arc, ARM Mali</h2>
+
+<div class="s">
+<h3>Предыстория: зачем это нужно?</h3>
+<p>prima.cpp поддерживает <strong>только CUDA GPU</strong> (NVIDIA). Это значит, что AMD Radeon, Intel Arc, iGPU Strix Halo (59.4 ТФЛОПС RDNA 3.5), Mali G610 на Orange Pi — <strong>бесполезны</strong> как GPU-ускорители в prima.cpp. Но «ров CUDA» размывается одновременно с <strong>четырёх сторон</strong>: ZLUDA, SCALE, Claude Code и Vulkan.</p>
+
+<h3>Три пути: ZLUDA, SCALE и Claude Code (прямой порт)</h3>
+
+<div class="vs">
+<div class="s">
+<h3 style="color:#73d0ff;">ZLUDA</h3>
+<p><strong>Что:</strong> Drop-in замена CUDA-библиотек. Переводит CUDA-вызовы в AMD ROCm/HIP без изменения кода приложения.</p>
+<p><strong>Автор:</strong> Andrzej Janik (изначально для Intel, потом AMD финансировал 2 года, потом бросил, теперь open-source с анонимным спонсором).</p>
+<p><strong>Статус (январь 2026):</strong></p>
+<p>• <span class="badge badge-green">llama.cpp CUDA backend на ZLUDA — работает полностью</span><br>
+• Производительность «почти идентична» нативному ROCm<br>
+• Поддержка ROCm 7, Windows улучшена<br>
+• PyTorch — в разработке, ещё не готов<br>
+• 2 разработчика full-time</p>
+<p><strong>GPU:</strong> AMD RDNA 1/2/3 (RX 5700 XT → RX 7900 XTX)</p>
+</div>
+
+<div class="s">
+<h3 style="color:#ffd580;">SCALE</h3>
+<p><strong>Что:</strong> «Чистая комната» — компилятор, который <strong>нативно компилирует CUDA-код</strong> для AMD GPU. Не слой трансляции, а полноценный компилятор, замена <code>nvcc</code>.</p>
+<p><strong>Кто:</strong> Spectral Compute (небольшая компания).</p>
+<p><strong>Статус (2026):</strong></p>
+<p>• <span class="badge badge-green">Blender, llama.cpp, Hashcat, XGBoost — работают</span><br>
+• Тестирование на RDNA 2 и RDNA 3<br>
+• Базовое тестирование RDNA 1, разработка для Vega<br>
+• CDNA (серверные) — не поддерживаются<br>
+• Имитирует NVIDIA CUDA Toolkit</p>
+<p><strong>GPU:</strong> AMD RDNA 1/2/3 (потребительские)</p>
+</div>
+</div>
+
+<div class="s" style="border: 2px solid #ff946f;">
+<h3 style="color:#ff946f;">🔥 Claude Code (прямой порт) — НОВИНКА января 2026</h3>
+<p><strong>Что:</strong> Не трансляционный слой, а <strong>прямое переписывание CUDA-кода на ROCm/HIP</strong> с помощью AI-агента Claude Code (CLI-инструмент Anthropic с доступом к файловой системе и сборке).</p>
+<p><strong>Событие (январь 2026):</strong> Разработчик johnnytshi использовал Claude Code для портирования CUDA-бэкенда шахматного движка <a href="https://github.com/LeelaChessZero/lc0/pull/2375">Leela Chess Zero (lc0)</a> на ROCm. <strong>За 30 минут</strong> AI проанализировал зависимости, выявил несовместимые функции, написал wrappers — и код <strong>скомпилировался и запустился на AMD Instinct MI300X</strong> с производительностью, «практически идентичной нативной».</p>
+<p><strong>Ключевое отличие:</strong> Claude Code не просто заменяет <code>cuda_</code> → <code>hip_</code>. Он анализирует логику ядер, находит несовместимости и пишет «мосты». Результат — <strong>нативный AMD-код</strong>, не трансляционный слой.</p>
+<p><strong>Источники:</strong> <a href="https://itc.ua/news/apple-mac-mini-smetayut-s-polok-magazynov-poskolku-monopolyya-nvidia-na-cuda-oslabla-blagodarya-claude-code/">ITC.ua</a>, <a href="https://www.goha.ru/konec-dominirovaniya-nvidia-nejroset-claude-code-portirovala-cuda-v-amd-rocm-za-30-minut-x1D7GA">GoHa.ru</a>, <a href="https://wccftech.com/the-claude-code-has-managed-to-port-nvidia-cuda-backend-to-rocm-in-just-30-minutes/">Wccftech</a></p>
+<p><strong>Статус:</strong> <span class="badge badge-green">Доказано на lc0</span> <span class="badge badge-orange">Не тестировано на prima.cpp</span></p>
+</div>
+
+<div class="note">
+<strong>Побочный эффект:</strong> После этой новости Mac Mini M4 стали <strong>раскупаться ещё быстрее</strong>. Логика: если «ров CUDA» размывается → разработчики могут использовать Apple Silicon (Metal/MLX) без привязки к NVIDIA → Mac Mini становится ещё привлекательнее для локального AI. Хотя прямой связи между портом lc0 и продажами Mac нет, это отражает <strong>общий тренд ухода от CUDA-зависимости</strong>.
+</div>
+
+<div class="warn">
+<strong>Юридический вопрос:</strong> Лицензия NVIDIA CUDA Toolkit <strong>запрещает</strong> использование для создания трансляционных слоёв для не-NVIDIA платформ. ZLUDA обходит через open-source. SCALE — «чистая комната». Claude Code — отдельная история: он <strong>пишет новый код</strong>, а не транслирует. Юридически это ближе к «чистой комнате» — человек (или AI) читает CUDA-код и пишет эквивалент на ROCm. NVIDIA сложнее оспорить этот подход.
+</div>
+</div>
+
+<div class="s">
+<h3>ZLUDA / SCALE / Claude Code × prima.cpp: реально ли?</h3>
+
+<div class="diagram">ТРИ ПУТИ К CUDA НА AMD:
+
+  Путь 1: ZLUDA (runtime-трансляция)
+  prima.cpp → CUDA API → ZLUDA перехватывает → ROCm/HIP → AMD GPU
+  ✅ Не нужно менять код prima.cpp
+  ❌ Может не покрывать кастомные CUDA-ядра
+
+  Путь 2: SCALE (compile-time)
+  prima.cpp CUDA-код → SCALE компилирует → нативный AMD binary
+  ✅ Нативная производительность
+  ❌ Нужна перекомпиляция, может не собраться
+
+  Путь 3: Claude Code (прямой порт) ← НОВИНКА 2026
+  prima.cpp CUDA-код → Claude Code анализирует и переписывает → ROCm/HIP код
+  ✅ Нативная производительность, «чистая комната»
+  ✅ AI понимает логику ядер, пишет wrappers
+  ❌ Нужен человек для контроля и тестирования
+  ❌ Кастомные ядра prima.cpp сложнее, чем lc0</div>
+
+<div class="red">
+<strong>Проблема:</strong> prima.cpp — это <strong>не стандартный llama.cpp</strong>. Это модифицированный форк с кастомными CUDA-ядрами для PRP (piped-ring parallelism), Halda, и межузловой коммуникации. ZLUDA может не покрывать все кастомные CUDA-операции prima.cpp. Стандартный llama.cpp через ZLUDA уже работает, но prima.cpp — это другой вопрос.
+</div>
+
+<table>
+  <tr>
+    <th>Путь</th>
+    <th>Реалистичность</th>
+    <th>Ожидаемая скорость vs CUDA</th>
+    <th>Статус</th>
+  </tr>
+  <tr>
+    <td>llama.cpp (не prima) + ZLUDA на AMD</td>
+    <td><span class="badge badge-green">Работает</span></td>
+    <td>~90–100% от ROCm</td>
+    <td>Стабильно, январь 2026</td>
+  </tr>
+  <tr>
+    <td>llama.cpp + ROCm (нативный AMD)</td>
+    <td><span class="badge badge-green">Работает</span></td>
+    <td>Нативная скорость</td>
+    <td>Стабильно, оптимизировано AMD</td>
+  </tr>
+  <tr>
+    <td><strong>prima.cpp + ZLUDA на AMD</strong></td>
+    <td><span class="badge badge-orange">Теоретически</span></td>
+    <td>~70–90% при удаче</td>
+    <td>Не тестировалось, нужен эксперимент</td>
+  </tr>
+  <tr>
+    <td><strong>prima.cpp + SCALE на AMD</strong></td>
+    <td><span class="badge badge-orange">Теоретически</span></td>
+    <td>~80–95% при удаче</td>
+    <td>Не тестировалось</td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>prima.cpp → Claude Code порт на ROCm</strong></td>
+    <td><span class="badge badge-green">Реалистично</span></td>
+    <td>~90–100% (нативный код)</td>
+    <td>Не выполнялось, но метод доказан на lc0</td>
+  </tr>
+  <tr>
+    <td>prima.cpp Vulkan backend (roadmap)</td>
+    <td><span class="badge badge-blue">Ожидание</span></td>
+    <td>~60–80% от CUDA</td>
+    <td>В планах, сроков нет</td>
+  </tr>
+</table>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Что если Claude Code портирует prima.cpp на ROCm?</h3>
+<p>Это <strong>самый реалистичный путь</strong> из трёх. lc0 был портирован за 30 минут. prima.cpp сложнее (кастомные PRP-ядра, Halda, межузловая коммуникация), но Claude Code может справиться за <strong>несколько часов</strong> при участии разработчика. Результат — нативный ROCm-код, который <strong>разблокирует Strix Halo iGPU</strong> (59.4 ТФЛОПС, до 96 ГБ выделяемого VRAM из 128 ГБ unified memory) и любую AMD Radeon GPU.</p>
+
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Цена</th>
+    <th>70B Q4</th>
+    <th>32B Q4</th>
+  </tr>
+  <tr>
+    <td>4× Framework Desktop 128 ГБ (prima.cpp CPU-only, сейчас)</td>
+    <td class="price">$7 996</td>
+    <td>Модель влезает в 1 узел → ~4–5 tok/s</td>
+    <td>~15 tok/s</td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>4× Framework Desktop 128 ГБ (prima.cpp + ZLUDA, гипотетически)</strong></td>
+    <td class="price">$7 996</td>
+    <td class="speed"><strong>~8–15 tok/s</strong> (GPU-ускорение!)</td>
+    <td class="speed"><strong>~25–40 tok/s</strong></td>
+  </tr>
+</table>
+<p style="margin-top:10px;">Это бы сделало кластер Strix Halo <strong>прямым конкурентом Mac Mini кластера</strong> (32 tok/s на 70B). Но пока это гипотеза.</p>
+</div>
+
+<div class="mega">
+<strong>🎯 Вердикт по AMD:</strong><br>
+• <strong>ZLUDA + llama.cpp</strong> — уже работает стабильно (январь 2026), производительность ≈ ROCm<br>
+• <strong>Claude Code + lc0</strong> — доказано: прямой порт CUDA→ROCm за 30 минут, нативная производительность на MI300X<br>
+• <strong>Claude Code + prima.cpp</strong> — <span class="badge badge-green">САМЫЙ РЕАЛИСТИЧНЫЙ ПУТЬ</span>. prima.cpp сложнее lc0, но метод масштабируется. Нужен разработчик + Claude Code + несколько часов<br>
+• <strong>Практичный путь прямо сейчас:</strong> llama.cpp с ROCm напрямую на AMD GPU. Для prima.cpp → попробовать Claude Code порт или ждать Vulkan backend
+</div>
+
+<!-- INTEL ARC -->
+<h3 style="color:#0068b5; margin-top:30px;">🔵 Intel Arc — третий игрок, о котором забывают</h3>
+
+<div class="vs">
+<div class="s">
+<h3 style="color:#0068b5;">Intel Arc B580</h3>
+<p><strong>VRAM:</strong> 12 ГБ GDDR6</p>
+<p><strong>Bandwidth:</strong> 456 ГБ/с</p>
+<p><strong>Цена:</strong> $249–309 (новая)</p>
+<p><strong>llama.cpp:</strong> SYCL бэкенд (Intel oneAPI) или Vulkan</p>
+<p><strong>LLM:</strong> 7B Q4 → <strong>~33–80 tok/s</strong> (IPEX-LLM); 8B Q4_K_M Vulkan → ~42 tok/s</p>
+<p><strong>Статус:</strong> <span class="badge badge-green">Работает</span></p>
+</div>
+<div class="s">
+<h3 style="color:#0068b5;">Intel Arc A770</h3>
+<p><strong>VRAM:</strong> 16 ГБ GDDR6</p>
+<p><strong>Bandwidth:</strong> 560 ГБ/с</p>
+<p><strong>Цена:</strong> $200–280 (б/у)</p>
+<p><strong>llama.cpp:</strong> SYCL → <strong>~82 tok/s</strong> на 7B Q4_0 (IPEX-LLM!)</p>
+<p><strong>LLM:</strong> 13B модели с INT4 квантизацией — влезает в 16 ГБ</p>
+<p><strong>Бомба:</strong> ipex-llm может запускать <strong>DeepSeek V3/R1 671B на 1–2× Arc A770!</strong> (через FlashMoE, май 2025)</p>
+<p><strong>Статус:</strong> <span class="badge badge-green">Работает</span></p>
+</div>
+</div>
+
+<div class="highlight">
+<h3>Intel Arc × prima.cpp: что это даёт?</h3>
+<p>Сейчас Intel Arc поддерживается <strong>только через llama.cpp</strong> (SYCL/Vulkan). prima.cpp для Intel не работает — нужен порт CUDA→SYCL или Vulkan backend.</p>
+
+<p><strong>Три пути к prima.cpp на Intel:</strong></p>
+<p>1. <strong>Vulkan backend prima.cpp</strong> (на roadmap) → Intel Arc сразу поддерживается через Vulkan 1.3<br>
+2. <strong>Claude Code порт CUDA→SYCL</strong> — аналогично порту lc0→ROCm, но на Intel oneAPI<br>
+3. <strong>ZLUDA для Intel</strong> — ZLUDA изначально создавался именно для Intel! Andrzej Janik работал на Intel до перехода на AMD</p>
+
+<p><strong>Что это даёт на практике:</strong></p>
+
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Цена</th>
+    <th>VRAM</th>
+    <th>70B (llama.cpp, уже сейчас)</th>
+    <th>70B (prima.cpp, если портировать)</th>
+  </tr>
+  <tr>
+    <td>2× Intel Arc A770 (десктоп)</td>
+    <td class="price">$400–560</td>
+    <td>32 ГБ</td>
+    <td>CPU offload, ~5–8 tok/s</td>
+    <td>~3–6 tok/s (pipeline parallel)</td>
+  </tr>
+  <tr>
+    <td>Mini-PC с Intel iGPU + Arc A770</td>
+    <td class="price">$500–700</td>
+    <td>16 ГБ GPU + RAM</td>
+    <td>Гибрид CPU+GPU, ~4–6 tok/s</td>
+    <td>Гетерогенный кластер с Halda</td>
+  </tr>
+  <tr>
+    <td>Кластер: Arc A770 + RTX 3090 + ноутбук (prima.cpp)</td>
+    <td class="price">$1 000–1 500</td>
+    <td>40+ ГБ</td>
+    <td>—</td>
+    <td>~2–5 tok/s (гетерогенный)</td>
+  </tr>
+</table>
+
+<div class="note" style="margin-top:15px;">
+<strong>Ключевое преимущество Intel Arc:</strong> Цена за VRAM. A770 б/у за $200 = <strong>$12.50/ГБ</strong> (16 ГБ). Для сравнения: RTX 3090 б/у $800 = $33/ГБ (24 ГБ). Tesla P40 б/у $200 = $8.3/ГБ (24 ГБ). <strong>Intel Arc A770 — второй по дешевизне VRAM после Tesla P40</strong>, но с современной архитектурой и активной поддержкой.
+</div>
+</div>
+
+<!-- MALI G610 / ORANGE PI -->
+<h3 style="color:#ff6600; margin-top:30px;">🍊 Mali G610 (Orange Pi / RK3588) — GPU-ускорение на SBC</h3>
+
+<div class="s">
+<h3>Что умеет Mali G610 в AI?</h3>
+<p>RK3588 SoC (Orange Pi 5 Plus, Rock 5B, Banana Pi M7) содержит <strong>Mali-G610 MP4</strong> GPU с поддержкой OpenCL 2.2, Vulkan 1.2. Плюс <strong>6 TOPS NPU</strong> для мелких моделей.</p>
+
+<div class="diagram">УСКОРИТЕЛИ В RK3588:
+
+  ┌─────────────────────────────────────────────┐
+  │  CPU: 4×A76 (2.4 ГГц) + 4×A55 (1.8 ГГц)   │
+  │  └→ llama.cpp CPU: 7B → ~3–4 tok/s          │
+  ├─────────────────────────────────────────────┤
+  │  GPU: Mali-G610 MP4 (OpenCL 2.2 / Vulkan)   │
+  │  └→ MLC-LLM OpenCL:                         │
+  │      • RedPajama 3B → 5 tok/s                │
+  │      • Llama2-7B → 2.5 tok/s                 │
+  │      • Llama3-8B → 2.3 tok/s                 │
+  │      • Llama2-13B → 1.5 tok/s (16 ГБ RAM)   │
+  ├─────────────────────────────────────────────┤
+  │  NPU: 6 TOPS (INT4/INT8/INT16)              │
+  │  └→ RKLLM: TinyLlama 1.1B → 10–15 tok/s    │
+  │      • Только модели до ~3.8B               │
+  │      • W8A8 квантизация (не W4A16)           │
+  └─────────────────────────────────────────────┘</div>
+
+<div class="warn">
+<strong>Важно:</strong> GPU-ускорение на Mali G610 даёт <strong>лишь небольшой буст</strong> по сравнению с чистым CPU. Llama2-7B: CPU ~3–4 tok/s vs GPU ~2.5 tok/s (MLC-LLM). Парадокс: GPU не всегда быстрее из-за overhead OpenCL и слабой шейдерной производительности Mali. Основная польза GPU — <strong>разгрузка CPU</strong> для других задач.
+</div>
+
+<h3>Mali G610 × prima.cpp: что это даёт кластеру?</h3>
+
+<p>Прямо сейчас prima.cpp на Orange Pi работает <strong>только через CPU</strong>. Если появится Vulkan backend в prima.cpp (или Claude Code портирует на OpenCL):</p>
+
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Цена</th>
+    <th>Сейчас (CPU-only prima.cpp)</th>
+    <th>С GPU-ускорением (гипотетически)</th>
+  </tr>
+  <tr>
+    <td>4× Orange Pi 5 Plus 32 ГБ</td>
+    <td class="price">~$600</td>
+    <td>70B: 0.3–0.5 tok/s</td>
+    <td>70B: <strong>0.5–1.0 tok/s</strong> (GPU помогает с prefill)</td>
+  </tr>
+  <tr>
+    <td>Orange Pi + RTX 3090 десктоп (prima.cpp гетерогенный)</td>
+    <td class="price">~$950</td>
+    <td>70B: 1.0–1.5 tok/s</td>
+    <td>70B: <strong>1.2–2.0 tok/s</strong> (Mali ускоряет свою часть слоёв)</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Реальная польза GPU Orange Pi:</strong> Не в скорости (прирост ~30–50%), а в <strong>разгрузке CPU</strong>. Если GPU обрабатывает свою часть слоёв — CPU свободен для сетевой коммуникации prima.cpp (PRP-кольцо). Это может <strong>снизить задержки</strong> в pipeline parallelism.
+</div>
+
+<h3>NPU на RK3588 — отдельная история</h3>
+<p>6 TOPS NPU в RK3588 подходит только для <strong>моделей до ~3.8B параметров</strong> (TinyLlama 1.1B → 10–15 tok/s). Для 7B+ NPU бесполезен. Но! NPU может обрабатывать <strong>вспомогательные модели</strong> (speculative decoding draft model) пока GPU/CPU работает с основной моделью.</p>
+</div>
+
+<!-- ЕДИНЫЙ ВЕРДИКТ ПО ВСЕМ ПЛАТФОРМАМ -->
+<div class="mega" style="margin-top:20px;">
+<strong>🎯 Единый вердикт: Все GPU-платформы × prima.cpp</strong><br><br>
+<table>
+  <tr>
+    <th>Платформа</th>
+    <th>llama.cpp (сейчас)</th>
+    <th>prima.cpp (сейчас)</th>
+    <th>prima.cpp (если портировать)</th>
+    <th>Путь к порту</th>
+  </tr>
+  <tr>
+    <td><strong>NVIDIA CUDA</strong></td>
+    <td><span class="badge badge-green">✅ Нативно</span></td>
+    <td><span class="badge badge-green">✅ Нативно</span></td>
+    <td>—</td>
+    <td>Не нужен</td>
+  </tr>
+  <tr>
+    <td><strong>AMD ROCm</strong></td>
+    <td><span class="badge badge-green">✅ Нативно</span></td>
+    <td><span class="badge badge-red">❌</span></td>
+    <td><span class="badge badge-green">Реалистично</span></td>
+    <td>Claude Code порт / ZLUDA / SCALE</td>
+  </tr>
+  <tr>
+    <td><strong>Intel Arc (SYCL)</strong></td>
+    <td><span class="badge badge-green">✅ SYCL+Vulkan</span></td>
+    <td><span class="badge badge-red">❌</span></td>
+    <td><span class="badge badge-orange">Возможно</span></td>
+    <td>Claude Code CUDA→SYCL / Vulkan backend</td>
+  </tr>
+  <tr>
+    <td><strong>Mali G610 (OpenCL)</strong></td>
+    <td><span class="badge badge-orange">MLC-LLM</span></td>
+    <td><span class="badge badge-red">❌</span></td>
+    <td><span class="badge badge-orange">Сложно</span></td>
+    <td>Vulkan backend / OpenCL порт</td>
+  </tr>
+  <tr>
+    <td><strong>Apple Metal</strong></td>
+    <td><span class="badge badge-green">✅ Нативно</span></td>
+    <td><span class="badge badge-green">✅ CPU часть</span></td>
+    <td><span class="badge badge-orange">Частично</span></td>
+    <td>Metal backend (Apple не даёт Vulkan)</td>
+  </tr>
+</table>
+<br>
+<strong>Факт:</strong> «Ров CUDA» размывается с <strong>четырёх сторон</strong> одновременно (ZLUDA, SCALE, AI-порты, Vulkan). Это уже не вопрос «если», а вопрос «когда». <strong>Vulkan backend в prima.cpp — ключ ко всем платформам разом</strong> (AMD, Intel, Mali, Qualcomm Adreno).
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- ГЛУБОКОЕ ПОГРУЖЕНИЕ: КАК ПОРТИРОВАТЬ prima.cpp НА VULKAN -->
+<!-- ======================================================================= -->
+<h2>🔧 Глубокое погружение: как портировать prima.cpp на Vulkan</h2>
+
+<div class="s">
+<h3>Что вообще такое Vulkan (для тех кто не читал выше)</h3>
+<p>Vulkan — это <strong>не язык программирования</strong> и не фреймворк. Это <strong>стандарт (спецификация)</strong> — набор правил, описывающих, как программы должны общаться с видеокартой. Создан консорциумом <strong>Khronos Group</strong> (NVIDIA, AMD, Intel, ARM, Apple, Google, Samsung, Qualcomm — все вместе) в 2016 году.</p>
+
+<div class="note">
+<strong>Аналогия с розетками:</strong> Каждый производитель GPU сделал свой «разъём» — NVIDIA→CUDA, AMD→ROCm, Intel→SYCL, Apple→Metal. <strong>Vulkan — это универсальный переходник</strong>, который обязались поддерживать все производители. Один стандартный разъём → работает с любой видеокартой.
+</div>
+
+<p>Код пишется на обычном C/C++, но GPU-вычисления выполняются через <strong>compute shaders</strong> — маленькие программы на языке <strong>GLSL</strong>, которые компилируются в промежуточный формат <strong>SPIR-V</strong> и отправляются на видеокарту через Vulkan API:</p>
+
+<table>
+<tr><th>Уровень</th><th>Что происходит</th><th>Аналогия</th></tr>
+<tr><td>Твоя программа (C++)</td><td>Вызывает функции Vulkan API</td><td>Ты говоришь на «Vulkan-эсперанто»</td></tr>
+<tr><td>Vulkan драйвер</td><td>Переводит команды в язык конкретного GPU</td><td>Переводчик на местный язык</td></tr>
+<tr><td>Видеокарта</td><td>Выполняет вычисления</td><td>Рабочий делает дело</td></tr>
+</table>
+</div>
+
+<div class="s">
+<h3>🏗️ Архитектура: как устроены prima.cpp и llama.cpp изнутри</h3>
+
+<p>Чтобы понять, что именно нужно портировать, надо понять <strong>слоёную архитектуру</strong> проекта. Prima.cpp — это форк (модифицированная копия) llama.cpp. Оба проекта состоят из слоёв:</p>
+
+<table>
+<tr><th>Слой</th><th>Что делает</th><th>Где GPU код</th><th>Кто модифицировал</th></tr>
+<tr>
+  <td><strong>Слой 4: Приложение</strong><br><code>llama-cli</code>, <code>llama-server</code></td>
+  <td>Интерфейс пользователя, HTTP API</td>
+  <td>❌ Нет GPU кода</td>
+  <td>prima.cpp: добавил PRP-кольцо, ZMQ сеть</td>
+</tr>
+<tr>
+  <td><strong>Слой 3: Модель</strong><br><code>llama.cpp</code>, <code>llama-model.cpp</code></td>
+  <td>Загрузка модели, граф вычислений, внимание, FFN</td>
+  <td>❌ Нет GPU кода<br>(описывает ЧТО считать)</td>
+  <td>prima.cpp: mmap, prefetch, Halda-планировщик</td>
+</tr>
+<tr>
+  <td><strong>Слой 2: Библиотека тензоров</strong><br><code>ggml.c</code>, <code>ggml-backend.c</code></td>
+  <td>Абстракция бэкендов, регистрация устройств, управление памятью</td>
+  <td>⚡ Выбирает бэкенд<br>(решает ГДЕ считать)</td>
+  <td>prima.cpp: минимальные изменения</td>
+</tr>
+<tr>
+  <td style="background:#0d1a0a !important"><strong>Слой 1: GPU бэкенды</strong><br><code>ggml-cuda/</code>, <code>ggml-vulkan/</code>, <code>ggml-metal/</code></td>
+  <td style="background:#0d1a0a !important">Непосредственные GPU-вычисления: умножение матриц, softmax, RoPE и др.</td>
+  <td style="background:#0d1a0a !important">✅ <strong>ВЕСЬ GPU код тут!</strong><br>(знает КАК считать)</td>
+  <td style="background:#0d1a0a !important">prima.cpp: <strong>НЕ трогал</strong></td>
+</tr>
+</table>
+
+<div class="good">
+<strong>🎯 Ключевое открытие:</strong> prima.cpp <strong>не менял GPU-бэкенды</strong>! Его изменения — на верхних уровнях (распределённое вычисление, планировщик Halda, ZMQ-сеть, prefetch). А Vulkan бэкенд живёт <strong>на самом нижнем уровне</strong> — в библиотеке ggml, которую prima.cpp унаследовал от llama.cpp.
+</div>
+
+<p>Визуально:</p>
+<table>
+<tr><th colspan="2">prima.cpp = модификации верхних слоёв</th></tr>
+<tr>
+  <td style="text-align:center; background:#1a1505 !important; color:#ffd580; font-weight:600;">
+    📡 PRP-кольцо (ZMQ) → 🧠 Halda планировщик → 💾 mmap/prefetch
+  </td>
+  <td style="text-align:center; font-size:0.8em;">Уникальный код prima.cpp<br>~15,000 строк модификаций</td>
+</tr>
+<tr><th colspan="2">ggml = GPU-бэкенды (общий фундамент)</th></tr>
+<tr>
+  <td style="text-align:center; background:#0d1a0a !important; color:#bae67e; font-weight:600;">
+    🟢 CUDA | 🔴 ROCm | 🔵 Vulkan | ⚪ Metal | 🟣 SYCL
+  </td>
+  <td style="text-align:center; font-size:0.8em;">Код из llama.cpp<br>prima.cpp его не менял</td>
+</tr>
+</table>
+</div>
+
+<div class="s">
+<h3>🔍 Как устроен Vulkan бэкенд в llama.cpp (уже существующий)</h3>
+
+<p>Vulkan бэкенд в llama.cpp — это <strong>~15,000 строк C++</strong> в директории <code>ggml/src/ggml-vulkan/</code>. Вот его структура:</p>
+
+<table>
+<tr><th>Файл</th><th>Строк</th><th>Что делает</th></tr>
+<tr><td><code>ggml-vulkan.cpp</code></td><td>~12,000</td><td>Главный файл: управление устройствами, памятью, очередями команд, выбор пайплайнов, отправка команд на GPU</td></tr>
+<tr><td><code>vulkan-shaders/mul_mm.comp</code></td><td>~500</td><td>Compute shader: умножение матриц (основная операция нейросетей)</td></tr>
+<tr><td><code>vulkan-shaders/mul_mat_vec.comp</code></td><td>~300</td><td>Compute shader: умножение матрицы на вектор (при генерации 1 токена)</td></tr>
+<tr><td><code>vulkan-shaders/mul_mm_cm2.comp</code></td><td>~400</td><td>Compute shader: матрицы с Cooperative Matrix 2 (NVIDIA RTX)</td></tr>
+<tr><td><code>vulkan-shaders/types.comp</code></td><td>~300</td><td>Определения типов данных и деквантизация (Q4_0, Q4_K, Q6_K и др.)</td></tr>
+<tr><td><code>vulkan-shaders-gen.cpp</code></td><td>~700</td><td>Генератор: компилирует GLSL шейдеры в SPIR-V байткод при сборке</td></tr>
+<tr><td><code>vulkan-shaders/*.comp</code></td><td>~30 файлов</td><td>Остальные операции: softmax, RoPE, copy, scale, add, norm и др.</td></tr>
+</table>
+
+<h3>Как работает конвейер вычислений</h3>
+<table>
+<tr><th>Шаг</th><th>Что происходит</th><th>Где в коде</th></tr>
+<tr><td>1. Обнаружение GPU</td><td>Vulkan API сканирует все устройства: NVIDIA, AMD, Intel, Mali — все видны</td><td><code>ggml-vulkan.cpp: get_device_architecture()</code></td></tr>
+<tr><td>2. Компиляция шейдеров</td><td>При сборке проекта ~30 GLSL файлов компилируются в SPIR-V байткод через <code>glslc</code>. Генерируются <strong>сотни вариантов</strong> для разных типов данных (F32, F16, Q4_0, Q4_K...)</td><td><code>vulkan-shaders-gen.cpp: process_shaders()</code></td></tr>
+<tr><td>3. Создание пайплайнов</td><td>Для каждой операции (matmul, softmax, add...) создаётся Vulkan Compute Pipeline с нужным шейдером</td><td><code>ggml-vulkan.cpp: ggml_vk_create_pipeline()</code></td></tr>
+<tr><td>4. Загрузка весов</td><td>Веса модели копируются в GPU-память (device-local buffer) через staging buffer</td><td><code>ggml-vulkan.cpp: ggml_backend_vk_buffer_type()</code></td></tr>
+<tr><td>5. Запись команд</td><td>Для каждого слоя нейросети записывается Command Buffer: «загрузи данные → вызови шейдер → сохрани результат»</td><td><code>ggml-vulkan.cpp: ggml_vk_dispatch_pipeline()</code></td></tr>
+<tr><td>6. Выполнение</td><td>Command Buffer отправляется в Compute Queue GPU. Драйвер переводит SPIR-V в машинный код конкретного GPU</td><td>Vulkan API: <code>vkQueueSubmit()</code></td></tr>
+<tr><td>7. Синхронизация</td><td>CPU ждёт завершения GPU через fence/semaphore, забирает результат</td><td>Vulkan API: <code>vkWaitForFences()</code></td></tr>
+</table>
+
+<div class="note">
+<strong>Факт:</strong> Один и тот же SPIR-V байткод работает на NVIDIA RTX 4090, AMD RX 7900, Intel Arc A770 и ARM Mali G610 — каждый драйвер переводит его в свой машинный код. Именно поэтому Vulkan — «один ключ ко всем дверям».
+</div>
+</div>
+
+<div class="s">
+<h3>⚙️ Конкретный план портирования prima.cpp на Vulkan</h3>
+
+<p>Теперь, зная архитектуру, вот <strong>пошаговый план</strong>:</p>
+
+<h3>Фаза 0: Разведка (1–2 часа)</h3>
+<table>
+<tr><th>Шаг</th><th>Действие</th><th>Команда</th></tr>
+<tr><td>0.1</td><td>Клонировать prima.cpp</td><td><code>git clone https://github.com/Lizonghang/prima.cpp</code></td></tr>
+<tr><td>0.2</td><td>Посмотреть версию ggml внутри prima.cpp</td><td><code>cat ggml/src/ggml-vulkan/ggml-vulkan.cpp | head -20</code></td></tr>
+<tr><td>0.3</td><td>Проверить, есть ли уже Vulkan-файлы</td><td><code>ls -la ggml/src/ggml-vulkan/</code></td></tr>
+<tr><td>0.4</td><td>Сравнить с актуальным llama.cpp</td><td><code>diff -r prima.cpp/ggml llama.cpp/ggml | wc -l</code></td></tr>
+</table>
+
+<div class="warn">
+<strong>Критический вопрос фазы 0:</strong> Если prima.cpp форкнулся от llama.cpp <strong>до</strong> того, как Vulkan бэкенд стал стабильным, то файлы <code>ggml-vulkan/</code> могут быть устаревшими или отсутствовать. Если <strong>после</strong> — они уже там и просто не подключены в сборку.
+</div>
+
+<h3>Фаза 1: Подключение Vulkan к сборке (2–4 часа)</h3>
+
+<p><strong>Сценарий A</strong> — файлы ggml-vulkan уже есть (вероятнее всего):</p>
+<table>
+<tr><th>Шаг</th><th>Что делать</th><th>Где</th></tr>
+<tr><td>1.1</td><td>Добавить флаг <code>GGML_VULKAN=1</code> в Makefile prima.cpp</td><td><code>Makefile</code> — по аналогии с <code>GGML_CUDA=1</code></td></tr>
+<tr><td>1.2</td><td>Добавить линковку с <code>libvulkan</code></td><td><code>Makefile</code>: <code>-lvulkan</code></td></tr>
+<tr><td>1.3</td><td>Включить сборку шейдер-генератора</td><td><code>vulkan-shaders-gen.cpp</code> → генерирует <code>ggml-vulkan-shaders.cpp</code></td></tr>
+<tr><td>1.4</td><td>Установить Vulkan SDK на машину</td><td><code>sudo apt install libvulkan-dev glslc</code></td></tr>
+<tr><td>1.5</td><td>Попробовать собрать</td><td><code>make GGML_VULKAN=1 USE_HIGHS=1 -j$(nproc)</code></td></tr>
+</table>
+
+<p><strong>Сценарий B</strong> — файлы устарели или отсутствуют:</p>
+<table>
+<tr><th>Шаг</th><th>Что делать</th></tr>
+<tr><td>1.1b</td><td>Скопировать <code>ggml/src/ggml-vulkan/</code> из свежего llama.cpp в prima.cpp</td></tr>
+<tr><td>1.2b</td><td>Скопировать <code>ggml/src/ggml-backend-reg.cpp</code> (регистрация бэкендов)</td></tr>
+<tr><td>1.3b</td><td>Проверить совместимость API: <code>ggml_backend_vk_reg()</code> должен вызываться</td></tr>
+<tr><td>1.4b</td><td>Разрешить конфликты (если API ggml изменился между версиями)</td></tr>
+</table>
+
+<h3>Фаза 2: Halda-планировщик + Vulkan (4–8 часов) — самая важная</h3>
+
+<p>Планировщик <strong>Halda</strong> — это «мозг» prima.cpp. Он решает NP-трудную задачу: сколько слоёв модели дать каждому устройству, и какие из них считать на GPU, а какие на CPU. Сейчас Halda знает только про <strong>CUDA</strong>. Нужно научить его видеть <strong>Vulkan</strong>.</p>
+
+<table>
+<tr><th>Что модифицировать</th><th>Что именно</th><th>Сложность</th></tr>
+<tr>
+  <td><strong>Профилировщик устройств</strong></td>
+  <td>Сейчас определяет: «есть CUDA → есть GPU, нет CUDA → только CPU». Нужно добавить: «есть Vulkan устройство → есть GPU». Использовать <code>ggml_backend_vk_reg()</code> для обнаружения</td>
+  <td>🟡 Средняя</td>
+</tr>
+<tr>
+  <td><strong>Бенчмарк GPU</strong></td>
+  <td>Halda замеряет скорость GPU (TFLOPS) для оптимального распределения. Нужно добавить бенчмарк через Vulkan: запустить тестовое matmul на Vulkan-устройстве и замерить время</td>
+  <td>🟡 Средняя</td>
+</tr>
+<tr>
+  <td><strong>Распределение слоёв</strong></td>
+  <td>Параметр <code>-ngl</code> (сколько слоёв на GPU) должен работать с Vulkan так же как с CUDA. В ggml это уже абстрагировано через <code>ggml_backend_buffer_type</code></td>
+  <td>🟢 Простая</td>
+</tr>
+<tr>
+  <td><strong>Память VRAM</strong></td>
+  <td>Halda должен узнавать объём VRAM через Vulkan API (<code>vkGetPhysicalDeviceMemoryProperties</code>) вместо <code>cudaMemGetInfo</code></td>
+  <td>🟡 Средняя</td>
+</tr>
+<tr>
+  <td><strong>Гетерогенность</strong></td>
+  <td>В кольце PRP один узел может быть CUDA, другой Vulkan, третий CPU-only. Halda должен это учитывать — каждый узел сообщает свой тип бэкенда</td>
+  <td>🔴 Сложная</td>
+</tr>
+</table>
+
+<h3>Фаза 3: PRP-кольцо и сетевой слой (2–4 часа)</h3>
+
+<p>PRP (Piped-Ring Parallelism) — это способ, которым устройства передают друг другу промежуточные результаты по кольцу через ZMQ (сетевая библиотека). <strong>Хорошая новость:</strong> сетевой слой <strong>не зависит от GPU бэкенда</strong>. Данные всегда передаются через CPU-память (RAM). Схема:</p>
+
+<table>
+<tr><th colspan="4" style="text-align:center">PRP-кольцо: как данные перемещаются</th></tr>
+<tr>
+  <td style="text-align:center; background:#0d1a0a !important">
+    <strong>Узел 1</strong><br>Intel Arc A770<br>(Vulkan)<br>⬇️ слои 0-19
+  </td>
+  <td style="text-align:center">→ ZMQ →<br><em>промежуточный<br>тензор через<br>RAM/Wi-Fi</em></td>
+  <td style="text-align:center; background:#0d1a0a !important">
+    <strong>Узел 2</strong><br>RTX 3090<br>(CUDA)<br>⬇️ слои 20-49
+  </td>
+  <td style="text-align:center">→ ZMQ →<br><em>обратно<br>на Узел 1</em></td>
+</tr>
+</table>
+
+<p>Что нужно проверить:</p>
+<table>
+<tr><th>Проверка</th><th>Почему важно</th><th>Ожидание</th></tr>
+<tr><td>Копирование GPU→CPU</td><td>Перед отправкой по сети результат копируется из VRAM в RAM</td><td>Vulkan: <code>vkMapMemory()</code> — уже реализовано в ggml</td></tr>
+<tr><td>Копирование CPU→GPU</td><td>Полученный тензор загружается в VRAM следующего узла</td><td>Vulkan: staging buffer → device buffer — уже в ggml</td></tr>
+<tr><td>Формат данных</td><td>Тензоры должны быть в одинаковом формате на всех узлах</td><td>ggml гарантирует единый формат</td></tr>
+</table>
+
+<div class="good">
+<strong>Вывод:</strong> Сетевой слой PRP <strong>не нужно переписывать</strong>. Он работает с RAM-буферами, которые одинаковы независимо от того, CUDA это или Vulkan. Нужно только убедиться, что GPU↔RAM копирование работает через Vulkan.
+</div>
+
+<h3>Фаза 4: Prefetch и mmap (1–2 часа)</h3>
+
+<p>Prima.cpp использует <code>mmap</code> для ленивой загрузки весов модели с диска, и <strong>prefetch</strong> для предзагрузки следующих слоёв, пока текущий считается на GPU. Это ключевая оптимизация для устройств с малым объёмом RAM.</p>
+
+<table>
+<tr><th>Компонент</th><th>Зависит от GPU бэкенда?</th><th>Нужно менять?</th></tr>
+<tr><td><code>mmap</code> — маппинг файла в RAM</td><td>Нет (это операция ОС)</td><td>❌ Нет</td></tr>
+<tr><td><code>madvise(MADV_WILLNEED)</code> — prefetch в RAM</td><td>Нет (это операция ОС)</td><td>❌ Нет</td></tr>
+<tr><td>Копирование из RAM в VRAM</td><td><strong>Да!</strong> Сейчас через <code>cudaMemcpyAsync</code></td><td>⚠️ Заменить на Vulkan staging buffer upload</td></tr>
+<tr><td>Освобождение VRAM для следующего слоя</td><td><strong>Да!</strong> Сейчас через <code>cudaFree</code></td><td>⚠️ Заменить на Vulkan buffer deallocation</td></tr>
+</table>
+
+<div class="warn">
+<strong>Нюанс:</strong> Если prefetch-код вызывает CUDA API напрямую (в обход ggml), то его нужно абстрагировать. Если он работает через ggml — изменений не нужно. Это выясняется на фазе 0 (разведка).
+</div>
+
+<h3>Фаза 5: Тестирование и отладка (4–8 часов)</h3>
+
+<table>
+<tr><th>Тест</th><th>Что проверяет</th><th>Команда</th></tr>
+<tr><td>Один узел, Vulkan</td><td>Базовая работоспособность</td><td><code>./llama-cli -m model.gguf -ngl 99</code> (должен показать <code>ggml_vulkan: Found device</code>)</td></tr>
+<tr><td>Один узел, Vulkan vs CUDA</td><td>Корректность вычислений</td><td>Сравнить выходы двух запусков: выход должен совпадать ±0.001</td></tr>
+<tr><td>Два узла, оба Vulkan</td><td>PRP-кольцо через Vulkan</td><td>Запустить ring из двух Vulkan-узлов</td></tr>
+<tr><td>Два узла, CUDA + Vulkan</td><td>Гетерогенное кольцо</td><td>Один узел CUDA, другой Vulkan — данные должны корректно передаваться</td></tr>
+<tr><td>Halda бенчмарк</td><td>Планировщик видит Vulkan GPU</td><td>Проверить что Halda корректно замеряет Vulkan TFLOPS</td></tr>
+<tr><td>70B модель, 4 узла</td><td>Полный стресс-тест</td><td>QwQ-32B или Llama3-70B на кластере из разных GPU</td></tr>
+</table>
+</div>
+
+<div class="s">
+<h3>📊 Оценка трудозатрат: реалистичный прогноз</h3>
+
+<table>
+<tr><th>Фаза</th><th>Время</th><th>Сложность</th><th>Кто может сделать</th></tr>
+<tr><td>Фаза 0: Разведка</td><td>1–2 ч</td><td>🟢</td><td>Любой разработчик</td></tr>
+<tr><td>Фаза 1: Сборка с Vulkan</td><td>2–4 ч</td><td>🟢–🟡</td><td>С++ разработчик + CMake опыт</td></tr>
+<tr><td>Фаза 2: Halda + Vulkan</td><td>4–8 ч</td><td>🟡–🔴</td><td>Нужно понимать Halda алгоритм + Vulkan API</td></tr>
+<tr><td>Фаза 3: PRP проверка</td><td>2–4 ч</td><td>🟢</td><td>В основном тестирование</td></tr>
+<tr><td>Фаза 4: Prefetch</td><td>1–2 ч</td><td>🟢–🟡</td><td>Зависит от прямых CUDA вызовов</td></tr>
+<tr><td>Фаза 5: Тестирование</td><td>4–8 ч</td><td>🟡</td><td>Нужно оборудование с разными GPU</td></tr>
+<tr style="font-weight:600"><td>ИТОГО</td><td>14–28 часов</td><td>🟡</td><td>1 опытный разработчик, 2–4 дня</td></tr>
+</table>
+
+<div class="highlight">
+<strong>🤖 С Claude Code / AI-ассистентом:</strong> Фазы 0, 1, 3, 4 можно значительно ускорить (авто-поиск CUDA-вызовов, генерация Makefile, авто-тесты). Реалистичная оценка с AI: <strong>8–16 часов</strong> (1–2 дня).
+</div>
+
+<h3>Сравнение путей: Vulkan backend vs CUDA→ROCm/SYCL портирование</h3>
+<table>
+<tr><th>Аспект</th><th>Vulkan backend<br>(универсальный)</th><th>Ручной порт<br>(CUDA→ROCm, CUDA→SYCL)</th></tr>
+<tr><td>Время разработки</td><td><span class="speed">14–28 часов, один раз</span></td><td>10–20 часов <strong>на каждую платформу</strong></td></tr>
+<tr><td>Покрытие платформ</td><td><span class="speed">AMD + Intel + Mali + Qualcomm + Apple (MoltenVK)</span></td><td>Только 1 платформа за раз</td></tr>
+<tr><td>Производительность</td><td>70–90% от нативного</td><td><span class="speed">~100% нативного</span></td></tr>
+<tr><td>Поддержка</td><td><span class="speed">1× усилий</span></td><td>N× усилий (каждый порт отдельно)</td></tr>
+<tr><td>Зависимости</td><td>Только Vulkan SDK (свободный)</td><td>CUDA Toolkit / ROCm / oneAPI (тяжёлые)</td></tr>
+<tr><td>Мобильные (Android)</td><td><span class="speed">✅ Vulkan есть на всех Android 7+</span></td><td>❌ CUDA/ROCm нет на мобильных</td></tr>
+</table>
+
+<div class="mega">
+<strong>💡 Оптимальная стратегия (как делает llama.cpp):</strong>
+<br><br>
+<strong>1)</strong> Сначала добавить <strong>Vulkan backend</strong> → мгновенное покрытие AMD, Intel, Mali, Qualcomm, Android.
+<br>
+<strong>2)</strong> Потом, <strong>если нужна максимальная скорость</strong> на конкретной платформе → добавлять нативные порты (CUDA уже есть, ROCm через Claude Code за 30 минут по аналогии с lc0).
+<br><br>
+Vulkan — это <strong>пол</strong>, нативные бэкенды — это <strong>потолок</strong>. Пол поднимает всех, потолок — только избранных.
+</div>
+</div>
+
+<div class="s">
+<h3>🧩 Что именно написано на GLSL (шейдеры llama.cpp Vulkan)</h3>
+
+<p>Для понимания масштаба: вот основные шейдерные файлы, которые <strong>уже написаны</strong> в llama.cpp и будут работать в prima.cpp без изменений:</p>
+
+<table>
+<tr><th>Шейдер (GLSL)</th><th>Операция</th><th>Зачем нужна в нейросети</th></tr>
+<tr><td><code>mul_mm.comp</code></td><td>Умножение матриц (GEMM)</td><td>Основа всех слоёв: attention, FFN — 90% вычислений</td></tr>
+<tr><td><code>mul_mat_vec.comp</code></td><td>Матрица × вектор (GEMV)</td><td>Генерация 1 токена: матрица весов × вектор состояния</td></tr>
+<tr><td><code>mul_mm_cm2.comp</code></td><td>GEMM с Cooperative Matrix 2</td><td>Оптимизация для NVIDIA RTX (тензорные ядра через Vulkan)</td></tr>
+<tr><td><code>flash_attn_*.comp</code></td><td>Flash Attention</td><td>Эффективное вычисление внимания без квадратичной памяти</td></tr>
+<tr><td><code>soft_max.comp</code></td><td>Softmax</td><td>Нормализация вероятностей в attention и выходном слое</td></tr>
+<tr><td><code>rope_*.comp</code></td><td>Rotary Position Embedding</td><td>Позиционное кодирование (как модель понимает порядок слов)</td></tr>
+<tr><td><code>norm.comp</code>, <code>rms_norm.comp</code></td><td>Нормализация</td><td>Layer Norm / RMS Norm между слоями</td></tr>
+<tr><td><code>types.comp</code></td><td>Деквантизация</td><td>Распаковка Q4_0, Q4_K, Q6_K, Q8_0 в float для вычислений</td></tr>
+<tr><td><code>get_rows_quant.comp</code></td><td>Извлечение строк</td><td>Embedding lookup: токен → вектор</td></tr>
+<tr><td><code>copy_*.comp</code></td><td>Копирование / конвертация</td><td>Перемещение данных между форматами</td></tr>
+</table>
+
+<div class="note">
+<strong>Масштаб:</strong> ~30 GLSL шейдеров × десятки вариантов (типы данных × выровненные/не-выровненные × с/без CoopMat) = <strong>сотни скомпилированных SPIR-V пайплайнов</strong>. Всё это уже написано и протестировано в llama.cpp. Prima.cpp получает это <strong>бесплатно</strong>.
+</div>
+</div>
+
+<div class="s">
+<h3>🎯 Итог: почему это реалистичный проект для хакатона</h3>
+
+<div class="highlight">
+<strong>Резюме в одном абзаце:</strong> Prima.cpp — это llama.cpp с «надстройкой» для распределённых вычислений. Vulkan бэкенд уже существует <strong>внутри</strong> ggml-библиотеки, которую prima.cpp наследует. Портирование — это не «написать Vulkan с нуля», а <strong>подключить уже существующий код</strong> и научить планировщик Halda видеть Vulkan-устройства. Главная сложность — Фаза 2 (Halda), всё остальное — инженерная рутина.
+</div>
+
+<table>
+<tr><th>Вопрос</th><th>Ответ</th></tr>
+<tr><td>Нужно ли писать GPU-шейдеры?</td><td><span class="speed">Нет</span> — все ~30 GLSL шейдеров уже в llama.cpp</td></tr>
+<tr><td>Нужно ли менять сетевой слой (ZMQ)?</td><td><span class="speed">Нет</span> — PRP работает через RAM-буферы</td></tr>
+<tr><td>Нужно ли менять mmap/prefetch?</td><td><span class="speed">Скорее нет</span> — если они идут через ggml API</td></tr>
+<tr><td>Что точно нужно менять?</td><td>Makefile/CMake, Halda-профилировщик, обнаружение Vulkan-устройств</td></tr>
+<tr><td>Какие платформы получим?</td><td>AMD Radeon, Intel Arc, Mali G610, Qualcomm Adreno, Android</td></tr>
+<tr><td>Потеря скорости vs CUDA?</td><td>10–30% на NVIDIA (т.к. CUDA оптимизирован лучше), 0% на AMD/Intel (нет нативной альтернативы в prima.cpp)</td></tr>
+</table>
+</div>
+
+<!-- ======================================================================= -->
+<!-- РАСШИРЕННОЕ ПОГРУЖЕНИЕ: КОД, ПРИМЕРЫ, ДЕТАЛИ -->
+<!-- ======================================================================= -->
+
+<div class="s">
+<h3>🔬 Уровень 2: Как выглядит код — CUDA vs Vulkan бок о бок</h3>
+
+<p>Чтобы по-настоящему понять разницу, посмотрим на <strong>одну и ту же операцию</strong> — умножение матрицы на вектор (ключевая операция при генерации 1 токена) — в трёх представлениях:</p>
+
+<h3>Как это выглядит в CUDA (текущий prima.cpp)</h3>
+<p>Файл: <code>ggml/src/ggml-cuda/mmv.cu</code></p>
+<table>
+<tr><th style="width:50%">CUDA код (упрощённо)</th><th>Что делает</th></tr>
+<tr><td><pre style="font-size:0.75em; color:#bae67e; background:#0a0e14; padding:8px; border-radius:4px; white-space:pre-wrap;">// Ядро запускается на GPU
+__global__ void mul_mat_vec_q4_0(
+    const void * src0,   // матрица весов Q4_0
+    const float * src1,  // входной вектор
+    float * dst,         // результат
+    int ncols, int nrows)
+{
+    // Каждый блок потоков обрабатывает
+    // одну строку матрицы
+    int row = blockIdx.x;
+    
+    // Деквантизация Q4_0 → float
+    float val = dequantize_q4_0(src0, row, col);
+    
+    // Скалярное произведение строки × вектор
+    float sum = 0.0f;
+    for (int col = threadIdx.x; col < ncols;
+         col += blockDim.x) {
+        sum += val * src1[col];
+    }
+    
+    // Параллельная редукция внутри warp
+    sum = warpReduceSum(sum);
+    
+    // Записать результат
+    if (threadIdx.x == 0) dst[row] = sum;
+}</pre></td>
+<td>
+<strong>Язык:</strong> CUDA C++ (.cu)<br><br>
+<strong>Компилятор:</strong> nvcc (только NVIDIA)<br><br>
+<strong>Запуск:</strong><br>
+<code>mul_mat_vec_q4_0&lt;&lt;&lt;nrows, 256&gt;&gt;&gt;(src0, src1, dst, ncols, nrows);</code><br><br>
+<strong>Работает на:</strong><br>
+❌ Только NVIDIA GPU<br><br>
+<strong>Ключевые CUDA-специфики:</strong><br>
+• <code>__global__</code> — CUDA ключевое слово<br>
+• <code>blockIdx.x</code> — CUDA встроенная переменная<br>
+• <code>threadIdx.x</code> — CUDA встроенная переменная<br>
+• <code>&lt;&lt;&lt;grid, block&gt;&gt;&gt;</code> — CUDA синтаксис запуска
+</td></tr>
+</table>
+
+<h3>Как то же самое выглядит в Vulkan (уже в llama.cpp)</h3>
+<p>Файл: <code>ggml/src/ggml-vulkan/vulkan-shaders/mul_mat_vec.comp</code></p>
+<table>
+<tr><th style="width:50%">GLSL Compute Shader код (упрощённо)</th><th>Что делает</th></tr>
+<tr><td><pre style="font-size:0.75em; color:#73d0ff; background:#0a0e14; padding:8px; border-radius:4px; white-space:pre-wrap;">#version 450
+// Расширения для Vulkan
+#extension GL_EXT_shader_16bit_storage : require
+
+// Размер рабочей группы (аналог CUDA block)
+layout(local_size_x = 32) in;
+
+// Буферы данных (аналог CUDA указателей)
+layout(binding = 0) readonly buffer A {
+    uint8_t data_a[];  // матрица весов Q4_0
+};
+layout(binding = 1) readonly buffer B {
+    B_TYPE data_b[];   // входной вектор
+};
+layout(binding = 2) writeonly buffer D {
+    D_TYPE data_d[];   // результат
+};
+
+// Push-константы (аналог аргументов ядра)
+layout(push_constant) uniform PushConstants {
+    uint ncols;
+    uint nrows;
+};
+
+void main() {
+    // gl_GlobalInvocationID = CUDA аналог 
+    // blockIdx * blockDim + threadIdx
+    uint row = gl_WorkGroupID.x;
+    uint tid = gl_LocalInvocationID.x;
+    
+    // Деквантизация Q4_0 → float
+    // (та же математика, другой синтаксис)
+    float val = dequantize_q4_0(data_a, row, col);
+    
+    float sum = 0.0;
+    for (uint col = tid; col < ncols;
+         col += gl_WorkGroupSize.x) {
+        sum += val * float(data_b[col]);
+    }
+    
+    // Параллельная редукция через subgroup
+    // (аналог CUDA warp shuffle)
+    sum = subgroupAdd(sum);
+    
+    if (tid == 0) data_d[row] = D_TYPE(sum);
+}</pre></td>
+<td>
+<strong>Язык:</strong> GLSL 4.50 (.comp)<br><br>
+<strong>Компилятор:</strong> glslc → SPIR-V (любой GPU)<br><br>
+<strong>Запуск:</strong><br>
+<code>vkCmdDispatch(cmd, nrows, 1, 1);</code><br><br>
+<strong>Работает на:</strong><br>
+✅ NVIDIA ✅ AMD ✅ Intel ✅ Mali ✅ Adreno<br><br>
+<strong>Ключевые Vulkan-эквиваленты:</strong><br>
+• <code>layout(local_size_x)</code> = <code>blockDim.x</code><br>
+• <code>gl_WorkGroupID.x</code> = <code>blockIdx.x</code><br>
+• <code>gl_LocalInvocationID.x</code> = <code>threadIdx.x</code><br>
+• <code>layout(binding=N) buffer</code> = CUDA указатель<br>
+• <code>subgroupAdd()</code> = <code>__shfl_xor_sync()</code><br>
+• <code>vkCmdDispatch</code> = <code>&lt;&lt;&lt;grid,block&gt;&gt;&gt;</code>
+</td></tr>
+</table>
+
+<div class="good">
+<strong>Главный вывод:</strong> Математика — <strong>идентичная</strong>. Разница только в синтаксисе обёртки. CUDA говорит <code>threadIdx.x</code>, Vulkan говорит <code>gl_LocalInvocationID.x</code> — а вычисление <code>sum += val * vec[col]</code> <strong>одно и то же</strong>. Именно поэтому Vulkan бэкенд достигает 70–90% производительности CUDA.
+</div>
+
+<h3>Словарь перевода CUDA → Vulkan</h3>
+<table>
+<tr><th>Концепция</th><th>CUDA</th><th>Vulkan / GLSL</th><th>Что это значит</th></tr>
+<tr><td>Файл GPU-кода</td><td><code>.cu</code></td><td><code>.comp</code> (compute shader)</td><td>Исходный код программы для GPU</td></tr>
+<tr><td>Скомпилированный код</td><td>PTX → SASS</td><td>GLSL → <strong>SPIR-V</strong> → машинный код</td><td>Промежуточное представление</td></tr>
+<tr><td>Группа потоков</td><td>Block (до 1024 потоков)</td><td>WorkGroup (до 1024 invocations)</td><td>Потоки, которые могут делить shared memory</td></tr>
+<tr><td>Минимальная единица</td><td>Warp (32 потока на NVIDIA)</td><td>Subgroup (32 на NVIDIA, 64 на AMD, 16 на Mali)</td><td>Потоки, выполняющие одну инструкцию</td></tr>
+<tr><td>Shared memory</td><td><code>__shared__ float s[256];</code></td><td><code>shared float s[256];</code></td><td>Быстрая память внутри группы</td></tr>
+<tr><td>Глобальная память</td><td>Указатель <code>float* data</code></td><td><code>layout(binding=0) buffer { float data[]; };</code></td><td>Основная GPU-память (VRAM)</td></tr>
+<tr><td>Параметры ядра</td><td>Аргументы функции</td><td><code>layout(push_constant) uniform { ... };</code></td><td>Маленькие данные, передаваемые CPU→GPU</td></tr>
+<tr><td>Запуск вычисления</td><td><code>kernel&lt;&lt;&lt;grid,block&gt;&gt;&gt;(args);</code></td><td><code>vkCmdDispatch(cmd, gx, gy, gz);</code></td><td>Отправить работу на GPU</td></tr>
+<tr><td>Синхронизация потоков</td><td><code>__syncthreads();</code></td><td><code>barrier();</code></td><td>Подождать все потоки в группе</td></tr>
+<tr><td>Атомарные операции</td><td><code>atomicAdd(&dst, val);</code></td><td><code>atomicAdd(dst, val);</code></td><td>Потокобезопасная запись (почти идентично!)</td></tr>
+<tr><td>Тензорные ядра</td><td><code>wmma::mma_sync()</code></td><td><code>coopMatMulAdd()</code> (KHR_cooperative_matrix)</td><td>Аппаратное матричное умножение</td></tr>
+<tr><td>Выделение памяти GPU</td><td><code>cudaMalloc(&ptr, size);</code></td><td><code>vkAllocateMemory(device, &info, &mem);</code></td><td>Резервирование VRAM</td></tr>
+<tr><td>Копирование CPU→GPU</td><td><code>cudaMemcpy(dst, src, size, H2D);</code></td><td>Staging buffer → <code>vkCmdCopyBuffer()</code></td><td>Загрузка данных в VRAM</td></tr>
+<tr><td>Копирование GPU→CPU</td><td><code>cudaMemcpy(dst, src, size, D2H);</code></td><td><code>vkMapMemory()</code> + <code>memcpy()</code></td><td>Выгрузка результатов</td></tr>
+<tr><td>Ожидание GPU</td><td><code>cudaDeviceSynchronize();</code></td><td><code>vkWaitForFences()</code></td><td>CPU ждёт завершения GPU</td></tr>
+<tr><td>Информация о GPU</td><td><code>cudaGetDeviceProperties()</code></td><td><code>vkGetPhysicalDeviceProperties()</code></td><td>Узнать имя, память, возможности GPU</td></tr>
+<tr><td>Свободная VRAM</td><td><code>cudaMemGetInfo(&free, &total);</code></td><td><code>vkGetPhysicalDeviceMemoryProperties()</code> + <code>VmaBudget</code></td><td>Сколько памяти доступно</td></tr>
+</table>
+</div>
+
+<div class="s">
+<h3>🔬 Уровень 3: Конвейер компиляции шейдеров — полная картина</h3>
+
+<p>Одна из самых необычных вещей в Vulkan бэкенде — шейдеры компилируются <strong>при сборке проекта</strong>, а не при запуске. Вот полная цепочка:</p>
+
+<table>
+<tr><th>Этап</th><th>Что → Что</th><th>Инструмент</th><th>Когда</th><th>Результат</th></tr>
+<tr>
+  <td>1</td>
+  <td>GLSL исходники (.comp) → SPIR-V байткод (.spv)</td>
+  <td><code>glslc</code> (из Vulkan SDK)</td>
+  <td>При сборке (cmake)</td>
+  <td>~300 файлов .spv (каждый — вариант шейдера)</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td>SPIR-V файлы → C++ массивы байт</td>
+  <td><code>vulkan-shaders-gen</code> (кастомная утилита)</td>
+  <td>При сборке</td>
+  <td>Один файл <code>ggml-vulkan-shaders.cpp</code> с <code>uint32_t matmul_f32_f16_data[] = {0x07230203, ...};</code></td>
+</tr>
+<tr>
+  <td>3</td>
+  <td>C++ массивы → Vulkan Pipeline</td>
+  <td><code>vkCreateComputePipelines()</code></td>
+  <td>При запуске программы</td>
+  <td>GPU получает исполняемый шейдер</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td>SPIR-V → Машинный код GPU</td>
+  <td>Драйвер GPU (NVIDIA, AMD, Intel, Mali — каждый свой)</td>
+  <td>При запуске (JIT)</td>
+  <td>Нативный код конкретного GPU</td>
+</tr>
+</table>
+
+<h3>Почему сотни вариантов?</h3>
+<p>Один шейдер <code>mul_mm.comp</code> компилируется в десятки вариантов через комбинации #define:</p>
+
+<table>
+<tr><th>Ось вариации</th><th>Варианты</th><th>Зачем</th></tr>
+<tr><td>Тип входных данных (матрица A)</td><td>F32, F16, BF16, Q4_0, Q4_1, Q5_0, Q5_1, Q8_0, Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, IQ1_S, IQ2_XXS, IQ3_S, IQ4_NL</td><td>Каждый формат квантизации имеет свою функцию деквантизации</td></tr>
+<tr><td>Тип входных данных (вектор B)</td><td>float, float16_t</td><td>KV-кэш может быть F16 или F32</td></tr>
+<tr><td>Выравнивание</td><td>aligned / unaligned</td><td>Выровненные данные грузятся быстрее (vec4 вместо скаляров)</td></tr>
+<tr><td>Размер матрицы</td><td>s (small), m (medium), l (large)</td><td>Разные tile sizes для разных масштабов</td></tr>
+<tr><td>Cooperative Matrix</td><td>off / CoopMat1 (KHR) / CoopMat2 (NV)</td><td>Аппаратные тензорные ядра (не все GPU поддерживают)</td></tr>
+<tr><td>Тип аккумулятора</td><td>float / float16_t</td><td>F16 быстрее, но менее точен</td></tr>
+<tr><td>MulMatID</td><td>off / on</td><td>Для MoE (Mixture of Experts) моделей — выбор эксперта</td></tr>
+</table>
+
+<p><strong>Итого:</strong> ~17 типов данных × 2 типа B × 2 выравнивания × 3 размера × 3 CoopMat × 2 аккумулятора = теоретически тысячи, но на практике генерируется <strong>~300–500 реальных комбинаций</strong> (не все пересечения имеют смысл).</p>
+
+<div class="note">
+<strong>Практический факт:</strong> При первом запуске llama.cpp с Vulkan вы видите:<br>
+<code>ggml_vulkan: Compiling shaders..............................Done!</code><br>
+Это этап 3 — создание Vulkan Pipeline из предкомпилированных SPIR-V байт. Занимает 5–30 секунд. Сами шейдеры уже в бинарнике (этап 2 прошёл при сборке).
+</div>
+</div>
+
+<div class="s">
+<h3>🔬 Уровень 4: Алгоритм Halda — что конкретно нужно менять</h3>
+
+<p><strong>Halda</strong> — это алгоритм оптимального распределения нагрузки, решающий NP-трудную задачу. Он определяет: какие слои модели дать каждому устройству, и сколько из них считать на GPU vs CPU. Вот его внутренняя логика:</p>
+
+<h3>Фаза профилирования (до начала инференса)</h3>
+<table>
+<tr><th>Что замеряет</th><th>Как замеряет сейчас (CUDA)</th><th>Что нужно для Vulkan</th><th>Сложность</th></tr>
+<tr>
+  <td><strong>CPU TFLOPS</strong></td>
+  <td>Бенчмарк matmul на CPU с GGML</td>
+  <td>✅ Не нужно менять — CPU бэкенд тот же</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>GPU TFLOPS</strong></td>
+  <td>Бенчмарк matmul через <code>ggml_cuda_op_mul_mat()</code></td>
+  <td>⚠️ Добавить путь через <code>ggml_backend_vk_buffer_type()</code>: создать тестовые тензоры в Vulkan памяти, запустить matmul, замерить</td>
+  <td>🟡 Средняя</td>
+</tr>
+<tr>
+  <td><strong>VRAM объём</strong></td>
+  <td><code>cudaMemGetInfo(&free, &total)</code></td>
+  <td>⚠️ Через Vulkan: <code>VkPhysicalDeviceMemoryProperties</code> + перебрать heap'ы с флагом <code>VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT</code></td>
+  <td>🟢 Простая</td>
+</tr>
+<tr>
+  <td><strong>GPU bandwidth</strong></td>
+  <td>Бенчмарк копирования через CUDA</td>
+  <td>⚠️ Бенчмарк через Vulkan staging buffer → device buffer copy</td>
+  <td>🟡 Средняя</td>
+</tr>
+<tr>
+  <td><strong>Скорость диска</strong></td>
+  <td>Через <code>fio</code> (системная утилита)</td>
+  <td>✅ Не зависит от GPU бэкенда</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>Сетевая задержка</strong></td>
+  <td>Через ZMQ ping-pong</td>
+  <td>✅ Не зависит от GPU бэкенда</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>Тип ОС</strong></td>
+  <td>Linux/macOS/Android/HarmonyOS</td>
+  <td>✅ Не зависит от GPU бэкенда</td>
+  <td>—</td>
+</tr>
+</table>
+
+<h3>Фаза оптимизации (решение задачи распределения)</h3>
+<p>После профилирования Halda решает задачу линейного программирования через <strong>HiGHS</strong> (open-source LP-солвер). Переменные:</p>
+
+<table>
+<tr><th>Переменная</th><th>Значение</th><th>Зависит от GPU бэкенда?</th></tr>
+<tr><td><code>L_gpu[i]</code></td><td>Сколько слоёв модели считать на GPU устройства i</td><td>❌ Нет — это абстрактное число</td></tr>
+<tr><td><code>L_cpu[i]</code></td><td>Сколько слоёв считать на CPU устройства i</td><td>❌ Нет</td></tr>
+<tr><td><code>T_gpu[i]</code></td><td>Время вычисления одного слоя на GPU устройства i</td><td>⚠️ <strong>Да</strong> — берётся из профилирования GPU</td></tr>
+<tr><td><code>T_cpu[i]</code></td><td>Время вычисления одного слоя на CPU</td><td>❌ Нет</td></tr>
+<tr><td><code>M_gpu[i]</code></td><td>Доступная VRAM устройства i</td><td>⚠️ <strong>Да</strong> — берётся через CUDA/Vulkan API</td></tr>
+<tr><td><code>T_net[i→j]</code></td><td>Задержка передачи между узлами i и j</td><td>❌ Нет</td></tr>
+<tr><td><code>T_disk[i]</code></td><td>Скорость чтения диска устройства i</td><td>❌ Нет</td></tr>
+</table>
+
+<div class="good">
+<strong>Вывод:</strong> Из ~7 входных переменных Halda только <strong>2 зависят от GPU бэкенда</strong>: T_gpu и M_gpu. Сам алгоритм оптимизации (LP-солвер HiGHS) — <strong>вообще не меняется</strong>. Нужно только подставить правильные числа.
+</div>
+
+<h3>Конкретные изменения в коде Halda (псевдокод)</h3>
+<table>
+<tr><th style="width:50%">Сейчас (только CUDA)</th><th>Нужно (CUDA + Vulkan)</th></tr>
+<tr><td><pre style="font-size:0.75em; color:#ff946f; background:#0a0e14; padding:8px; border-radius:4px; white-space:pre-wrap;">// Определение GPU
+bool has_gpu = false;
+#ifdef GGML_USE_CUDA
+  int cuda_devices;
+  cudaGetDeviceCount(&cuda_devices);
+  if (cuda_devices > 0) has_gpu = true;
+  
+  // Замер VRAM
+  size_t free, total;
+  cudaMemGetInfo(&free, &total);
+  
+  // Замер скорости
+  gpu_tflops = benchmark_cuda_matmul();
+#endif</pre></td>
+<td><pre style="font-size:0.75em; color:#bae67e; background:#0a0e14; padding:8px; border-radius:4px; white-space:pre-wrap;">// Определение GPU (через ggml бэкенды)
+bool has_gpu = false;
+auto * backend_reg = ggml_backend_reg_by_name("CUDA");
+if (!backend_reg)
+  backend_reg = ggml_backend_reg_by_name("Vulkan");
+if (!backend_reg)
+  backend_reg = ggml_backend_reg_by_name("Metal");
+
+if (backend_reg) {
+  has_gpu = true;
+  
+  // Замер VRAM (через ggml абстракцию)
+  auto * buf_type = ggml_backend_dev_buffer_type(dev);
+  size_t max_size = ggml_backend_buft_get_max_size(buf_type);
+  
+  // Замер скорости (через ggml бэкенд)
+  gpu_tflops = benchmark_ggml_matmul(backend);
+}</pre></td>
+</tr>
+</table>
+
+<div class="warn">
+<strong>Ключевой инсайт:</strong> Правильный подход — использовать <strong>абстракцию ggml</strong>, а не вызывать CUDA/Vulkan API напрямую. Библиотека ggml уже предоставляет единый интерфейс для всех бэкендов: <code>ggml_backend_dev_buffer_type()</code>, <code>ggml_backend_buft_get_max_size()</code> и т.д. Если Halda будет работать через эту абстракцию, он автоматически получит поддержку <strong>любого</strong> будущего бэкенда — не только Vulkan, но и SYCL, Metal, WebGPU.
+</div>
+</div>
+
+<div class="s">
+<h3>📈 Реальные бенчмарки: Vulkan vs CUDA vs CPU</h3>
+
+<p>Данные из бенчмарк-треда llama.cpp (<a href="https://github.com/ggml-org/llama.cpp/discussions/10879">Discussion #10879</a>):</p>
+
+<h3>Llama 2 7B Q4_0 — генерация токенов (tok/s, больше = лучше)</h3>
+<table>
+<tr><th>GPU</th><th>CUDA</th><th>Vulkan</th><th>Vulkan/CUDA %</th><th>Примечание</th></tr>
+<tr><td>NVIDIA RTX 4090</td><td>~140 t/s</td><td>~105 t/s</td><td><span class="speed">~75%</span></td><td>Vulkan теряет из-за отсутствия cuBLAS</td></tr>
+<tr><td>NVIDIA RTX 3090</td><td>~95 t/s</td><td>~72 t/s</td><td><span class="speed">~76%</span></td><td>Схожая картина</td></tr>
+<tr><td>AMD RX 7900 XT</td><td>— (нет CUDA)</td><td><span class="speed">~90 t/s</span></td><td>— (единственный вариант)</td><td>С Flash Attention: 90 t/s</td></tr>
+<tr><td>AMD RX 7900 XTX (×4)</td><td>— (нет CUDA)</td><td>~95 t/s</td><td>—</td><td>4 GPU через Vulkan multi-device</td></tr>
+<tr><td>Intel Arc A770</td><td>— (нет CUDA)</td><td>~35 t/s</td><td>—</td><td>Через Vulkan (SYCL даёт ~82 t/s)</td></tr>
+<tr><td>Intel Iris Xe (iGPU)</td><td>— (нет CUDA)</td><td>~8 t/s</td><td>—</td><td>Интегрированная графика, UMA</td></tr>
+<tr><td>AMD Radeon 680M (iGPU)</td><td>— (нет CUDA)</td><td>~12 t/s</td><td>—</td><td>Ryzen 6000 iGPU, Vulkan</td></tr>
+<tr><td>Mali-G710 (Pixel 7)</td><td>— (нет CUDA)</td><td>В разработке</td><td>—</td><td>Segfault на некоторых моделях (WIP)</td></tr>
+</table>
+
+<h3>Prompt Processing (pp512) — обработка промпта</h3>
+<table>
+<tr><th>GPU</th><th>CUDA</th><th>Vulkan</th><th>Разница</th></tr>
+<tr><td>NVIDIA RTX 4090</td><td>~3000 t/s</td><td>~1200 t/s</td><td>Vulkan ~40% от CUDA (матричное умножение, cuBLAS доминирует)</td></tr>
+<tr><td>AMD RX 7900 XT</td><td>—</td><td><span class="speed">~880 t/s</span></td><td>С Flash Attention: 5.3× ускорение vs без</td></tr>
+<tr><td>AMD RX 7900 XT (без FA)</td><td>—</td><td>~165 t/s</td><td>Без Flash Attention — значительно медленнее</td></tr>
+</table>
+
+<div class="note">
+<strong>Важное наблюдение:</strong> Vulkan теряет больше всего на <strong>prompt processing</strong> (обработка длинного промпта), потому что это массивное матричное умножение (GEMM), где CUDA оптимизирован через cuBLAS с тензорными ядрами. Но на <strong>генерации токенов</strong> (GEMV — матрица×вектор) разница меньше, потому что эта операция ограничена пропускной способностью памяти, а не вычислительной мощью.
+</div>
+
+<div class="highlight">
+<strong>Для prima.cpp это хорошая новость:</strong> prima.cpp оптимизирован для генерации токенов на слабых устройствах (70B модель на домашнем кластере). В этом режиме каждый узел обрабатывает 1 токен за раз → GEMV-операции → Vulkan теряет всего <strong>~25%</strong> от CUDA, а не 60%. А на AMD/Intel/Mali Vulkan — это <strong>единственный путь</strong> к GPU, так что альтернативы нет.
+</div>
+</div>
+
+<div class="s">
+<h3>⚠️ Подводные камни и как их обойти</h3>
+
+<table>
+<tr><th>Проблема</th><th>Описание</th><th>Решение</th></tr>
+<tr>
+  <td><strong>Subgroup size различается</strong></td>
+  <td>NVIDIA: 32, AMD: 64, Intel: 32, Mali: <strong>16</strong>. Шейдеры, захардкоженные на warp=32, падают на Mali</td>
+  <td>llama.cpp уже обрабатывает это: <code>device->subgroup_size</code> определяется при инициализации, шейдеры параметризованы</td>
+</tr>
+<tr>
+  <td><strong>Cooperative Matrix не везде</strong></td>
+  <td>CoopMat (тензорные ядра через Vulkan) есть только на NVIDIA RTX, AMD RDNA3+. На Intel Arc, Mali — нет</td>
+  <td>llama.cpp компилирует шейдеры <strong>и с CoopMat, и без</strong>. При запуске выбирает нужный вариант: <code>device->coopmat_support ? pipeline_cm : pipeline_scalar</code></td>
+</tr>
+<tr>
+  <td><strong>BF16 не везде</strong></td>
+  <td>BFloat16 поддержка есть только на новых GPU. Старые — только FP16 или FP32</td>
+  <td>llama.cpp проверяет <code>GL_EXT_bfloat16</code> при сборке и генерирует шейдеры только если поддержка есть</td>
+</tr>
+<tr>
+  <td><strong>UMA (Unified Memory) устройства</strong></td>
+  <td>iGPU (Intel Iris, AMD Radeon 680M, Mali) делят память с CPU. Нет отдельной VRAM</td>
+  <td>llama.cpp детектирует UMA: <code>device->uma = true</code>. На UMA используется host-visible + device-local память (одно и то же физически). Halda должен учитывать: <strong>VRAM = часть RAM</strong></td>
+</tr>
+<tr>
+  <td><strong>Vulkan SDK версии</strong></td>
+  <td>Минимум Vulkan 1.2 для базовой работы, 1.3 для CoopMat2. Старые драйверы могут не поддерживать</td>
+  <td>llama.cpp компилирует с <code>--target-env=vulkan1.2</code> (базовые шейдеры) и <code>vulkan1.3</code> (продвинутые). При запуске выбирает по возможностям драйвера</td>
+</tr>
+<tr>
+  <td><strong>Android-специфика</strong></td>
+  <td>На Android Vulkan работает, но нужно NDK для компиляции, и есть баги с Mali GPU (segfault на некоторых моделях)</td>
+  <td>prima.cpp уже поддерживает Android. Vulkan → нужен NDK toolchain с <code>-DGGML_VULKAN=ON -DVK_USE_PLATFORM_ANDROID_KHR=ON</code></td>
+</tr>
+<tr>
+  <td><strong>Halda не видит Vulkan GPU</strong></td>
+  <td>Если Halda ищет GPU только через <code>cudaGetDeviceCount()</code>, то на машине без NVIDIA он скажет «GPU нет» и будет считать всё на CPU</td>
+  <td>Главная задача фазы 2: переписать обнаружение GPU через ggml абстракцию, которая видит все бэкенды</td>
+</tr>
+</table>
+</div>
+
+<div class="s">
+<h3>🏁 Пошаговый чеклист для хакатона</h3>
+
+<p>Если вы решите реализовать Vulkan-порт prima.cpp на хакатоне (10–16 февраля 2026), вот конкретный план:</p>
+
+<table>
+<tr><th style="width:5%">✓</th><th style="width:5%">Час</th><th>Задача</th><th>Критерий завершения</th></tr>
+<tr><td>☐</td><td>0</td><td><code>git clone https://github.com/Lizonghang/prima.cpp && ls ggml/src/ggml-vulkan/</code></td><td>Увидели файлы ggml-vulkan.cpp и vulkan-shaders/</td></tr>
+<tr><td>☐</td><td>1</td><td>Установить Vulkan SDK: <code>sudo apt install libvulkan-dev glslc && vulkaninfo</code></td><td><code>vulkaninfo</code> показывает ваш GPU</td></tr>
+<tr><td>☐</td><td>2</td><td>Модифицировать Makefile: добавить <code>GGML_VULKAN=1</code> по аналогии с <code>GGML_CUDA=1</code></td><td>Файл компилируется без ошибок (может быть линковка)</td></tr>
+<tr><td>☐</td><td>3</td><td>Исправить ошибки линковки: <code>-lvulkan</code>, пути к заголовкам Vulkan SDK</td><td><code>make GGML_VULKAN=1 USE_HIGHS=1</code> завершается успешно</td></tr>
+<tr><td>☐</td><td>4</td><td>Тест: один узел, Vulkan, маленькая модель</td><td><code>./llama-cli -m qwen2.5-0.5b.gguf -ngl 99</code> видит Vulkan device и генерирует текст</td></tr>
+<tr><td>☐</td><td>5</td><td>Найти все <code>cuda</code> вызовы в коде Halda: <code>grep -rn "cuda\|CUDA" src/ | grep -v ggml</code></td><td>Список конкретных строк, где Halda вызывает CUDA напрямую</td></tr>
+<tr><td>☐</td><td>6–7</td><td>Заменить прямые CUDA вызовы на ggml абстракцию в профилировщике</td><td>Halda видит Vulkan GPU и измеряет его TFLOPS</td></tr>
+<tr><td>☐</td><td>8–9</td><td>Заменить VRAM-запросы: <code>cudaMemGetInfo</code> → <code>ggml_backend_dev_memory()</code></td><td>Halda правильно определяет объём VRAM через Vulkan</td></tr>
+<tr><td>☐</td><td>10</td><td>Тест: один узел, Vulkan, -ngl с Halda-распределением</td><td>Halda корректно назначает слои на Vulkan GPU</td></tr>
+<tr><td>☐</td><td>11</td><td>Тест: два узла (оба Vulkan), PRP-кольцо</td><td>Генерация работает, данные корректно передаются между узлами</td></tr>
+<tr><td>☐</td><td>12</td><td>Тест: два узла (CUDA + Vulkan), гетерогенное кольцо</td><td>Один узел CUDA, другой Vulkan — инференс работает</td></tr>
+<tr><td>☐</td><td>13–14</td><td>Бенчмарк: замерить tok/s с Vulkan vs CUDA vs CPU-only</td><td>Таблица с результатами, подтверждающая ускорение</td></tr>
+<tr><td>☐</td><td>15–16</td><td>Документация и PR / запись демо</td><td>README обновлён, демо-видео записано</td></tr>
+</table>
+
+<div class="mega">
+<strong>💡 Бонус для хакатона:</strong> Если Vulkan-порт заработает — prima.cpp станет <strong>первой распределённой системой инференса с поддержкой всех GPU-платформ</strong>. Ни exo, ни dllama, ни petals этого не умеют. Это серьёзный вклад в open-source LLM экосистему.
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- СЦЕНАРИЙ 3: ОБЛАЧНЫЕ VPS -->
+<!-- ======================================================================= -->
+<h2>☁️ Сценарий 3: Арендованные VPS-серверы × prima.cpp</h2>
+
+<div class="s">
+<h3>Идея: объединить несколько VPS через prima.cpp</h3>
+<p>Вместо покупки железа — арендовать несколько VPS с GPU на Vast.ai, RunPod или Hetzner и соединить их prima.cpp в кластер.</p>
+
+<h3>Актуальные цены на GPU-серверы (февраль 2026)</h3>
+
+<table>
+  <tr>
+    <th>Платформа</th>
+    <th>GPU</th>
+    <th>VRAM</th>
+    <th>Цена/час</th>
+    <th>Цена/месяц (24/7)</th>
+  </tr>
+  <tr>
+    <td>Vast.ai</td>
+    <td>RTX 3090</td>
+    <td>24 ГБ</td>
+    <td class="price">$0.15–0.25</td>
+    <td class="price">$108–180</td>
+  </tr>
+  <tr>
+    <td>Vast.ai</td>
+    <td>RTX 4090</td>
+    <td>24 ГБ</td>
+    <td class="price">$0.30–0.50</td>
+    <td class="price">$216–360</td>
+  </tr>
+  <tr>
+    <td>Vast.ai / RunPod</td>
+    <td>A100 40 ГБ</td>
+    <td>40 ГБ</td>
+    <td class="price">$0.40–0.80</td>
+    <td class="price">$288–576</td>
+  </tr>
+  <tr>
+    <td>RunPod</td>
+    <td>A100 80 ГБ</td>
+    <td>80 ГБ</td>
+    <td class="price">$1.00–1.50</td>
+    <td class="price">$720–1 080</td>
+  </tr>
+  <tr>
+    <td>Hyperstack</td>
+    <td>H100 SXM</td>
+    <td>80 ГБ</td>
+    <td class="price">$2.40</td>
+    <td class="price">$1 728</td>
+  </tr>
+  <tr>
+    <td>Hetzner</td>
+    <td>CPU-only VPS</td>
+    <td>—</td>
+    <td class="price">$0.01–0.05</td>
+    <td class="price">$7–36</td>
+  </tr>
+</table>
+</div>
+
+<div class="s">
+<h3>Критическая проблема: межсерверная латентность</h3>
+
+<div class="diagram">ТОПОЛОГИЯ VPS-КЛАСТЕРА:
+
+  VPS #1 (RTX 3090, Франкфурт)
+        │
+        │  Интернет: 50–200 мс латентность, 1–10 Гбит/с
+        │
+  VPS #2 (RTX 4090, Амстердам)
+        │
+        │  Интернет: 30–100 мс латентность
+        │
+  VPS #3 (A100, Финляндия)
+
+  vs.
+
+  ДОМАШНИЙ КЛАСТЕР:
+  ПК #1 ───── Gigabit Ethernet: 0.1–1 мс ───── ПК #2
+                                                    │
+                     0.1–1 мс ──────────────────────┘</div>
+
+<div class="red">
+<strong>Главная проблема:</strong> prima.cpp использует <strong>pipeline parallelism</strong> — каждый токен проходит через все узлы последовательно. При PRP с k обходами кольца, каждый обход добавляет сетевую латентность. Если между VPS 50 мс → каждый обход = 50 мс × количество узлов. Для 70B с 3 VPS и k=3: <strong>50 мс × 3 узла × 3 обхода = 450 мс ТОЛЬКО на сеть</strong> (не считая вычислений).
+</div>
+
+<table>
+  <tr>
+    <th>Параметр</th>
+    <th>Домашний LAN</th>
+    <th>VPS (один дата-центр)</th>
+    <th>VPS (разные города)</th>
+    <th>VPS (разные страны)</th>
+  </tr>
+  <tr>
+    <td>Латентность</td>
+    <td class="speed">0.1–1 мс</td>
+    <td class="speed">0.5–2 мс</td>
+    <td style="color:#ffd580;">5–20 мс</td>
+    <td style="color:#ff6b6b;">30–200 мс</td>
+  </tr>
+  <tr>
+    <td>Bandwidth</td>
+    <td>1–10 Гбит/с</td>
+    <td>10–25 Гбит/с</td>
+    <td>1–10 Гбит/с</td>
+    <td>1–5 Гбит/с</td>
+  </tr>
+  <tr>
+    <td>prima.cpp overhead (70B)</td>
+    <td class="speed">~5–30 мс</td>
+    <td class="speed">~10–40 мс</td>
+    <td style="color:#ffd580;">~100–300 мс</td>
+    <td style="color:#ff6b6b;">~500–2000 мс</td>
+  </tr>
+  <tr>
+    <td><strong>70B итого</strong></td>
+    <td class="speed">~400–700 мс/tok</td>
+    <td class="speed">~200–500 мс/tok</td>
+    <td style="color:#ffd580;">~500–1000 мс/tok</td>
+    <td style="color:#ff6b6b;">~1500–5000 мс/tok</td>
+  </tr>
+</table>
+</div>
+
+<div class="s">
+<h3>Конкретные VPS-сценарии с prima.cpp</h3>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Сценарий A: 3× RTX 3090 VPS на Vast.ai (один дата-центр)</h3>
+<p><strong>Цена:</strong> ~$0.50–0.75/час ($360–540/месяц)<br>
+<strong>VRAM:</strong> 72 ГБ (3 × 24 ГБ) — 70B Q4 целиком в GPU<br>
+<strong>Сеть:</strong> Внутренняя сеть дата-центра → 0.5–2 мс латентность</p>
+<p><strong>Прогноз 70B:</strong> <span class="speed">~2–5 tok/s</span> (сопоставимо с домашним кластером!)<br>
+<strong>Прогноз 32B:</strong> <span class="speed">~15–25 tok/s</span></p>
+<div class="good">
+<strong>Вердикт:</strong> <span class="badge badge-green">Работает!</span> Если VPS в одном дата-центре — латентность минимальна. Это <strong>лучший VPS-сценарий</strong>. Но: $360–540/мес за инференс, который б/у сервер с P40 делает за $1 000 одноразово.
+</div>
+</div>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Сценарий B: 2× A100 80 ГБ на RunPod (один регион)</h3>
+<p><strong>Цена:</strong> ~$2.00–3.00/час ($1 440–2 160/месяц)<br>
+<strong>VRAM:</strong> 160 ГБ — хватает на 405B Q4!<br>
+<strong>Сеть:</strong> RunPod InfiniBand → <1 мс латентность</p>
+<p><strong>Прогноз 405B:</strong> <span class="speed">~1–3 tok/s</span><br>
+<strong>Прогноз 70B:</strong> <span class="speed">~20–40 tok/s</span> (A100 bandwidth 2 ТБ/с!)</p>
+<div class="warn">
+<strong>Вердикт:</strong> <span class="badge badge-orange">Работает, но дорого</span>. $1 440/мес за то, что облачное API (Claude, GPT) даёт за $20/мес с лучшей скоростью. Имеет смысл только для <strong>приватности + неограниченных токенов</strong> на закрытых данных.
+</div>
+</div>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Сценарий C: Домашний ПК + VPS на Vast.ai (гибрид)</h3>
+<p><strong>Домашний:</strong> десктоп с RTX 3090 (24 ГБ VRAM, $800–900 разовая покупка)<br>
+<strong>Облачный:</strong> 1× RTX 4090 VPS при необходимости ($0.35/час)</p>
+<p><strong>Prima.cpp объединяет:</strong> домашний GPU + облачный GPU через интернет.</p>
+<div class="red">
+<strong>Вердикт:</strong> <span class="badge badge-red">Не рекомендуется</span>. Латентность дом↔облако = 20–100 мс. prima.cpp pipeline: каждый токен проходит через оба узла → +40–200 мс overhead на токен. Для 70B это <strong>хуже</strong>, чем просто домашний RTX 3090 + CPU offloading.
+</div>
+</div>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Сценарий D: Много дешёвых CPU VPS + prima.cpp</h3>
+<p><strong>10× Hetzner CX41</strong> (8 vCPU, 16 ГБ RAM, ~$20/мес каждый)<br>
+<strong>Итого:</strong> $200/мес, 160 ГБ RAM, внутренняя сеть дата-центра</p>
+<p><strong>Прогноз 70B:</strong> prima.cpp PRP + disk offloading → <span style="color:#ff6b6b;">~0.1–0.5 tok/s</span><br>
+VPS имеют виртуальные CPU (медленные) + сетевые диски (медленный disk I/O).</p>
+<div class="red">
+<strong>Вердикт:</strong> <span class="badge badge-red">Бесполезно</span>. CPU VPS слишком медленны для инференса. Виртуализация добавляет overhead. Disk offloading на сетевых дисках VPS (не NVMe) — катастрофически медленно.
+</div>
+</div>
+</div>
+
+<div class="s">
+<div class="mega">
+<h3 style="color:#bae67e;">🎯 Финальный вердикт по VPS</h3>
+
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Скорость</th>
+    <th>Стоимость</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>GPU VPS в одном дата-центре</strong></td>
+    <td class="speed">2–5 tok/s (70B)</td>
+    <td class="price">$360–540/мес</td>
+    <td><span class="badge badge-green">✅ Единственный рабочий VPS-сценарий</span></td>
+  </tr>
+  <tr>
+    <td>GPU VPS в разных городах</td>
+    <td style="color:#ffd580;">1–2 tok/s</td>
+    <td class="price">$300+/мес</td>
+    <td><span class="badge badge-orange">⚠️ Работает, но дорого и медленно</span></td>
+  </tr>
+  <tr>
+    <td>Домашний + облачный GPU</td>
+    <td style="color:#ff6b6b;">Хуже одного узла</td>
+    <td>—</td>
+    <td><span class="badge badge-red">❌ Не стоит</span></td>
+  </tr>
+  <tr>
+    <td>Много CPU VPS</td>
+    <td style="color:#ff6b6b;">0.1–0.5 tok/s</td>
+    <td class="price">$200/мес</td>
+    <td><span class="badge badge-red">❌ Бесполезно</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td colspan="4" style="color:#ff946f;"><strong>Сравнение:</strong> б/у сервер с 4× P40 = $1 000–1 500 разовая → окупается за 2–3 месяца вместо VPS</td>
+  </tr>
+</table>
+
+<p style="margin-top:14px;"><strong>Ключевой вывод:</strong> prima.cpp спроектирована для <strong>домашних кластеров с низкой латентностью</strong> (LAN). VPS через интернет работает только если серверы <strong>в одном дата-центре</strong> с внутренней сетью <1 мс. Но даже тогда — б/у сервер с Tesla P40 дешевле за 3 месяца.</p>
+
+<p><strong>Единственный реальный use-case для VPS + prima.cpp:</strong></p>
+<p>• <strong>Временные эксперименты:</strong> Арендовать 3× GPU VPS на 2 часа ($1.50), протестировать prima.cpp на 70B → решить, стоит ли покупать железо<br>
+• <strong>Burst inference:</strong> Дома слабый ПК → при необходимости подключить облачный GPU через prima.cpp на несколько часов<br>
+• <strong>405B/671B одноразово:</strong> Арендовать 2× A100 80 ГБ на 1 час ($3) → запустить DeepSeek V3 → получить результат → выключить</p>
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- ОБЩАЯ СВОДКА -->
+<!-- ======================================================================= -->
+<h2>📊 Общая сводка: Tesla GPU, все GPU-платформы, VPS</h2>
+
+<div class="s">
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Цена входа</th>
+    <th>70B скорость</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td><strong>🏆 4× Tesla P40 в б/у сервере</strong></td>
+    <td class="price">$900–1 500 (разово)</td>
+    <td class="speed">4–8 tok/s</td>
+    <td><strong>Лучший $/производительность для 70B. Дешевле всех альтернатив.</strong></td>
+  </tr>
+  <tr>
+    <td>ZLUDA / SCALE / Claude Code + AMD GPU</td>
+    <td class="price">Бесплатно (софт)</td>
+    <td>❓ prima.cpp не портирован. Но Claude Code порт lc0→ROCm за 30 мин доказывает метод</td>
+    <td><strong>Самый перспективный путь. Claude Code порт prima.cpp — вопрос часов работы.</strong></td>
+  </tr>
+  <tr>
+    <td>🔵 Intel Arc A770 (2×, десктоп)</td>
+    <td class="price">$400–560 (б/у)</td>
+    <td>llama.cpp SYCL: 7B ~82 tok/s ✅ | 70B: CPU offload ~5–8 tok/s</td>
+    <td><strong>Дешёвый VRAM ($12.50/ГБ). prima.cpp ждёт Vulkan backend или SYCL-порт.</strong></td>
+  </tr>
+  <tr>
+    <td>🍊 4× Orange Pi 5 Plus + Mali GPU</td>
+    <td class="price">~$600</td>
+    <td>CPU: 0.3–0.5 tok/s | GPU (MLC-LLM): 7B ~2.5 tok/s на одной плате</td>
+    <td>GPU ускоряет мелкие модели. Для 70B в кластере — скромный буст ~30–50%.</td>
+  </tr>
+  <tr>
+    <td>GPU VPS в одном ДЦ</td>
+    <td class="price">$360–540/мес</td>
+    <td class="speed">2–5 tok/s</td>
+    <td>Работает, но за 3 месяца дороже б/у сервера.</td>
+  </tr>
+  <tr>
+    <td>CPU VPS / гибрид дом+облако</td>
+    <td class="price">$200+/мес</td>
+    <td style="color:#ff6b6b;">0.1–0.5 tok/s</td>
+    <td style="color:#ff6b6b;">Бесполезно для prima.cpp.</td>
+  </tr>
+</table>
+</div>
+
+<div class="mega">
+<h3 style="color:#bae67e;">🏆 Абсолютный чемпион серии по $/tok — обновлённый</h3>
+
+<div class="diagram">ОБНОВЛЁННЫЙ РЕЙТИНГ (с учётом Tesla GPU, Intel Arc, Mali):
+
+  #1 🥇 Б/у сервер + 4× Tesla P40 + prima.cpp (если модель > 96 ГБ)
+         $900–1 500 → 70B: 4–8 tok/s → $0.003–0.005/1000 токенов*
+  
+  #2 🥈 Б/у десктоп + RTX 3090 + ноутбук + prima.cpp
+         $800–1 300 → 70B: 1.5–2.5 tok/s
+
+  #3 🥉 2× Intel Arc A770 б/у + десктоп (llama.cpp SYCL)
+         $400–560 → 7B: ~82 tok/s | 70B: ~5–8 tok/s (CPU offload)
+         ⚡ Лучший $/VRAM из современных GPU ($12.50/ГБ)
+  
+  #4    4× Orange Pi 5 Plus + prima.cpp
+         $600 → 70B: 0.3–0.5 tok/s (CPU) | 7B GPU: 2.5 tok/s
+  
+  #5    Mac Mini M4 Pro 64 ГБ (single-node, без prima.cpp)
+         $2 199 → 70B: 4–5 tok/s
+  
+  #6    4× Mac Mini M4 Pro + EXO + TB5 (макс. скорость)
+         $8 800 → 70B: ~32 tok/s
+
+  * При 24/7 использовании, amortized за 1 год, 10 Вт idle
+
+  ВАЖНО: $0.003 за 1000 токенов — это в ~7× дешевле
+  Claude API ($0.015/1K входных) и в ~500× дешевле
+  ChatGPT Pro ($200/мес при типичном использовании)
+
+  🔥 ПРОРЫВ ЯНВАРЯ 2026: Claude Code портировал CUDA→ROCm за 30 мин.
+  Если кто-то портирует prima.cpp → AMD/Intel/Mali GPU заработают →
+  • Кластер 4× Framework Desktop Strix Halo = 70B на 8–15 tok/s
+  • Intel Arc A770 кластер = 70B на 3–6 tok/s за $400–560
+  • Orange Pi кластер с GPU = 70B на 0.5–1.0 tok/s</div>
+</div>
+
+<div class="footer">
+  Часть 8 серии «Домашние AI-кластеры 2026». Февраль 2026.<br>
+  Источники: eBay, Hardware Corner, Phoronix, ZLUDA GitHub, Vast.ai, RunPod, arXiv:2504.08791,<br>
+  <a href="https://itc.ua/news/apple-mac-mini-smetayut-s-polok-magazynov-poskolku-monopolyya-nvidia-na-cuda-oslabla-blagodarya-claude-code/">ITC.ua</a>,
+  <a href="https://www.goha.ru/konec-dominirovaniya-nvidia-nejroset-claude-code-portirovala-cuda-v-amd-rocm-za-30-minut-x1D7GA">GoHa.ru</a>,
+  <a href="https://github.com/LeelaChessZero/lc0/pull/2375">lc0 PR #2375</a>,
+  <a href="https://github.com/intel/ipex-llm">Intel IPEX-LLM</a>,
+  <a href="https://blog.mlc.ai/2024/04/20/GPU-Accelerated-LLM-on-Orange-Pi">MLC-LLM Mali G610</a><br>
+  <a href="favorites-prima-cpp-ru.html">← Часть 7 (Фавориты × prima.cpp)</a> · 
+  <a href="prima-cpp-minipc-guide-ru.html">← Часть 6 (prima.cpp)</a> · 
+  <a href="sbc-clusters-guide-ru.html">← Часть 5 (SBC)</a>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Все фавориты серии × prima.cpp — финальная переоценка</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #ff946f; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #73d0ff; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #1a0d0a 0%, #1a1505 100%); border: 1px solid #ff946f; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  .mega { background: linear-gradient(135deg, #0d1a0a 0%, #0a1a1a 100%); border: 2px solid #bae67e; border-radius: 12px; padding: 18px; margin: 16px 0; }
+
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .badge-purple { background: #1a0d2a; color: #d4bfff; }
+
+  .card { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 10px 0; }
+  .card-winner { border-color: #bae67e; background: linear-gradient(135deg, #0f1419 0%, #0a1a0d 100%); }
+  .card-change { border-color: #ff946f; background: linear-gradient(135deg, #0f1419 0%, #1a0d0a 100%); }
+  .card-same { border-color: #3d4455; }
+
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+
+  .arrow { color: #ff946f; font-size: 1.3em; text-align: center; margin: 10px 0; }
+  .diagram { background: #0a0e14; border: 2px solid #ff946f; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; }
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>🏆 Все фавориты серии × prima.cpp — финальная переоценка</h1>
+<p class="sub">Часть 7 (финал). Февраль 2026. Каждый «победитель» из 6 частей серии пропущен через призму prima.cpp</p>
+
+<div class="highlight">
+<strong>Суть:</strong> В 6 частях серии мы выбирали лучшие конфигурации для домашнего LLM-инференса: от Mac Mini до SBC-кластеров. Каждая часть завершалась своим «фаворитом». Теперь мы берём <strong>каждого фаворита</strong> и проверяем: <strong>как prima.cpp меняет расклад?</strong> Где вердикт остаётся тем же, а где prima.cpp переворачивает всё с ног на голову?
+</div>
+
+<!-- ======================================================================= -->
+<h2>📋 Сводная таблица: все фавориты из всех частей</h2>
+<!-- ======================================================================= -->
+<div class="s">
+<table>
+  <tr>
+    <th>#</th>
+    <th>Часть серии</th>
+    <th>Фаворит</th>
+    <th>Цена</th>
+    <th>Модель / Скорость (до prima.cpp)</th>
+  </tr>
+  <tr>
+    <td>🥇1</td>
+    <td>Ч.1: Moltbot / Mac Mini</td>
+    <td><strong>Mac Mini M4 16 ГБ</strong> — AI-агент сервер</td>
+    <td class="price">$599</td>
+    <td>8B: 15–20 tok/s. Не для LLM-кластеров.</td>
+  </tr>
+  <tr>
+    <td>🥇2</td>
+    <td>Ч.2: Apple vs PC</td>
+    <td><strong>Mac Mini M4 Pro 64 ГБ</strong> — лучший single-node Apple</td>
+    <td class="price">$2 199</td>
+    <td>70B Q4: ~4–5 tok/s. 32B: ~15 tok/s</td>
+  </tr>
+  <tr>
+    <td>🥇3</td>
+    <td>Ч.2: Apple vs PC</td>
+    <td><strong>RTX 3090 б/у</strong> — лучший $/VRAM для GPU</td>
+    <td class="price">$800–900</td>
+    <td>30B Q4: ~20 tok/s. 70B: не влезает (24 ГБ VRAM)</td>
+  </tr>
+  <tr>
+    <td>🥇4</td>
+    <td>Ч.2: Apple vs PC</td>
+    <td><strong>Minisforum UM890 Pro</strong> — лучший бюджетный mini-PC</td>
+    <td class="price">$479</td>
+    <td>8B: 10–15 tok/s. 70B: невозможно (32 ГБ RAM)</td>
+  </tr>
+  <tr>
+    <td>🥇5</td>
+    <td>Ч.3: Кластеризация</td>
+    <td><strong>4× Mac Mini M4 Pro 64 ГБ + EXO + TB5</strong></td>
+    <td class="price">~$8 800</td>
+    <td>70B: ~32 tok/s (tensor parallel RDMA)</td>
+  </tr>
+  <tr>
+    <td>🥇6</td>
+    <td>Ч.3–4: DGX Spark</td>
+    <td><strong>2× NVIDIA DGX Spark</strong> — hybrid prefill/decode</td>
+    <td class="price">~$6 000</td>
+    <td>70B: ~8–15 tok/s. 405B: возможно</td>
+  </tr>
+  <tr>
+    <td>🥇7</td>
+    <td>Ч.4: Strix Halo</td>
+    <td><strong>Framework Desktop 128 ГБ</strong> — лучший $/bandwidth ПК</td>
+    <td class="price">$1 999</td>
+    <td>70B Q4: ~4–5 tok/s (single-node). 235B: ~1 tok/s</td>
+  </tr>
+  <tr>
+    <td>🥇8</td>
+    <td>Ч.4: Strix Halo</td>
+    <td><strong>Minisforum MS-S1 Max</strong> — лучший для кластеризации</td>
+    <td class="price">$2 299</td>
+    <td>70B Q4: ~4–5 tok/s. Dual 10 GbE + USB4v2</td>
+  </tr>
+  <tr>
+    <td>🥇9</td>
+    <td>Ч.5: SBC-кластеры</td>
+    <td><strong>4× Orange Pi 5 Plus 16 ГБ</strong> — лучший SBC-кластер</td>
+    <td class="price">~$600</td>
+    <td>8B: ~6–13 tok/s (distributed-llama). 70B: невозможно (64 ГБ)</td>
+  </tr>
+  <tr>
+    <td>🥇10</td>
+    <td>Ч.5: SBC-кластеры</td>
+    <td><strong>4× Raspberry Pi 5 8 ГБ</strong> — самый протестированный</td>
+    <td class="price">~$585</td>
+    <td>8B: ~6–13 tok/s (distributed-llama). 70B: невозможно (32 ГБ)</td>
+  </tr>
+</table>
+</div>
+
+<!-- ======================================================================= -->
+<h2>⚡ Каждый фаворит × prima.cpp: что меняется?</h2>
+<!-- ======================================================================= -->
+
+<!-- ФАВОРИТ 1 -->
+<h3>🥇 Фаворит #1: Mac Mini M4 16 ГБ ($599) — Moltbot AI-агент</h3>
+<div class="card card-same">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+Сервер для AI-агента (Moltbot/Clawdbot). Облачный API для тяжёлых моделей. Локально — Llama 8B на 15–20 tok/s. Один узел, не кластер.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+Может стать <strong>узлом в гетерогенном кластере</strong>. Metal GPU поддерживается. 16 ГБ RAM → Halda назначит 5–10 слоёв из 80 (для 70B). SSD 7 ГБ/с → хороший disk offloading.
+<br><br>
+<strong>Но:</strong> Metal в prima.cpp медленнее CUDA. Один Mac Mini M4 c 16 ГБ — слабое звено в кластере.
+</div>
+</div>
+<div class="note">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-blue">Вердикт НЕ меняется</span>. Mac Mini M4 16 ГБ остаётся лучшим как <em>агент-сервер</em>. Как LLM-нода он слишком слаб — 16 ГБ RAM не даст существенного вклада в кластер. prima.cpp позволяет добавить его как «помощника», но не как основу.
+</div>
+</div>
+
+<!-- ФАВОРИТ 2 -->
+<h3>🥇 Фаворит #2: Mac Mini M4 Pro 64 ГБ ($2 199) — лучший single-node Apple</h3>
+<div class="card card-same">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+64 ГБ unified memory + 273 ГБ/с bandwidth. 70B Q4: ~4–5 tok/s. Единственный портативный одноузловой вариант для 70B.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+В <strong>одиночку</strong> — prima.cpp = llama.cpp (нет смысла в распределении). <strong>В кластере</strong> — prima.cpp через Metal, но медленнее чем нативный EXO с RDMA. Halda может решить использовать только M4 Pro и отключить слабые узлы.
+</div>
+</div>
+<div class="note">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-blue">Вердикт НЕ меняется</span>. Для одного узла prima.cpp не нужна. Для Mac-кластера EXO с TB5 RDMA остаётся быстрее. M4 Pro 64 ГБ — по-прежнему король single-node для 70B.
+</div>
+</div>
+
+<!-- ФАВОРИТ 3 -->
+<h3>🥇 Фаворит #3: RTX 3090 б/у ($800–900) — лучший $/VRAM</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+24 ГБ VRAM, 936 ГБ/с bandwidth. 30B: ~20 tok/s. <strong>Потолок = 30B</strong> (24 ГБ VRAM). 70B — не помещается, точка.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-green">CUDA ✅</span> Полная поддержка! Десктоп с RTX 3090 (24 ГБ VRAM + 64 ГБ RAM) в кластере prima.cpp: <strong>70B ТЕПЕРЬ ВОЗМОЖЕН</strong>. Halda даёт GPU 20–25 слоёв из 80, остальные — на CPU + disk offloading.<br><br>
+Добавь ещё один десктоп с RTX 3070 (8 ГБ) → <strong>70B на ~2–4 tok/s</strong> вместо «невозможно».
+</div>
+</div>
+<div class="good">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-green">ВЕРДИКТ МЕНЯЕТСЯ! 🔄</span> RTX 3090 из «лучшая GPU для 30B» превращается в <strong>«ядро кластера для 70B»</strong>. prima.cpp снимает потолок 24 ГБ VRAM. В комбинации с любым вторым устройством (даже ноутбук или телефон) — 70B становится реальностью. <strong>Это самый драматичный сдвиг от prima.cpp.</strong>
+</div>
+</div>
+
+<!-- ФАВОРИТ 4 -->
+<h3>🥇 Фаворит #4: Minisforum UM890 Pro ($479) — бюджетный mini-PC</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+Ryzen 9 8945HS, 32 ГБ DDR5, RDNA3 iGPU. 8B: 10–15 tok/s. <strong>Потолок = 13B</strong> (32 ГБ RAM). 70B невозможно.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-red">AMD iGPU ❌</span> Только CPU-mode. Но 32 ГБ RAM + быстрый NVMe → отличный disk offloading.<br><br>
+<strong>2× UM890 Pro ($958):</strong> 64 ГБ RAM, 2 CPU. prima.cpp PRP → 70B Q4 (~40 ГБ) влезает в RAM! Прогноз: <strong>70B на ~1.5–2.5 tok/s</strong> (CPU-only, но без disk offloading).<br><br>
+<strong>4× UM890 Pro ($1 916):</strong> 128 ГБ RAM → даже 405B через disk offloading.
+</div>
+</div>
+<div class="good">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-green">ВЕРДИКТ МЕНЯЕТСЯ! 🔄</span> UM890 Pro из «бюджетный 8B-бокс» превращается в «строительный блок 70B-кластера». 2 штуки за $958 → 70B. 4 штуки за $1 916 → 405B (очень медленно, но возможно). <strong>AMD iGPU не работает в prima.cpp — жаль, но CPU-only PRP всё равно открывает 70B.</strong>
+</div>
+</div>
+
+<!-- ФАВОРИТ 5 -->
+<h3>🥇 Фаворит #5: 4× Mac Mini M4 Pro 64 ГБ + EXO + TB5 (~$8 800)</h3>
+<div class="card card-same">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+256 ГБ unified memory. TB5 RDMA tensor parallelism через EXO. 70B: ~32 tok/s. Абсолютный чемпион по скорости среди домашних кластеров.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+prima.cpp использует <strong>pipeline (PRP)</strong>, не tensor parallelism. На TB5 RDMA — EXO с TP <strong>значительно быстрее</strong>. prima.cpp на этом кластере: ~10–15 tok/s на 70B (pipeline overhead). EXO: ~32 tok/s.<br><br>
+prima.cpp полезна только если нужно запустить модель <strong>больше 256 ГБ</strong> (405B Q8, 671B) — тогда disk offloading через mmap даёт преимущество.
+</div>
+</div>
+<div class="note">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-blue">Вердикт НЕ меняется</span>. Mac-кластер + EXO + TB5 RDMA остаётся непобедимым для моделей ≤256 ГБ. prima.cpp медленнее из-за pipeline вместо tensor parallelism. Единственный случай, когда prima.cpp выигрывает: модели >256 ГБ (нужен disk offloading). <strong>EXO — по-прежнему король Mac-кластеров.</strong>
+</div>
+</div>
+
+<!-- ФАВОРИТ 6 -->
+<h3>🥇 Фаворит #6: 2× NVIDIA DGX Spark (~$6 000)</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+256 ГБ unified memory. Blackwell GPU + 6144 CUDA cores. ConnectX-7 200 Гбит/с RDMA. 70B: ~8–15 tok/s. 405B: возможно на 2 узлах.
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-green">CUDA ✅</span> <span class="badge badge-green">ConnectX-7 ✅</span> DGX Spark — <strong>идеальное железо для prima.cpp</strong>. 128 ГБ unified + Blackwell GPU на каждом узле. Halda может оптимально распределить GPU и CPU слои.<br><br>
+<strong>Но:</strong> DGX Spark уже имеет собственный RDMA-стек и NVIDIA-оптимизированный инференс. prima.cpp может быть <em>медленнее</em> нативных инструментов NVIDIA (vLLM, TensorRT-LLM).
+</div>
+</div>
+<div class="warn">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-orange">Вердикт ЧАСТИЧНО меняется</span>. DGX Spark + prima.cpp = отличная комбинация для <strong>гетерогенных кластеров</strong> (DGX + старый ноутбук + телефон). Но для <strong>чистого DGX-кластера</strong> — NVIDIA-нативный стек быстрее. prima.cpp добавляет ценность, если DGX Spark — самый мощный узел в <em>смешанном</em> кластере.
+</div>
+</div>
+
+<!-- ФАВОРИТ 7 -->
+<h3>🥇 Фаворит #7: Framework Desktop 128 ГБ ($1 999) — лучший $/bandwidth ПК</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+Strix Halo, 256 ГБ/с, 128 ГБ LPDDR5X. 70B Q4: ~4–5 tok/s (один узел). Кластер через llama.cpp RPC: <strong>~0.7 tok/s</strong> (хуже одного узла из-за TCP overhead).
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-red">AMD iGPU ❌</span> Только CPU. <strong>Один узел:</strong> prima.cpp = llama.cpp, нет преимущества.<br><br>
+<strong>2× Framework Desktop ($3 998):</strong> 256 ГБ RAM → <strong>405B Q4 (~230 ГБ) ВПЕРВЫЕ ВОЗМОЖЕН!</strong> prima.cpp PRP + disk offloading. Прогноз: 405B на ~0.5–1.5 tok/s (CPU-only).<br><br>
+<strong>Сравнение:</strong> llama.cpp RPC на 2 узлах → ~0.3 tok/s (pipeline overhead). prima.cpp → ~0.5–1.5 tok/s (PRP + prefetching). <strong>2–5× ускорение!</strong>
+</div>
+</div>
+<div class="good">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-green">ВЕРДИКТ МЕНЯЕТСЯ! 🔄</span> Framework Desktop из «лучший single-node, но бесполезен в кластере» превращается в <strong>«строительный блок для 405B/671B»</strong>. prima.cpp — единственный фреймворк, который делает кластер из Framework Desktop <em>быстрее</em> одного узла на больших моделях. Без Vulkan — потенциал раскрыт не полностью (AMD iGPU спит).
+</div>
+</div>
+
+<!-- ФАВОРИТ 8 -->
+<h3>🥇 Фаворит #8: Minisforum MS-S1 Max ($2 299) — лучший для кластеризации</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+Strix Halo 128 ГБ, dual 10 GbE, USB4v2. Идеальный сетевой стек для кластера. Но llama.cpp RPC через TCP: кластер <em>медленнее</em> одного узла. Вердикт: «великолепное железо, ждём софт».
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-red">AMD iGPU ❌</span> Только CPU. Но dual 10 GbE = <strong>наиболее быстрый интерконнект для prima.cpp</strong> среди мини-ПК.<br><br>
+<strong>4× MS-S1 Max ($9 196):</strong> 512 ГБ RAM, dual 10 GbE кольцо, PCIe 5.0 NVMe 10+ ГБ/с.<br>
+• 70B Q4: RAM хватает на 1 узел → prima.cpp использует только 1 → нет преимущества<br>
+• <strong>405B Q4 (~230 ГБ): 2 узла → ~0.5–1.5 tok/s</strong><br>
+• <strong>DeepSeek V3 671B Q4 (~380 ГБ): 3 узла → ~0.2–0.5 tok/s</strong><br>
+• <strong>Llama 3 405B Q8 (~400 ГБ): 4 узла → ~0.2–0.5 tok/s</strong>
+</div>
+</div>
+<div class="good">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-green">ВЕРДИКТ МЕНЯЕТСЯ! 🔄</span> MS-S1 Max из «железо будущего в ожидании софта» превращается в <strong>«единственную мини-ПК платформу для DeepSeek V3 671B дома»</strong>. prima.cpp — тот самый софт, которого не хватало. Dual 10 GbE раскрывается для PRP кольца. <strong>Жаль, что без Vulkan AMD iGPU (59.4 ТФЛОПС!) спит.</strong>
+</div>
+</div>
+
+<!-- ФАВОРИТ 9 -->
+<h3>🥇 Фаворит #9: 4× Orange Pi 5 Plus 16 ГБ (~$600) — лучший SBC-кластер</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+RK3588, 64 ГБ суммарно, Gigabit Ethernet. distributed-llama: 8B на 6–13 tok/s. 70B: невозможно (RAM <40 ГБ свободных + нет disk offloading).
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-red">GPU ❌</span> ARM CPU only. Но: mmap disk offloading + PRP! <strong>70B Q4 ТЕПЕРЬ ВОЗМОЖЕН</strong> даже на 64 ГБ кластере!<br><br>
+Halda профилирует каждый RK3588: слабый CPU (~4 TOPS), NVMe 1–2 ГБ/с, 16 ГБ RAM.<br>
+• PRP с k=4 оборота → prefetching перекрывает disk I/O<br>
+• Прогноз 70B: <strong>~2000–3000 мс/токен (0.3–0.5 tok/s)</strong><br>
+• Прогноз 32B: <strong>~300–500 мс/токен (2–3.3 tok/s)</strong><br><br>
+Сравнение: distributed-llama → 70B: OOM. llama.cpp на 1 узле → 70B: 30+ сек/токен. <strong>prima.cpp: 2–3 сек/токен. Из «невозможно» в «медленно, но можно».</strong>
+</div>
+</div>
+<div class="good">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-green">ВЕРДИКТ МЕНЯЕТСЯ! 🔄</span> Orange Pi 5 Plus кластер из «только для 8B моделей» превращается в <strong>«самый дешёвый способ запустить 70B дома — за $600»</strong>. Да, 0.3–0.5 tok/s — это медленно. Но это <strong>не ноль</strong>. Для batch-генерации, фоновых задач, overnight reasoning — работает. <strong>Революция для ультрабюджета.</strong>
+</div>
+</div>
+
+<!-- ФАВОРИТ 10 -->
+<h3>🥇 Фаворит #10: 4× Raspberry Pi 5 8 ГБ (~$585) — самый протестированный</h3>
+<div class="card card-change">
+<div class="vs">
+<div>
+<strong>До prima.cpp:</strong><br>
+32 ГБ суммарно. Gigabit Ethernet. distributed-llama: 8B на ~6–13 tok/s. Jeff Geerling: «Я жалею, что построил этот кластер».
+</div>
+<div>
+<strong>С prima.cpp:</strong><br>
+<span class="badge badge-red">GPU ❌</span> ARM CPU only. 32 ГБ суммарно — МЕНЬШЕ чем 70B Q4 (~40 ГБ) → нужен <strong>интенсивный disk offloading</strong>.<br><br>
+• 70B: mmap с microSD/USB SSD (0.1–0.4 ГБ/с) → <strong>disk bottleneck критичен</strong><br>
+• Прогноз 70B: <strong>~5000–15000 мс/токен (0.07–0.2 tok/s)</strong><br>
+• С NVMe HAT (2+ ГБ/с): <strong>~3000–5000 мс/токен (0.2–0.33 tok/s)</strong><br>
+• 32B: <strong>~500–1000 мс/токен (1–2 tok/s)</strong> — терпимо!
+</div>
+</div>
+<div class="warn">
+<strong>Вердикт prima.cpp:</strong> <span class="badge badge-orange">Вердикт ЧАСТИЧНО меняется</span>. Pi 5 кластер с prima.cpp <em>технически</em> может запустить 70B, но 0.07–0.2 tok/s — это 5–15 секунд на токен. Непрактично для интерактивного использования. Для <strong>32B моделей</strong> (QwQ-32B, Qwen 2.5-32B) — 1–2 tok/s уже реалистичнее. <strong>Jeff Geerling по-прежнему жалел бы, но чуть меньше.</strong> Orange Pi 5 Plus с 16 ГБ RAM и NVMe — значительно лучший выбор для prima.cpp.
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<h2>🏆 НОВЫЙ ФАВОРИТ: Гетерогенный кластер с NVIDIA GPU</h2>
+<!-- ======================================================================= -->
+<div class="s">
+
+<div class="mega">
+<h3 style="color:#bae67e;">⚡ Фаворит #11 (НОВЫЙ): Гетерогенный кластер для prima.cpp</h3>
+<p>prima.cpp создаёт <strong>совершенно новую категорию</strong>, которой не было ни в одной из 6 частей серии: <strong>кластер из «того, что есть дома» + одна покупка NVIDIA GPU</strong>.</p>
+
+<div class="diagram">
+ОПТИМАЛЬНЫЙ КЛАСТЕР ДЛЯ prima.cpp:
+
+  D1: Б/у десктоп + RTX 3090 (24 ГБ VRAM, 64 ГБ RAM)      $800–900
+  D2: Старый ноутбук (CPU-only, 16 ГБ RAM)                  $0 (уже есть)
+  D3: Minisforum UM890 Pro (32 ГБ RAM, CPU-only)             $479
+  D4: Смартфон Android (8 ГБ RAM, Termux)                    $0 (уже есть)
+
+  Итого: $1 280–1 380
+  Суммарно: 24 ГБ VRAM + 120 ГБ RAM
+  Сеть: Gigabit Ethernet (D1–D3) + Wi-Fi (D4)
+
+  prima.cpp + Halda:
+  ┌─────────────────────────────────────────────────────────┐
+  │ 70B Q4 (80 слоёв):                                     │
+  │   D1-GPU: 25 слоёв (CUDA, самый быстрый)               │
+  │   D1-CPU: 5 слоёв                                      │
+  │   D3-CPU: 15 слоёв (Ryzen 9, быстрый NVMe)             │
+  │   D2-CPU: 10 слоёв (disk offloading)                    │
+  │   D4-CPU: 3 слоёв (телефон, минимум)                    │
+  │   Остаток: mmap disk offloading                         │
+  │                                                         │
+  │   Прогноз: 400–700 мс/токен → 1.4–2.5 tok/s            │
+  │   С speculative decoding: 3–5 tok/s                     │
+  └─────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────┐
+  │ QwQ-32B:                                                │
+  │   D1-GPU: все слои → Halda: только D1                   │
+  │   Прогноз: 15–20 tok/s (чистый CUDA)                    │
+  │   С speculative decoding: 25–30 tok/s                   │
+  └─────────────────────────────────────────────────────────┘
+</div>
+
+<p><strong>Почему это новый фаворит:</strong></p>
+<p>• <span class="price">$1 280</span> — дешевле Mac Mini M4 Pro ($2 199)<br>
+• 70B на <span class="speed">1.4–2.5 tok/s</span> — медленнее Mac Mini M4 Pro (4–5 tok/s), но <strong>70B вместо потолка 30B у RTX 3090</strong><br>
+• <strong>Используй то, что есть</strong> — старый ноутбук и телефон бесплатно добавляют мощности<br>
+• <strong>Масштабируемость:</strong> купил друг RTX 4060 → подключай к кластеру, Halda перераспределит</p>
+</div>
+</div>
+
+<!-- ======================================================================= -->
+<h2>📊 Финальная сводка: все фавориты после prima.cpp</h2>
+<!-- ======================================================================= -->
+<div class="s">
+<table>
+  <tr>
+    <th>Фаворит</th>
+    <th>Цена</th>
+    <th>70B до prima.cpp</th>
+    <th>70B с prima.cpp</th>
+    <th>Вердикт меняется?</th>
+  </tr>
+  <tr>
+    <td>Mac Mini M4 16 ГБ</td>
+    <td class="price">$599</td>
+    <td>Невозможно</td>
+    <td>Узел-помощник</td>
+    <td><span class="badge badge-blue">Нет</span></td>
+  </tr>
+  <tr>
+    <td>Mac Mini M4 Pro 64 ГБ</td>
+    <td class="price">$2 199</td>
+    <td class="speed">4–5 tok/s</td>
+    <td>4–5 tok/s (без изменений)</td>
+    <td><span class="badge badge-blue">Нет</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>RTX 3090 б/у + кластер</strong></td>
+    <td class="price">$800–1 300</td>
+    <td style="color:#ff6b6b;">Невозможно (24 ГБ)</td>
+    <td class="speed"><strong>1.5–2.5 tok/s!</strong></td>
+    <td><span class="badge badge-green">ДА! 🔄</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>2× Minisforum UM890 Pro</strong></td>
+    <td class="price">$958</td>
+    <td style="color:#ff6b6b;">Невозможно (32 ГБ)</td>
+    <td class="speed"><strong>1.5–2.5 tok/s!</strong></td>
+    <td><span class="badge badge-green">ДА! 🔄</span></td>
+  </tr>
+  <tr>
+    <td>4× Mac Mini M4 Pro + EXO</td>
+    <td class="price">$8 800</td>
+    <td class="speed">~32 tok/s</td>
+    <td>~10–15 tok/s (медленнее)</td>
+    <td><span class="badge badge-blue">Нет (EXO лучше)</span></td>
+  </tr>
+  <tr>
+    <td>2× DGX Spark</td>
+    <td class="price">$6 000</td>
+    <td class="speed">8–15 tok/s</td>
+    <td>+ гетерогенность</td>
+    <td><span class="badge badge-orange">Частично</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>2× Framework Desktop</strong></td>
+    <td class="price">$3 998</td>
+    <td style="color:#ff6b6b;">Кластер медленнее 1 узла</td>
+    <td class="speed"><strong>405B: 0.5–1.5 tok/s!</strong></td>
+    <td><span class="badge badge-green">ДА! 🔄</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>4× MS-S1 Max</strong></td>
+    <td class="price">$9 196</td>
+    <td style="color:#ff6b6b;">Кластер медленнее 1 узла</td>
+    <td class="speed"><strong>671B: 0.2–0.5 tok/s!</strong></td>
+    <td><span class="badge badge-green">ДА! 🔄</span></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>4× Orange Pi 5 Plus</strong></td>
+    <td class="price">$600</td>
+    <td style="color:#ff6b6b;">Невозможно (64 ГБ)</td>
+    <td class="speed"><strong>70B: 0.3–0.5 tok/s!</strong></td>
+    <td><span class="badge badge-green">ДА! 🔄</span></td>
+  </tr>
+  <tr>
+    <td>4× Pi 5 8 ГБ</td>
+    <td class="price">$585</td>
+    <td style="color:#ff6b6b;">Невозможно (32 ГБ)</td>
+    <td>70B: 0.07–0.2 tok/s 😐</td>
+    <td><span class="badge badge-orange">Частично</span></td>
+  </tr>
+</table>
+</div>
+
+<!-- ======================================================================= -->
+<h2>🎯 Абсолютный вердикт серии</h2>
+<!-- ======================================================================= -->
+<div class="s">
+
+<div class="mega">
+<h3 style="color:#bae67e;">prima.cpp меняет вердикт для 5 из 10 фаворитов</h3>
+
+<p><strong>Где prima.cpp бесполезна (вердикт не меняется):</strong></p>
+<p>• <strong>Одиночные мощные узлы</strong> (Mac Mini M4 Pro 64 ГБ, Framework Desktop 128 ГБ) — если модель влезает в RAM одного устройства, prima.cpp не нужна.<br>
+• <strong>Однородные Mac-кластеры</strong> (4× Mac Mini + EXO + TB5 RDMA) — tensor parallelism + RDMA непобедимы. prima.cpp медленнее.</p>
+
+<p><strong>Где prima.cpp — революция (вердикт кардинально меняется):</strong></p>
+<p>• <strong>RTX 3090 + «что есть дома»</strong> → 70B из «невозможно» в 1.5–2.5 tok/s за $800–1 300<br>
+• <strong>2× бюджетных мини-ПК</strong> → 70B из «невозможно» в 1.5–2.5 tok/s за $958<br>
+• <strong>ПК-кластеры Strix Halo</strong> → 405B/671B из «невозможно» в 0.2–1.5 tok/s<br>
+• <strong>SBC Orange Pi 5 Plus</strong> → 70B из «невозможно» в 0.3–0.5 tok/s за $600<br>
+• <strong>Гетерогенные «свалки»</strong> → любая комбинация устройств впервые работает вместе</p>
+</div>
+
+<div class="highlight">
+<h3 style="color:#ff946f;">Три «золотых» конфигурации после prima.cpp</h3>
+<table>
+  <tr>
+    <th>Уровень</th>
+    <th>Конфигурация</th>
+    <th>Цена</th>
+    <th>70B</th>
+    <th>32B</th>
+    <th>Ключевое преимущество</th>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td>🥇 Макс. скорость</td>
+    <td><strong>4× Mac Mini M4 Pro + EXO + TB5</strong></td>
+    <td class="price">$8 800</td>
+    <td class="speed">~32 tok/s</td>
+    <td class="speed">~60+ tok/s</td>
+    <td>RDMA tensor parallelism. Непобедим. <em>prima.cpp не нужна</em></td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td>🥇 Лучший $/tok</td>
+    <td><strong>RTX 3090 б/у + ноутбук + prima.cpp</strong></td>
+    <td class="price">$800–1 300</td>
+    <td class="speed">1.5–2.5 tok/s</td>
+    <td class="speed">15–20 tok/s</td>
+    <td>Дешевле Mac Mini Pro. 70B впервые возможен. <em>Сделано prima.cpp</em></td>
+  </tr>
+  <tr style="background:#0a1a0d;">
+    <td>🥇 Ультрабюджет</td>
+    <td><strong>4× Orange Pi 5 Plus + prima.cpp</strong></td>
+    <td class="price">$600</td>
+    <td class="speed">0.3–0.5 tok/s</td>
+    <td class="speed">2–3 tok/s</td>
+    <td>Самый дешёвый 70B на планете. <em>Сделано prima.cpp</em></td>
+  </tr>
+</table>
+</div>
+
+<div class="note">
+<strong>Чего ждём:</strong> Vulkan-поддержка в prima.cpp → AMD iGPU Strix Halo (59.4 ТФЛОПС) и Intel Arc заработают → кластер из 4× Framework Desktop с prima.cpp + Vulkan может выйти на <strong>70B: 8–15 tok/s</strong> за $8 000. Это будет прямой конкурент Mac-кластерам.
+</div>
+</div>
+
+<div class="footer">
+  Часть 7 (финал) серии «Домашние AI-кластеры 2026». Февраль 2026.<br>
+  Все прогнозы — экстраполяции из официальных бенчмарков prima.cpp (arXiv:2504.08791) на более мощное железо.<br>
+  <a href="prima-cpp-minipc-guide-ru.html">← Часть 6 (prima.cpp)</a> · 
+  <a href="sbc-clusters-guide-ru.html">← Часть 5 (SBC)</a> ·
+  <a href="high-bandwidth-minipc-ru.html">← Часть 4 (Strix Halo)</a> ·
+  <a href="clustering-part3.html">← Часть 3</a> ·
+  <a href="clustering-part2.html">← Часть 2</a> ·
+  <a href="clustering.html">← Часть 1</a> ·
+  <a href="comparison.html">← Часть 0</a>
+</div>
+
+</body>
+</html>

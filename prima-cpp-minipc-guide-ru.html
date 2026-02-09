@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>prima.cpp — революция для домашних кластеров мини-ПК</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+
+  h1 { font-size: 1.7em; color: #ff946f; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #73d0ff; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #1a0d0a 0%, #1a1505 100%); border: 1px solid #ff946f; border-radius: 10px; padding: 16px; margin: 14px 0; }
+
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+
+  .cmd { background: #0f1419; border: 1px solid #1f2430; border-radius: 8px; padding: 14px; margin: 10px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: #bae67e; overflow-x: auto; white-space: pre-wrap; }
+
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .vs > div { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 14px; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .badge-purple { background: #1a0d2a; color: #d4bfff; }
+
+  .toc { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .toc a { display: block; padding: 3px 0; color: #607080; }
+  .toc a:hover { color: #73d0ff; }
+
+  .diagram { background: #0a0e14; border: 2px solid #ff946f; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; }
+
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>⚡ prima.cpp — прорыв для домашних кластеров мини-ПК</h1>
+<p class="sub">Распределённый LLM-инференс нового поколения: Piped-Ring Parallelism, Halda, disk offloading</p>
+<p class="sub">Часть 6 серии исследований. Февраль 2026. Источник: arXiv:2504.08791 (Li et al.), GitHub: Lizonghang/prima.cpp</p>
+
+<div class="highlight">
+<strong>Что такое prima.cpp?</strong> Это распределённая реализация llama.cpp, которая позволяет запускать <strong>модели 30B–70B на кластере из обычных домашних устройств</strong> — ноутбуков, десктопов, телефонов, мини-ПК. Ключевое отличие от всех предыдущих решений (llama.cpp RPC, EXO, distributed-llama): prima.cpp <strong>не требует, чтобы модель целиком помещалась в RAM кластера</strong>. Она использует disk offloading через mmap и новый тип параллелизма — <strong>Piped-Ring Parallelism (PRP)</strong>, который скрывает задержки чтения с диска. Результат: <strong>70B модель на кластере из слабых устройств с 37 ГБ суммарной RAM → 674 мс/токен</strong> (1.48 tok/s). Со speculative decoding: <strong>32B → 26 tok/s</strong>, <strong>70B → ~2 tok/s</strong>.
+</div>
+
+<div class="toc">
+<strong>Содержание:</strong>
+<a href="#what">1. Что нового приносит prima.cpp</a>
+<a href="#architecture">2. Архитектура: PRP, Halda, mmap</a>
+<a href="#testbed">3. На чём тестировали (оригинальный тестбенч)</a>
+<a href="#benchmarks">4. Бенчмарки: prima.cpp vs llama.cpp vs EXO vs dllama</a>
+<a href="#minipc">5. Применение к кластерам мини-ПК</a>
+<a href="#scenarios">6. Конкретные сценарии для мини-ПК кластеров</a>
+<a href="#limitations">7. Ограничения и подводные камни</a>
+<a href="#setup">8. Установка и настройка</a>
+<a href="#comparison">9. Итоговое сравнение всех фреймворков</a>
+<a href="#verdict">10. Вердикт: что меняет prima.cpp</a>
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2 id="what">1. 🆕 Что принципиально нового приносит prima.cpp</h2>
+<div class="s">
+
+<p>Все предыдущие фреймворки (llama.cpp RPC, EXO, distributed-llama) имеют общую проблему: <strong>суммарная RAM кластера должна быть ≥ размера модели</strong>. Модель 70B в Q4 весит ~40 ГБ → нужен кластер с ≥ 40 ГБ свободной RAM. Если не хватает — модель не запустится или всё рухнет.</p>
+
+<p><strong>prima.cpp ломает это ограничение.</strong> Три инновации:</p>
+
+<div class="vs">
+<div>
+<h3 style="color:#ff946f;">1. Disk Offloading через mmap</h3>
+<p>Веса модели загружаются лениво через mmap. ОС сама управляет page cache — загружает нужные слои с NVMe SSD когда нужно, выгружает когда память нужна другим приложениям. Модель <strong>любого размера</strong> можно запустить даже на устройстве с 2 ГБ RAM, если есть быстрый диск.</p>
+<p><strong>Memory pressure &lt; 6%</strong> — можно одновременно смотреть YouTube, пока идёт инференс.</p>
+</div>
+<div>
+<h3 style="color:#ff946f;">2. Piped-Ring Parallelism (PRP)</h3>
+<p>Новый тип параллелизма — не pipeline (цепочка), не tensor (разрезание тензоров), а <strong>кольцо</strong>: устройства передают результаты по кругу, делая несколько оборотов для генерации одного токена. С <strong>prefetching</strong> — пока устройство A считает, устройство B подгружает следующие слои с диска. Задержки чтения с диска <strong>скрываются</strong> за вычислениями других устройств.</p>
+</div>
+</div>
+
+<div class="vs">
+<div>
+<h3 style="color:#ff946f;">3. Halda — умный планировщик</h3>
+<p>Алгоритм, который решает NP-трудную задачу: <strong>сколько слоёв модели дать каждому устройству, что на GPU, что на CPU, что на диск</strong>. Учитывает:</p>
+<p>— Скорость CPU и GPU каждого устройства<br>
+— Доступную RAM и VRAM<br>
+— Скорость чтения SSD/HDD<br>
+— Пропускную способность и латентность сети<br>
+— Особенности ОС (macOS vs Linux vs Android)</p>
+<p>Использует <strong>HiGHS ILP solver</strong> (линейная оптимизация) для нахождения оптимума.</p>
+</div>
+<div>
+<h3 style="color:#ff946f;">4. Гетерогенность</h3>
+<p>prima.cpp — <strong>первый фреймворк, который нормально работает с разнородным железом</strong>. В кластере могут быть одновременно:</p>
+<p>— Mac M1 (macOS, Metal GPU)<br>
+— Ноутбук с RTX 3070 (Linux, CUDA)<br>
+— Десктоп с RTX 2080 Ti (Linux, CUDA)<br>
+— <strong>Телефон</strong> Huawei Mate 40 Pro (Termux)<br>
+— Мини-ПК без GPU (CPU-only)</p>
+<p>Halda автоматически определяет возможности каждого устройства и распределяет нагрузку оптимально.</p>
+</div>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2 id="architecture">2. 🔧 Архитектура prima.cpp: как работает PRP</h2>
+<div class="s">
+
+<h3>Сравнение типов параллелизма</h3>
+<table>
+  <tr>
+    <th>Параллелизм</th>
+    <th>Как работает</th>
+    <th>Кто использует</th>
+    <th>Проблема</th>
+  </tr>
+  <tr>
+    <td><strong>Pipeline (PP)</strong></td>
+    <td>Модель разрезается на сегменты, каждое устройство обрабатывает свой сегмент последовательно</td>
+    <td>llama.cpp RPC, EXO (на Linux)</td>
+    <td>Одно устройство работает, остальные простаивают (pipeline bubbles). Нужно чтобы модель влезла в RAM</td>
+  </tr>
+  <tr>
+    <td><strong>Tensor (TP)</strong></td>
+    <td>Тензоры внутри каждого слоя разрезаются между устройствами, all-reduce после каждого слоя</td>
+    <td>distributed-llama, EXO (на macOS), NVIDIA NVLink</td>
+    <td>Требует быстрый интерконнект (&lt;10 мкс). На Wi-Fi/Ethernet — катастрофические задержки all-reduce</td>
+  </tr>
+  <tr>
+    <td><strong>Sequential (SP)</strong></td>
+    <td>Устройства обрабатывают модель по очереди, каждое — полный проход</td>
+    <td>TPI-LLM</td>
+    <td>Очень медленно — нет параллелизма</td>
+  </tr>
+  <tr>
+    <td style="background:#1a0d0a;"><strong style="color:#ff946f;">Piped-Ring (PRP) ← НОВЫЙ</strong></td>
+    <td style="background:#1a0d0a;">Устройства в <strong>кольце</strong>. Каждое обрабатывает часть слоёв и передаёт результат следующему. <strong>Несколько оборотов</strong> за токен. Prefetching перекрывает disk I/O</td>
+    <td style="background:#1a0d0a;"><strong>prima.cpp</strong></td>
+    <td style="background:#1a0d0a;">Overhead от нескольких оборотов, но компенсируется скрытием disk latency</td>
+  </tr>
+</table>
+
+<h3>Визуализация PRP (Piped-Ring Parallelism)</h3>
+<div class="diagram">
+Классический Pipeline Parallelism (PP):
+  D1 → D2 → D3 → D4   (1 проход = 1 токен)
+  [20 слоёв] [20] [20] [20]
+  Проблема: если D1 читает с диска = все ждут!
+
+Piped-Ring Parallelism (PRP):
+  D1 → D2 → D3 → D4 → D1 → D2 → D3 → D4   (k=2 оборота = 1 токен)
+  [10 слоёв] [10] [10] [10]  [10] [10] [10] [10]
+
+  Время: ─────────────────────────────────────────►
+  D1:  [compute 10 layers] [prefetch] ─── [compute 10 layers] [prefetch]
+  D2:  ── [prefetch] [compute 10 layers] ── [prefetch] [compute 10 layers]
+  D3:  ─── [prefetch] [compute 10 layers] ── [prefetch] [compute 10 layers]
+  D4:  ──── [prefetch] [compute 10 layers] ── [prefetch] [compute 10 layers]
+
+  ↑ Пока D2 считает, D3 подгружает с SSD — disk latency СКРЫВАЕТСЯ!
+</div>
+
+<div class="note">
+<strong>Ключевая идея PRP:</strong> При k=1 (один оборот) — это обычный pipeline, и prefetching бесполезен из-за «prefetch-release конфликта» (OS выгружает предзагруженные страницы). При k≥2 каждое устройство обрабатывает <strong>меньше слоёв за оборот</strong>, но делает больше оборотов. Это создаёт окно для prefetch следующих слоёв, пока другие устройства работают. На моделях &gt;60B, где disk offloading неизбежен, PRP <strong>снижает латентность почти вдвое</strong> по сравнению с PP.
+</div>
+
+<h3>Halda: как распределяются слои</h3>
+<p>Пример распределения для Llama 3-70B (80 слоёв, Q4K) на тестовом кластере:</p>
+<div class="diagram">
+Halda решает: какие слои куда, сколько на GPU, сколько на CPU, сколько с диска
+
+Устройство  │ CPU слои │ GPU слои │ С диска │ Почему
+────────────┼──────────┼──────────┼─────────┼───────────────────────────
+D1 (Mac M1) │    5     │    4     │  mmap   │ Metal GPU слабее CUDA, но помогает
+D2 (3070)   │    0     │   10     │    0    │ 8 ГБ VRAM → 10 слоёв целиком в GPU
+D3 (2080Ti) │    2     │   13     │  mmap   │ 11 ГБ VRAM + быстрый SSD 3.17 ГБ/с
+D4 (телефон)│    3     │    0     │  mmap   │ Только CPU, медленный диск 1.37 ГБ/с
+────────────┼──────────┼──────────┼─────────┤
+Итого:      │   10     │   27     │  +43    │ = 80 слоёв. Только 37 слоёв в RAM/VRAM!
+</div>
+
+<p><strong>Halda автоматически выбирает даже количество устройств.</strong> Для малых моделей (&lt;14B) он определяет, что D3 одна справится лучше всего → использует только её. «Больше устройств ≠ быстрее» — Halda это понимает.</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2 id="testbed">3. 🖥️ Оригинальный тестбенч из статьи</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th></th>
+    <th>D1</th>
+    <th>D2</th>
+    <th>D3</th>
+    <th>D4</th>
+  </tr>
+  <tr>
+    <td><strong>Устройство</strong></td>
+    <td>Mac M1</td>
+    <td>Ноутбук</td>
+    <td>Десктоп</td>
+    <td>Huawei Mate40 Pro</td>
+  </tr>
+  <tr>
+    <td><strong>ОС</strong></td>
+    <td>macOS (UMA)</td>
+    <td>Linux</td>
+    <td>Linux</td>
+    <td>HarmonyOS (Termux)</td>
+  </tr>
+  <tr>
+    <td><strong>CPU</strong></td>
+    <td>Apple M1, 8 ядер</td>
+    <td>Intel i9, 8 ядер</td>
+    <td>Intel i9, 16 ядер</td>
+    <td>Kirin 9000, 8 ядер</td>
+  </tr>
+  <tr>
+    <td><strong>RAM (доступно)</strong></td>
+    <td>2.4 ГБ</td>
+    <td>4.1 ГБ</td>
+    <td>9.7 ГБ</td>
+    <td>1.9 ГБ</td>
+  </tr>
+  <tr>
+    <td><strong>GPU</strong></td>
+    <td>Apple Metal</td>
+    <td>RTX 3070 (8 ГБ VRAM)</td>
+    <td>RTX 2080 Ti (11 ГБ VRAM)</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td><strong>Скорость SSD</strong></td>
+    <td>0.72 ГБ/с</td>
+    <td>2.98 ГБ/с</td>
+    <td>3.17 ГБ/с</td>
+    <td>1.37 ГБ/с</td>
+  </tr>
+  <tr>
+    <td><strong>Сеть</strong></td>
+    <td colspan="4">Wi-Fi, 320–610 Мбит/с, латентность 3–7 мс</td>
+  </tr>
+  <tr>
+    <td><strong>Суммарная RAM+VRAM</strong></td>
+    <td colspan="4"><strong>37 ГБ</strong> (недостаточно для 70B Q4K ~40 ГБ → нужен disk offloading)</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Обратите внимание:</strong> тестбенч намеренно слабый! 2.4 ГБ доступной RAM на Mac M1, телефон в качестве узла, связь через <strong>Wi-Fi</strong> (не Ethernet!). Это сделано, чтобы показать: prima.cpp работает <strong>даже в худших условиях</strong>. На кластере мини-ПК с Gigabit Ethernet и NVMe SSD результаты будут существенно лучше.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2 id="benchmarks">4. 📊 Бенчмарки: prima.cpp побеждает всех на 30B+</h2>
+<div class="s">
+
+<h3>TPOT (время на токен, мс) — меньше = лучше</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>llama.cpp<br><span style="font-size:0.8em">(один D3)</span></th>
+    <th>EXO<br><span style="font-size:0.8em">(D1–D3)</span></th>
+    <th>dllama<br><span style="font-size:0.8em">(D1–D4)</span></th>
+    <th style="background:#1a0d0a;"><strong>prima.cpp</strong><br><span style="font-size:0.8em">(D1–D4)</span></th>
+    <th style="background:#1a0d0a;"><strong>tok/s</strong></th>
+  </tr>
+  <tr>
+    <td>Llama 3 8B</td>
+    <td class="speed">15 мс</td>
+    <td>263 мс</td>
+    <td>459 мс</td>
+    <td>54 мс*</td>
+    <td>18.5</td>
+  </tr>
+  <tr>
+    <td>Llama 3 14B</td>
+    <td>20 мс</td>
+    <td>—</td>
+    <td>—</td>
+    <td>65 мс*</td>
+    <td>15.4</td>
+  </tr>
+  <tr>
+    <td>Llama 1 30B</td>
+    <td>202 мс</td>
+    <td>—</td>
+    <td>—</td>
+    <td class="speed"><strong>72 мс</strong></td>
+    <td class="speed"><strong>13.9</strong></td>
+  </tr>
+  <tr>
+    <td>Llama 3 45B</td>
+    <td>328 мс</td>
+    <td>—</td>
+    <td>—</td>
+    <td class="speed"><strong>233 мс</strong></td>
+    <td class="speed"><strong>4.3</strong></td>
+  </tr>
+  <tr>
+    <td>Llama 3 60B</td>
+    <td style="color:#ff6b6b;">7 965 мс</td>
+    <td>—</td>
+    <td>—</td>
+    <td class="speed"><strong>468 мс</strong></td>
+    <td class="speed"><strong>2.1</strong></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>Llama 3 70B</strong></td>
+    <td style="color:#ff6b6b;"><strong>~30 000 мс</strong></td>
+    <td>—</td>
+    <td>OOM</td>
+    <td class="speed"><strong>674 мс</strong></td>
+    <td class="speed"><strong>1.48</strong></td>
+  </tr>
+  <tr style="background:#1a0d0a;">
+    <td><strong>Llama 3 70B + spec. decoding</strong></td>
+    <td>—</td>
+    <td>—</td>
+    <td>—</td>
+    <td class="speed"><strong>442 мс</strong></td>
+    <td class="speed"><strong>~2.3</strong></td>
+  </tr>
+</table>
+
+<p style="font-size:0.85em; color:#607080;">* Для моделей &lt;14B Halda определяет, что D3 достаточно одна → в будущем prima.cpp будет = llama.cpp на малых моделях (сейчас overhead из-за минимум 1 слоя на устройство).</p>
+
+<div class="good">
+<strong>Ключевые цифры:</strong><br>
+• <strong>30B: в 2.8× быстрее</strong> llama.cpp (72 vs 202 мс)<br>
+• <strong>60B: в 17× быстрее</strong> llama.cpp (468 vs 7965 мс)<br>
+• <strong>70B: в 44× быстрее</strong> llama.cpp (674 vs ~30 000 мс)<br>
+• На 70B: llama.cpp = <strong>~0.03 tok/s</strong>, prima.cpp = <strong>1.48 tok/s</strong> → разница между «невозможно» и «медленно, но можно слушать как аудиокнигу»<br>
+• <strong>QwQ-32B: 11 tok/s</strong> (без spec. decoding), <strong>26 tok/s с spec. decoding</strong> → быстрее чтения!
+</div>
+
+<h3>Дополнительные модели (из Appendix)</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>prima.cpp TPOT</th>
+    <th>tok/s</th>
+  </tr>
+  <tr><td>Qwen 2.5-7B</td><td>~50–60 мс</td><td class="speed">~17–20</td></tr>
+  <tr><td>QwQ-32B</td><td>~90 мс</td><td class="speed">~11</td></tr>
+  <tr><td>Qwen 2.5-72B</td><td>~650–700 мс</td><td class="speed">~1.4–1.5</td></tr>
+  <tr><td>DeepSeek R1 (70B distill)</td><td>~650–700 мс</td><td class="speed">~1.4–1.5</td></tr>
+  <tr><td>QwQ-32B + speculative decoding</td><td>~38 мс</td><td class="speed"><strong>~26</strong></td></tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2 id="minipc">5. 🖥️ Применение prima.cpp к кластерам мини-ПК</h2>
+<div class="s">
+
+<p>Оригинальные тесты проводились на <strong>слабых устройствах через Wi-Fi</strong>. Кластер мини-ПК значительно мощнее. Рассмотрим, что меняется:</p>
+
+<h3>Преимущества мини-ПК перед тестовым кластером</h3>
+<table>
+  <tr>
+    <th>Параметр</th>
+    <th>Тестбенч из статьи</th>
+    <th>Кластер мини-ПК</th>
+    <th>Улучшение</th>
+  </tr>
+  <tr>
+    <td><strong>Сеть</strong></td>
+    <td>Wi-Fi, 320–610 Мбит/с, 3–7 мс</td>
+    <td>Gigabit Ethernet (1000 Мбит/с, ~0.3 мс) или 2.5/10 GbE</td>
+    <td class="speed">2–3× bandwidth, 10× меньше латентность</td>
+  </tr>
+  <tr>
+    <td><strong>RAM на узел</strong></td>
+    <td>2–10 ГБ доступно</td>
+    <td>16–128 ГБ (Strix Halo до 128 ГБ)</td>
+    <td class="speed">5–50× больше RAM</td>
+  </tr>
+  <tr>
+    <td><strong>SSD скорость</strong></td>
+    <td>0.72–3.17 ГБ/с</td>
+    <td>PCIe 4.0: 5–7 ГБ/с, PCIe 5.0: 10–14 ГБ/с</td>
+    <td class="speed">2–5× быстрее disk offloading</td>
+  </tr>
+  <tr>
+    <td><strong>CPU</strong></td>
+    <td>M1 / i9 (8–16 ядер)</td>
+    <td>Zen 5 Strix Halo (16 ядер), Intel Ultra (16 ядер)</td>
+    <td class="speed">~1.5–2× быстрее per-core</td>
+  </tr>
+  <tr>
+    <td><strong>Memory bandwidth</strong></td>
+    <td>M1: 68 ГБ/с, DDR4: ~40 ГБ/с</td>
+    <td>Strix Halo: 256 ГБ/с, M4 Pro: 273 ГБ/с</td>
+    <td class="speed">4–7× больше bandwidth</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Прогноз для мини-ПК кластера:</strong> Учитывая, что на слабом тестбенче через Wi-Fi prima.cpp даёт 1.48 tok/s на 70B, на кластере мини-ПК с Ethernet + NVMe + больше RAM можно ожидать <strong>3–8 tok/s на 70B</strong> и <strong>15–30+ tok/s на 32B</strong>. Это уже уровень комфортного чата!
+</div>
+
+<h3>🔴 Критическое ограничение: GPU поддержка</h3>
+<div class="red">
+<strong>prima.cpp сейчас поддерживает только CUDA GPU (NVIDIA).</strong><br><br>
+Это означает:<br>
+• <strong>Мини-ПК без GPU</strong> (большинство!) → работает только на CPU. prima.cpp всё равно быстрее llama.cpp благодаря PRP и Halda, но без GPU-ускорения.<br>
+• <strong>AMD GPU (Strix Halo, Radeon)</strong> → ❌ НЕ поддерживается. Vulkan «в роадмапе», но не реализован.<br>
+• <strong>Intel Arc GPU</strong> → ❌ НЕ поддерживается.<br>
+• <strong>Apple Metal</strong> → ✅ Поддерживается, но авторы отмечают, что эффективность «значительно ниже» CUDA.<br>
+• <strong>Mac Mini M4 / M4 Pro</strong> → ✅ Работает через Metal, но Apple Silicon в prima.cpp медленнее, чем в нативном llama.cpp (Metal оптимизации llama.cpp более зрелые).<br><br>
+<strong>Для кластеров мини-ПК без NVIDIA GPU — prima.cpp работает в CPU-only режиме.</strong> Это всё ещё лучше, чем llama.cpp RPC на больших моделях, благодаря PRP и disk offloading.
+</div>
+
+<h3>Какие мини-ПК лучше всего подходят для prima.cpp</h3>
+<table>
+  <tr>
+    <th>Мини-ПК</th>
+    <th>CPU</th>
+    <th>RAM</th>
+    <th>GPU для prima.cpp</th>
+    <th>SSD</th>
+    <th>Оценка</th>
+  </tr>
+  <tr>
+    <td><strong>Framework Desktop (Strix Halo)</strong></td>
+    <td>Zen 5, 16 ядер</td>
+    <td>128 ГБ</td>
+    <td><span class="badge badge-red">CPU-only</span> (AMD iGPU не поддерж.)</td>
+    <td>PCIe 5.0, ~10 ГБ/с</td>
+    <td><span class="badge badge-orange">Хорошо, но без GPU</span></td>
+  </tr>
+  <tr>
+    <td><strong>Mac Mini M4 Pro</strong></td>
+    <td>Apple Silicon, 14 ядер</td>
+    <td>64 ГБ</td>
+    <td><span class="badge badge-orange">Metal</span> (работает, но медленнее CUDA)</td>
+    <td>~7 ГБ/с</td>
+    <td><span class="badge badge-orange">Хорошо, Metal не идеально</span></td>
+  </tr>
+  <tr>
+    <td><strong>Мини-ПК с RTX 4060/4070</strong></td>
+    <td>i7/i9 или Ryzen 7/9</td>
+    <td>32–64 ГБ</td>
+    <td><span class="badge badge-green">CUDA ✅</span></td>
+    <td>PCIe 4.0, ~5 ГБ/с</td>
+    <td><span class="badge badge-green">Идеально для prima.cpp!</span></td>
+  </tr>
+  <tr>
+    <td><strong>Minisforum с NVIDIA GPU</strong></td>
+    <td>Различные</td>
+    <td>16–64 ГБ</td>
+    <td><span class="badge badge-green">CUDA ✅</span> (если dGPU)</td>
+    <td>PCIe 4.0</td>
+    <td><span class="badge badge-green">Хорошо</span></td>
+  </tr>
+  <tr>
+    <td><strong>NVIDIA DGX Spark</strong></td>
+    <td>Grace (ARM), 20 ядер</td>
+    <td>128 ГБ</td>
+    <td><span class="badge badge-green">Blackwell GPU ✅</span></td>
+    <td>NVMe</td>
+    <td><span class="badge badge-green">Идеально</span></td>
+  </tr>
+  <tr>
+    <td><strong>Б/у десктоп с RTX 2080Ti/3070</strong></td>
+    <td>i7/i9 или Ryzen</td>
+    <td>32–64 ГБ</td>
+    <td><span class="badge badge-green">CUDA ✅</span></td>
+    <td>NVMe</td>
+    <td><span class="badge badge-green">Лучший $/perf!</span></td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Парадокс prima.cpp для мини-ПК:</strong> Фреймворк лучше всего работает с NVIDIA GPU, но большинство мини-ПК (Strix Halo, Mac Mini, Intel NUC) <strong>не имеют NVIDIA GPU</strong>. Два выхода:<br>
+1. Ждать Vulkan-поддержку (тогда AMD/Intel GPU заработают)<br>
+2. Использовать prima.cpp в CPU-only режиме — всё равно выигрывает у llama.cpp на моделях 30B+ благодаря PRP + disk offloading<br>
+3. Строить кластер из <strong>б/у десктопов с NVIDIA GPU</strong> — самый эффективный вариант для prima.cpp сейчас
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2 id="scenarios">6. 💡 Конкретные сценарии для мини-ПК кластеров</h2>
+<div class="s">
+
+<h3>Сценарий A: «Чистый CPU» — 4× Framework Desktop (Strix Halo)</h3>
+<div class="diagram">
+Кластер: 4× Framework Desktop (Strix Halo, 128 ГБ LPDDR5X)
+Сеть: 10 GbE (USB4v2 или PCIe NIC)
+Суммарная RAM: 512 ГБ
+SSD: PCIe 5.0, 10+ ГБ/с на узел
+GPU: ❌ (AMD iGPU не поддерж. prima.cpp)
+
+prima.cpp CPU-only + PRP:
+• 70B Q4K (~40 ГБ) → полностью в RAM одного узла, Halda → 1 узел
+  → Скорость ≈ llama.cpp на одном узле ≈ 4–5 tok/s
+  → prima.cpp НЕ даёт преимущества (модель влезает)
+
+• 405B Q4K (~230 ГБ) → НЕ влезает на 1 узел → prima.cpp распределяет на 2–3 узла
+  → PRP + disk offloading → оценка: 0.3–1 tok/s (CPU-only, но с перекрытием disk I/O)
+  → llama.cpp RPC на том же кластере: ~0.1–0.3 tok/s
+  → prima.cpp: 2–3× быстрее
+
+• DeepSeek V3 671B Q4K (~380 ГБ) → все 4 узла
+  → PRP + prefetching → оценка: 0.1–0.5 tok/s
+  → БЕЗ prima.cpp: практически невозможно на CPU-only кластере
+</div>
+
+<div class="warn">
+<strong>Вывод по Strix Halo:</strong> prima.cpp полезна здесь <strong>только для моделей, которые не влезают в RAM одного узла</strong>. Для моделей ≤128 ГБ (70B, Qwen3-235B в Q4) — один Framework Desktop с llama.cpp нативно будет быстрее. prima.cpp начинает выигрывать на моделях 200B+.
+</div>
+
+<h3>Сценарий B: «GPU кластер» — гетерогенные устройства с NVIDIA</h3>
+<div class="diagram">
+Кластер:
+  D1: Мини-ПК с RTX 4060 Ti (16 ГБ VRAM, 32 ГБ RAM)     $800
+  D2: Б/у десктоп с RTX 3070 (8 ГБ VRAM, 32 ГБ RAM)      $400
+  D3: Б/у десктоп с RTX 2080 Ti (11 ГБ VRAM, 64 ГБ RAM)   $350
+  D4: Старый ноутбук (CPU-only, 16 ГБ RAM)                 $0 (уже есть)
+Сеть: Gigabit Ethernet
+Итого: ~$1 550, суммарно 35 ГБ VRAM + 144 ГБ RAM
+
+prima.cpp с Halda:
+• 70B Q4K → Halda распределяет: D1 GPU 20 слоёв, D2 GPU 12, D3 GPU 15, D4 CPU 10+disk
+  → Прогноз: 400–600 мс/токен → 1.7–2.5 tok/s
+  → С speculative decoding: 3–5 tok/s
+
+• QwQ-32B → D1 GPU вмещает целиком → Halda: только D1
+  → ~15–20 tok/s (CUDA на RTX 4060 Ti)
+  → С speculative decoding: 30+ tok/s
+</div>
+
+<div class="good">
+<strong>Это лучший сценарий для prima.cpp!</strong> Гетерогенный кластер из б/у десктопов с NVIDIA GPU — именно то, для чего prima.cpp создан. Halda оптимально распределяет нагрузку между разными GPU и CPU. <strong>$1 550 за кластер, запускающий 70B модели на 2–5 tok/s</strong> — лучше, чем Mac Mini M4 Pro ($2 199) на тех же моделях.
+</div>
+
+<h3>Сценарий C: Смешанный Mac + PC кластер</h3>
+<div class="diagram">
+Кластер:
+  D1: Mac Mini M4 (16 ГБ, Metal)                           $599
+  D2: Мини-ПК с RTX 4060 (8 ГБ VRAM, 32 ГБ RAM)           $600
+  D3: Старый ноутбук (CPU-only, 16 ГБ RAM)                 $0
+Сеть: Gigabit Ethernet
+Итого: ~$1 200
+
+prima.cpp:
+• 70B Q4K → D1 Metal + D2 CUDA + D3 CPU → PRP с prefetching
+  → Прогноз: 500–800 мс/токен → 1.2–2 tok/s
+  → Halda учитывает, что Metal медленнее CUDA → даёт D1 меньше слоёв
+
+Сравнение с альтернативами:
+• EXO на том же кластере: не работает (нет RDMA, разные ОС)
+• llama.cpp RPC: ~3000+ мс/токен (pipeline, без disk offloading)
+• distributed-llama: не поддерживает GPU
+  → prima.cpp = единственный рабочий вариант для этого микса
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2 id="limitations">7. ⚠️ Ограничения и подводные камни</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Ограничение</th>
+    <th>Влияние</th>
+    <th>Когда исправят</th>
+  </tr>
+  <tr>
+    <td><strong>Только CUDA GPU</strong></td>
+    <td class="badge badge-red">Критическое</td>
+    <td>Vulkan «в роадмапе». AMD ROCm и Intel OneAPI — не упоминаются</td>
+  </tr>
+  <tr>
+    <td><strong>Ограниченный список моделей</strong></td>
+    <td class="badge badge-orange">Существенное</td>
+    <td>Поддерживаются: Llama 3, Qwen 2.5, QwQ, DeepSeek R1. Только Q4KM, Q6K, Q80 квантизации</td>
+  </tr>
+  <tr>
+    <td><strong>Минимум 1 слой на устройство</strong></td>
+    <td class="badge badge-orange">Среднее</td>
+    <td>Для малых моделей — overhead. Планируют исправить (0:0:32:0 splits)</td>
+  </tr>
+  <tr>
+    <td><strong>Нет MoE-специфичных оптимизаций</strong></td>
+    <td class="badge badge-blue">Незначительное</td>
+    <td>MoE-модели (Qwen3-30B-A3B, DeepSeek V3) работают, но без sparse inference оптимизаций</td>
+  </tr>
+  <tr>
+    <td><strong>Нет Windows</strong></td>
+    <td class="badge badge-orange">Существенное для мини-ПК</td>
+    <td>Linux, macOS, Android, HarmonyOS. Многие мини-ПК идут с Windows → нужно ставить Linux</td>
+  </tr>
+  <tr>
+    <td><strong>Молодой проект</strong></td>
+    <td class="badge badge-orange">Риск</td>
+    <td>Статья — апрель 2025, GitHub — активная разработка, но community ещё маленькое</td>
+  </tr>
+  <tr>
+    <td><strong>Memory pressure от других приложений</strong></td>
+    <td class="badge badge-blue">Незначительное</td>
+    <td>mmap делит память с ОС — если запустить тяжёлое приложение, инференс замедлится</td>
+  </tr>
+  <tr>
+    <td><strong>Speculative decoding требует 2 модели</strong></td>
+    <td class="badge badge-blue">Незначительное</td>
+    <td>Для 26 tok/s на 32B нужна маленькая draft-модель + основная. Больше RAM/VRAM</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Главная проблема для типичного кластера мини-ПК:</strong> Большинство мини-ПК (Strix Halo, Mac Mini, Intel NUC, Minisforum без dGPU) работают с prima.cpp <strong>только на CPU</strong>. CPU-only prima.cpp всё равно быстрее llama.cpp на моделях 30B+ благодаря PRP, но без CUDA GPU — значительная часть потенциала теряется. <strong>Vulkan-поддержка — самое ожидаемое обновление</strong>, которое откроет AMD и Intel GPU для prima.cpp.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2 id="setup">8. 🛠️ Установка и настройка prima.cpp</h2>
+<div class="s">
+
+<h3>Требования</h3>
+<p><strong>На каждом узле:</strong> Linux (Ubuntu 20+) или macOS. GCC/Clang, cmake, make, git. Для GPU: CUDA toolkit. Для оптимального планирования: HiGHS ILP solver.</p>
+
+<h3>Пошаговая установка</h3>
+<div class="cmd"># === На каждом узле кластера ===
+
+# 1. Установить HiGHS (оптимизатор для Halda)
+git clone https://github.com/ERGO-Code/HiGHS.git
+cd HiGHS
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+cd ../..
+
+# 2. Клонировать prima.cpp
+git clone https://github.com/Lizonghang/prima.cpp.git
+cd prima.cpp
+
+# 3. Собрать (с HiGHS для Halda)
+make USE_HIGHS=1 -j$(nproc)
+
+# Если есть NVIDIA GPU:
+make USE_HIGHS=1 GGML_CUDA=1 -j$(nproc)
+
+# Если macOS с Metal:
+make USE_HIGHS=1 GGML_METAL=1 -j$(nproc)</div>
+
+<h3>Запуск кластера</h3>
+<div class="cmd"># === Настройка сети (статические IP) ===
+# Мастер:  192.168.1.100
+# Worker1: 192.168.1.101
+# Worker2: 192.168.1.102
+# Worker3: 192.168.1.103
+
+# === На каждом worker-узле ===
+cd prima.cpp
+./prima-server --port 8888
+
+# === На мастер-узле ===
+# Скачать модель (GGUF формат)
+wget https://huggingface.co/.../llama-3-70b-Q4_K_M.gguf
+
+# Запуск с Halda (автоматическое профилирование и распределение)
+./prima-cli \
+  --model llama-3-70b-Q4_K_M.gguf \
+  --workers 192.168.1.101:8888,192.168.1.102:8888,192.168.1.103:8888 \
+  --prompt "Explain quantum computing in simple terms" \
+  --n-predict 256</div>
+
+<div class="note">
+<strong>Docker-вариант (для тестирования на одной машине):</strong> prima.cpp поставляет Docker-образ <code>prima.cpp:1.0.1-cuda</code>. Можно запустить 4 контейнера с ограничением RAM (по 8 ГБ каждый), эмулируя кластер из 4 слабых устройств. Полезно для тестирования перед развёртыванием.
+</div>
+
+<h3>Профилирование устройств (для Halda)</h3>
+<div class="cmd"># prima.cpp автоматически профилирует каждое устройство:
+# - CPU benchmark (FLOPS)
+# - GPU benchmark (если CUDA/Metal)
+# - Disk read speed (fio)
+# - Network bandwidth и latency (iperf3 между узлами)
+# - Доступная RAM/VRAM
+
+# Если fio не установлен (например, на ARM):
+git clone https://github.com/axboe/fio.git
+cd fio
+./configure --prefix=/usr
+make -j$(nproc)
+sudo make install</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 9 ==================== -->
+<h2 id="comparison">9. 📋 Итоговое сравнение всех фреймворков для мини-ПК</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Фреймворк</th>
+    <th>Параллелизм</th>
+    <th>Disk offload</th>
+    <th>GPU</th>
+    <th>Гетерогенность</th>
+    <th>70B на слабом кластере</th>
+    <th>70B на мощном кластере</th>
+  </tr>
+  <tr>
+    <td><strong style="color:#ff946f;">prima.cpp</strong></td>
+    <td><span class="badge badge-purple">PRP (кольцо)</span></td>
+    <td><span class="badge badge-green">✅ mmap</span></td>
+    <td>CUDA, Metal</td>
+    <td><span class="badge badge-green">Отличная</span></td>
+    <td class="speed"><strong>1.5 tok/s</strong></td>
+    <td class="speed"><strong>3–8 tok/s (прогноз)</strong></td>
+  </tr>
+  <tr>
+    <td><strong>EXO</strong></td>
+    <td><span class="badge badge-blue">TP (macOS RDMA)</span></td>
+    <td>❌</td>
+    <td>Metal, MLX</td>
+    <td><span class="badge badge-red">Только Mac</span></td>
+    <td>N/A (нужно RAM≥модель)</td>
+    <td class="speed"><strong>32 tok/s</strong> (4×Mac Pro)</td>
+  </tr>
+  <tr>
+    <td><strong>llama.cpp RPC</strong></td>
+    <td><span class="badge badge-orange">PP (pipeline)</span></td>
+    <td>❌ (swap только)</td>
+    <td>Все (CUDA, Metal, Vulkan, ROCm)</td>
+    <td><span class="badge badge-orange">Средняя</span></td>
+    <td>~0.03 tok/s</td>
+    <td>~0.5–2 tok/s</td>
+  </tr>
+  <tr>
+    <td><strong>distributed-llama</strong></td>
+    <td><span class="badge badge-blue">TP (TCP)</span></td>
+    <td>❌</td>
+    <td>Vulkan, CPU</td>
+    <td><span class="badge badge-red">Плохая</span></td>
+    <td>~0.85 tok/s (8×Pi5)</td>
+    <td>Не тестировалось на ПК</td>
+  </tr>
+  <tr>
+    <td><strong>Petals</strong></td>
+    <td><span class="badge badge-orange">PP (интернет)</span></td>
+    <td>❌</td>
+    <td>CUDA</td>
+    <td><span class="badge badge-green">Отличная</span></td>
+    <td>Зависит от пиров</td>
+    <td>Зависит от пиров</td>
+  </tr>
+</table>
+
+<h3>Когда какой фреймворк использовать</h3>
+<div class="vs">
+<div style="border-color:#ff946f;">
+<h3 style="color:#ff946f;">prima.cpp ✅ Когда выбирать</h3>
+<p>• Кластер из <strong>разнородных устройств</strong> (Mac + PC + ноутбук + телефон)<br>
+• Модель <strong>не влезает в суммарную RAM</strong> кластера<br>
+• Есть хотя бы один узел с <strong>NVIDIA GPU</strong><br>
+• Нужна <strong>низкая memory pressure</strong> (устройства используются для другого)<br>
+• Модели <strong>30B–70B</strong> — зона максимального преимущества<br>
+• <strong>Wi-Fi соединение</strong> (единственный фреймворк, оптимизированный для медленных сетей)</p>
+</div>
+<div style="border-color:#73d0ff;">
+<h3 style="color:#73d0ff;">EXO ✅ Когда лучше</h3>
+<p>• Кластер из <strong>Mac Mini M4 Pro</strong> (однородный)<br>
+• Thunderbolt 5 RDMA доступен<br>
+• Модель <strong>влезает в суммарную RAM</strong><br>
+• Нужна <strong>максимальная скорость</strong> (tensor parallelism + RDMA = непобедимо)<br>
+• Только macOS устройства</p>
+</div>
+</div>
+<div class="vs">
+<div style="border-color:#bae67e;">
+<h3 style="color:#bae67e;">llama.cpp RPC ✅ Когда лучше</h3>
+<p>• Нужна <strong>поддержка AMD GPU</strong> (ROCm) или Intel (SYCL)<br>
+• Один мощный узел + помощники<br>
+• Модель влезает в RAM одного узла (RPC не нужен)<br>
+• <strong>Самая зрелая и стабильная</strong> кодовая база</p>
+</div>
+<div style="border-color:#d4bfff;">
+<h3 style="color:#d4bfff;">distributed-llama ✅ Когда лучше</h3>
+<p>• Кластер из <strong>одинаковых SBC</strong> (Raspberry Pi 5)<br>
+• <strong>MoE модели</strong> (Qwen3-30B-A3B) — специально оптимизирован<br>
+• Нужен <strong>tensor parallelism на ARM CPU</strong><br>
+• Ультрабюджет ($585 за 4×Pi5)</p>
+</div>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 10 ==================== -->
+<h2 id="verdict">10. 🎯 Вердикт: что меняет prima.cpp для мини-ПК кластеров</h2>
+<div class="s">
+
+<div class="highlight">
+<h3 style="color:#ff946f;">prima.cpp — это game-changer для гетерогенных домашних кластеров</h3>
+
+<p><strong>До prima.cpp:</strong> Если у вас 2 ноутбука, десктоп и телефон с суммарно 30 ГБ свободной RAM — запустить 70B модель было <em>невозможно</em>. llama.cpp на одном устройстве давал ~0.03 tok/s (30 секунд на токен). EXO не работал на смешанных ОС. distributed-llama — OOM.</p>
+
+<p><strong>С prima.cpp:</strong> Те же устройства → <strong>1.5 tok/s</strong> на 70B. QwQ-32B → <strong>11 tok/s</strong>. Со speculative decoding → <strong>26 tok/s на 32B</strong>. Memory pressure &lt;6% — устройства продолжают нормально работать.</p>
+</div>
+
+<h3>Для кластеров мини-ПК: практические рекомендации</h3>
+
+<div class="good">
+<strong>✅ Идеальный сценарий:</strong> Кластер из 2–4 б/у десктопов/мини-ПК с NVIDIA GPU (RTX 2080Ti / 3070 / 4060) + Gigabit Ethernet. <strong>Стоимость: $1000–2000</strong>. Результат: 70B модели на 2–5 tok/s, 32B на 15–26 tok/s. Лучшее соотношение цена/производительность для домашнего LLM-кластера в 2026 году.
+</div>
+
+<div class="note">
+<strong>✅ Хороший сценарий:</strong> «Собери что есть дома» — Mac Mini + ноутбук + старый ПК + телефон. prima.cpp — единственный фреймворк, который объединит всё это в рабочий кластер. Даже через Wi-Fi. Результат зависит от железа, но 70B на 1–2 tok/s реалистично.
+</div>
+
+<div class="warn">
+<strong>⚠️ Ограниченный сценарий:</strong> Кластер из мини-ПК <strong>без NVIDIA GPU</strong> (Framework Desktop, Mac Mini, Intel NUC). prima.cpp работает CPU-only. На моделях ≤RAM одного узла — нет преимущества. На моделях &gt;RAM — PRP + disk offloading всё равно лучше llama.cpp RPC, но без GPU-ускорения скорость будет 0.5–2 tok/s на 70B.
+</div>
+
+<div class="red">
+<strong>❌ Когда prima.cpp хуже:</strong><br>
+• <strong>Маленькие модели (≤14B)</strong> — overhead от распределения. Используйте llama.cpp/Ollama на одном устройстве.<br>
+• <strong>Однородный Mac-кластер</strong> — EXO с TB5 RDMA даёт 32 tok/s на 70B. prima.cpp не может конкурировать с RDMA tensor parallelism.<br>
+• <strong>Модели, которые влезают в RAM одного узла</strong> — просто используйте llama.cpp. prima.cpp добавляет overhead без пользы.
+</div>
+
+<h3>Чего ждать дальше</h3>
+<table>
+  <tr>
+    <th>Обновление</th>
+    <th>Влияние на мини-ПК кластеры</th>
+    <th>Статус</th>
+  </tr>
+  <tr>
+    <td><strong>Vulkan GPU поддержка</strong></td>
+    <td class="speed">Откроет AMD GPU (Strix Halo!) и Intel Arc. Кардинально изменит расклад для мини-ПК</td>
+    <td><span class="badge badge-orange">В роадмапе</span></td>
+  </tr>
+  <tr>
+    <td>IQ1/Q4K квантизация</td>
+    <td>Меньше памяти → модели влезают лучше → меньше disk offloading</td>
+    <td><span class="badge badge-orange">Планируется</span></td>
+  </tr>
+  <tr>
+    <td>MoE-специфичные оптимизации</td>
+    <td>DeepSeek V3, Qwen3-30B-A3B — если prima.cpp добавит sparse inference, это будет прорыв</td>
+    <td><span class="badge badge-blue">Не анонсировано</span></td>
+  </tr>
+  <tr>
+    <td>Windows поддержка</td>
+    <td>Упростит развёртывание на мини-ПК без переустановки ОС</td>
+    <td><span class="badge badge-blue">Не анонсировано</span></td>
+  </tr>
+  <tr>
+    <td>Убрать минимум 1 слой на устройство</td>
+    <td>Маленькие модели будут работать так же быстро, как llama.cpp</td>
+    <td><span class="badge badge-green">Планируется в ближайшем обновлении</span></td>
+  </tr>
+</table>
+
+<div class="highlight">
+<strong>Финальная мысль:</strong> prima.cpp заполняет огромную нишу, которую не покрывал ни один другой фреймворк: <strong>запуск больших моделей на слабом, разнородном железе с недостаточной RAM</strong>. Для кластеров мини-ПК с NVIDIA GPU — это лучший выбор. Для кластеров без NVIDIA GPU — ждём Vulkan. Для однородных Mac-кластеров — EXO всё ещё король. <strong>В идеальном мире 2026–2027: prima.cpp с Vulkan + гетерогенный кластер из Strix Halo (256 ГБ/с bandwidth) + RTX 5060 (16 ГБ VRAM) = доступный домашний AI, запускающий 70B на 5–10 tok/s за $2000–3000.</strong>
+</div>
+</div>
+
+<div class="footer">
+  Данные актуальны на февраль 2026. prima.cpp — проект в активной разработке, API и возможности могут измениться.<br>
+  Источники: arXiv:2504.08791 (Li et al., апрель 2025, v2 сентябрь 2025), GitHub: Lizonghang/prima.cpp, BIT-BRICK K1 cluster demo, HuggingFace discussion.<br>
+  <a href="sbc-clusters-guide-ru.html">← Часть 5 (SBC-кластеры)</a> · 
+  <a href="high-bandwidth-minipc-ru.html">← Часть 4 (Strix Halo)</a> ·
+  <a href="clustering-part3.html">← Часть 3</a>
+</div>
+
+</body>
+</html>

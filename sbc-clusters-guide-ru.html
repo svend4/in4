@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кластеры на одноплатных компьютерах: Raspberry Pi, Orange Pi и другие SBC</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  
+  h1 { font-size: 1.7em; color: #73d0ff; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #bae67e; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+  
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+  
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+  
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  
+  .highlight { background: linear-gradient(135deg, #0d1a2a 0%, #1a0d2a 100%); border: 1px solid #5c6ac4; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+  
+  .cmd { background: #0f1419; border: 1px solid #1f2430; border-radius: 8px; padding: 14px; margin: 10px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: #bae67e; overflow-x: auto; white-space: pre-wrap; }
+  
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .vs > div { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 14px; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+  
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  
+  .toc { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .toc a { display: block; padding: 3px 0; color: #607080; }
+  .toc a:hover { color: #73d0ff; }
+  
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>🔧 Кластеры на одноплатных компьютерах (SBC)</h1>
+<p class="sub">Raspberry Pi · Orange Pi · Rock 5 · Radxa · NVIDIA Jetson — всё о кластеризации SBC для LLM-инференса</p>
+<p class="sub">Часть 5 серии исследований. Февраль 2026. Источники: Jeff Geerling, distributed-llama, arXiv, Raspberry Pi Foundation, TinyComputers.io</p>
+
+<div class="highlight">
+<strong>Зачем этот гайд?</strong> В предыдущих частях мы подробно разобрали кластеры Mac Mini и мини-ПК (Strix Halo, DGX Spark). Но есть целый мир <strong>ультрабюджетных одноплатных компьютеров за $50–200</strong>, из которых также строят кластеры. Здесь мы разбираем: какие SBC существуют, какое ПО позволяет объединять их в кластеры, какие бенчмарки реально показывают, сколько это стоит, и — самый важный вопрос — <strong>имеет ли это смысл для LLM-инференса по сравнению с Mac Mini или мини-ПК.</strong>
+</div>
+
+<div class="toc">
+<strong>Содержание:</strong>
+<a href="#hardware">1. Железо: все SBC-платформы 2025–2026</a>
+<a href="#benchmarks">2. Бенчмарки LLM: один узел</a>
+<a href="#cluster-benchmarks">3. Бенчмарки кластеров: distributed-llama и другие</a>
+<a href="#software">4. Программное обеспечение для кластеров</a>
+<a href="#networking">5. Сеть и интерконнекты</a>
+<a href="#builds">6. Конкретные сборки с ценами</a>
+<a href="#comparison">7. Сравнение с Mac Mini и мини-ПК</a>
+<a href="#agent-usecase">8. Для агентов с облачным API — другая история</a>
+<a href="#verdict">9. Итоговый вердикт</a>
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2 id="hardware">1. 🖥️ Железо: какие SBC существуют для кластеров</h2>
+<div class="s">
+
+<h3>Основные платформы 2025–2026</h3>
+<table>
+  <tr>
+    <th>SBC</th>
+    <th>Чип</th>
+    <th>CPU</th>
+    <th>Макс. RAM</th>
+    <th>Bandwidth памяти</th>
+    <th>NPU</th>
+    <th>Ethernet</th>
+    <th>Цена (февр. 2026)</th>
+  </tr>
+  <tr>
+    <td><strong>Raspberry Pi 5</strong></td>
+    <td>BCM2712</td>
+    <td>4× Cortex-A76 @ 2.4 ГГц</td>
+    <td>16 ГБ</td>
+    <td>~34 ГБ/с (LPDDR4X-4267)</td>
+    <td>—</td>
+    <td>1 GbE</td>
+    <td class="price">$110 (8 ГБ) / $205 (16 ГБ)</td>
+  </tr>
+  <tr>
+    <td><strong>Orange Pi 5 Plus</strong></td>
+    <td>RK3588</td>
+    <td>4× A76 + 4× A55 @ 2.4 ГГц</td>
+    <td>32 ГБ</td>
+    <td>~51 ГБ/с (LPDDR4X-4224)</td>
+    <td>6 TOPS</td>
+    <td><strong>2× 2.5 GbE</strong></td>
+    <td class="price">$90–$170</td>
+  </tr>
+  <tr>
+    <td><strong>Orange Pi 5 Max</strong></td>
+    <td>RK3588</td>
+    <td>4× A76 + 4× A55</td>
+    <td>32 ГБ</td>
+    <td>~51 ГБ/с</td>
+    <td>6 TOPS</td>
+    <td>2.5 GbE</td>
+    <td class="price">$110–$180</td>
+  </tr>
+  <tr>
+    <td><strong>Radxa Rock 5B</strong></td>
+    <td>RK3588</td>
+    <td>4× A76 + 4× A55</td>
+    <td>32 ГБ</td>
+    <td>~51 ГБ/с</td>
+    <td>6 TOPS</td>
+    <td>2.5 GbE + PCIe M.2</td>
+    <td class="price">$100–$160</td>
+  </tr>
+  <tr>
+    <td><strong>NanoPC-T6 Plus</strong></td>
+    <td>RK3588</td>
+    <td>4× A76 + 4× A55</td>
+    <td>32 ГБ</td>
+    <td>~51 ГБ/с (LPDDR5)</td>
+    <td>6 TOPS</td>
+    <td>2× 2.5 GbE</td>
+    <td class="price">$130–$220</td>
+  </tr>
+  <tr>
+    <td><strong>NVIDIA Jetson Orin Nano 8GB</strong></td>
+    <td>Orin</td>
+    <td>6× A78AE @ 1.5 ГГц</td>
+    <td>8 ГБ</td>
+    <td>68 ГБ/с (LPDDR5)</td>
+    <td>40 TOPS (GPU)</td>
+    <td>1 GbE</td>
+    <td class="price">$249</td>
+  </tr>
+  <tr>
+    <td><strong>NVIDIA Jetson AGX Orin 64GB</strong></td>
+    <td>Orin</td>
+    <td>12× A78AE @ 2.2 ГГц</td>
+    <td>64 ГБ</td>
+    <td><strong>204.8 ГБ/с</strong></td>
+    <td>275 TOPS</td>
+    <td>10 GbE</td>
+    <td class="price">$1 599</td>
+  </tr>
+  <tr>
+    <td>Raspberry Pi 4</td>
+    <td>BCM2711</td>
+    <td>4× Cortex-A72 @ 1.8 ГГц</td>
+    <td>8 ГБ</td>
+    <td>~13 ГБ/с (LPDDR4-3200)</td>
+    <td>—</td>
+    <td>1 GbE</td>
+    <td class="price">$55–$95</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Кризис цен на RAM в 2026:</strong> Raspberry Pi Foundation в <strong>феврале 2026</strong> объявила уже второе повышение цен за 3 месяца. Pi 5 16 ГБ подорожал с $120 до <strong>$205</strong> (+71%). Причина — глобальный дефицит LPDDR4, вызванный спросом датацентров на AI. Tom's Hardware отмечает: «Raspberry Pi, некогда дешёвый вход в Linux, теперь стоит почти как мини-ПК на x86».
+</div>
+
+<h3>Ключевые архитектурные отличия SBC от мини-ПК и Mac</h3>
+<p><strong>Bandwidth памяти</strong> — главное ограничение SBC. Raspberry Pi 5 даёт ~34 ГБ/с (LPDDR4X). Orange Pi 5 на RK3588 — ~51 ГБ/с. Для сравнения: Mac Mini M4 Pro — 273 ГБ/с, Strix Halo — 256 ГБ/с. Разница в <strong>5–8×</strong> определяет скорость LLM-инференса напрямую, поскольку генерация токенов — операция, ограниченная bandwidth памяти.</p>
+
+<p><strong>RAM</strong> — потолок в 8–16 ГБ (Pi 5) или 32 ГБ (RK3588). Для моделей 70B+ в Q4-квантизации нужно ~40 ГБ, поэтому без кластера не обойтись. Но именно при кластеризации начинаются проблемы с сетевой латентностью.</p>
+
+<p><strong>NPU (Neural Processing Unit)</strong> — RK3588 имеет встроенный NPU на 6 TOPS, а новый <strong>Raspberry Pi AI HAT+ 2</strong> (январь 2026) добавляет <strong>40 TOPS</strong> через модуль Hailo-10H с 8 ГБ собственной RAM. Это интересно для мелких моделей (1–7B), но не решает проблему крупных.</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2 id="benchmarks">2. 📊 Бенчмарки LLM на одном узле SBC</h2>
+<div class="s">
+
+<h3>Raspberry Pi 5 (8 ГБ)</h3>
+<p>Научная работа arXiv (октябрь 2025) протестировала 25 квантизированных LLM на трёх SBC. Основные результаты:</p>
+
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Параметры</th>
+    <th>Pi 5 (8 ГБ), tok/s</th>
+    <th>Orange Pi 5 Pro (RK3588), tok/s</th>
+    <th>Pi 4 (4 ГБ), tok/s</th>
+  </tr>
+  <tr>
+    <td>gemma3:1b</td>
+    <td>1B</td>
+    <td class="speed">15–20+</td>
+    <td class="speed">20+</td>
+    <td>5–8</td>
+  </tr>
+  <tr>
+    <td>Qwen2.5:1.5b</td>
+    <td>1.5B</td>
+    <td class="speed">10–15</td>
+    <td class="speed">15+</td>
+    <td>4–6</td>
+  </tr>
+  <tr>
+    <td>BitNet B1.58 2B 4T</td>
+    <td>2B</td>
+    <td class="speed">~8 (bitnet.cpp)</td>
+    <td>—</td>
+    <td>—</td>
+  </tr>
+  <tr>
+    <td>Llama 3.2:3b</td>
+    <td>3B</td>
+    <td class="speed">4–6</td>
+    <td class="speed">3–5</td>
+    <td>1–2</td>
+  </tr>
+  <tr>
+    <td>Qwen2.5:3b</td>
+    <td>3B</td>
+    <td class="speed">4–5</td>
+    <td class="speed">3–5</td>
+    <td>~1</td>
+  </tr>
+  <tr>
+    <td>Mistral 7B Q4</td>
+    <td>7B</td>
+    <td>0.7–3</td>
+    <td>1.5–5</td>
+    <td>❌ не влезает / <1</td>
+  </tr>
+  <tr>
+    <td>DeepSeek R1 8B Q4</td>
+    <td>8B</td>
+    <td>~2–3</td>
+    <td>~3–4</td>
+    <td>❌</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Llamafile vs Ollama:</strong> Исследование показало, что <strong>Llamafile в 4× быстрее Ollama</strong> и потребляет на <strong>30–40% меньше энергии</strong> на тех же SBC. Ollama не оптимизирован для устройств с ограниченными ресурсами — по умолчанию выделяет контекст 4096 токенов и использует все 4 ядра без возможности лёгкой настройки. <strong>llama.cpp напрямую — на 10–20% быстрее Ollama</strong> и даёт полный контроль над параметрами.
+</div>
+
+<h3>RK3588 NPU — отдельная история</h3>
+<p>На Orange Pi 5 с RK3588 NPU (через RKLLM runtime): <strong>TinyLlama 1.1B достигает 10–15 tok/s</strong> на NPU при потреблении всего 5–6 Вт. Это быстрее, чем человек может читать, и отлично для edge-задач. Но: NPU поддерживает только <strong>W8A8 квантизацию</strong>, закрытый toolchain от Rockchip, ограниченный набор моделей. Проект <strong>RKLLama</strong> (аналог Ollama для NPU RK3588) активно развивается и уже поддерживает tool calling и TTS.</p>
+
+<h3>Raspberry Pi AI HAT+ 2 (январь 2026)</h3>
+<p>Новый модуль <strong>Hailo-10H</strong>: <strong>40 TOPS (INT4)</strong> + 8 ГБ собственной DDR4 RAM, подключается через PCIe Pi 5. Предназначен для LLM до 7B параметров, VLM и компьютерного зрения. Стоимость ~$70–100. Пассивное охлаждение (нагревается). Ещё очень свежий продукт — экосистема софта формируется.</p>
+
+<div class="good">
+<strong>Практический вывод по одному узлу:</strong> На Raspberry Pi 5 (8 ГБ) <strong>модели 1–3B работают на 5–15 tok/s</strong> — вполне юзабельно для чатботов. Модели 7–8B — на 1–3 tok/s — медленно, но работает. Orange Pi 5 Pro (RK3588, 16 ГБ) даёт небольшое преимущество за счёт 8 ядер и NPU, особенно для моделей до 3B. <strong>Модели 70B+ невозможны на одном SBC — нужен кластер.</strong>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2 id="cluster-benchmarks">3. 🔗 Бенчмарки кластеров SBC: реальные цифры</h2>
+<div class="s">
+
+<h3>distributed-llama: лучшие результаты на Pi-кластерах</h3>
+<p><strong>distributed-llama</strong> (автор: b4rtaz) — единственный фреймворк, показывающий положительное масштабирование на Raspberry Pi кластерах. Использует <strong>тензорный параллелизм через TCP</strong> (не pipeline, как llama.cpp RPC).</p>
+
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Конфигурация</th>
+    <th>tok/s (генерация)</th>
+    <th>Комментарий</th>
+  </tr>
+  <tr>
+    <td><strong>Qwen3-30B-A3B Q40</strong> (MoE)</td>
+    <td>4× Pi 5 (8 ГБ)</td>
+    <td class="speed"><strong>13.04 tok/s</strong></td>
+    <td>Прорывной результат! MoE-модель с 3B активных параметров</td>
+  </tr>
+  <tr>
+    <td>Llama 3.2 3B Q40</td>
+    <td>4× Pi 5 (8 ГБ)</td>
+    <td class="speed">10.3–13.7 tok/s</td>
+    <td>Зависит от версии и настроек nthreads</td>
+  </tr>
+  <tr>
+    <td>DeepSeek R1 Distill 8B Q40</td>
+    <td>4× Pi 5 (8 ГБ)</td>
+    <td class="speed">6.43 tok/s</td>
+    <td>eval: 11.68 tok/s</td>
+  </tr>
+  <tr>
+    <td>Llama 3.2 3B Q40</td>
+    <td>1× Pi 5 (8 ГБ)</td>
+    <td>5.95 tok/s</td>
+    <td>Один узел для сравнения</td>
+  </tr>
+  <tr>
+    <td>Llama 3.3 70B Q40</td>
+    <td>8× Pi 5 (distributed-llama)</td>
+    <td>0.85 tok/s</td>
+    <td>«Работает, но хрупко — иногда мусор» (Geerling)</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Qwen3-30B-A3B — звезда SBC-кластеров!</strong> Это MoE-модель с 30B общих параметров, но только 3B активных на токен. На 4× Pi 5 она даёт <strong>13 tok/s</strong> — это быстрее разговорной речи. Общий вес ~5.5 ГБ (Q40), легко помещается в кластер из четырёх Pi 5 по 8 ГБ. Это лучшее соотношение качество/скорость для SBC-кластера на сегодня.
+</div>
+
+<h3>Jeff Geerling: «Я жалею, что построил Pi-кластер за $3000»</h3>
+<p>В сентябре 2025 Geerling построил <strong>10-узловой кластер Pi 5</strong> и протестировал его:</p>
+
+<table>
+  <tr>
+    <th>Фреймворк</th>
+    <th>Модель</th>
+    <th>Результат</th>
+  </tr>
+  <tr>
+    <td>llama.cpp RPC</td>
+    <td>Llama 3.3 70B</td>
+    <td class="badge badge-red">0.28 tok/s — <strong>в 25× медленнее</strong> кластера Framework Desktop</td>
+  </tr>
+  <tr>
+    <td>distributed-llama</td>
+    <td>Llama 3.3 70B (8 узлов)</td>
+    <td>0.85 tok/s — «работает, но токены иногда мусор»</td>
+  </tr>
+  <tr>
+    <td>EXO</td>
+    <td>Llama 3.2 3B</td>
+    <td class="badge badge-red">Не удалось запустить даже на 2–3 узлах</td>
+  </tr>
+  <tr>
+    <td>1 узел (Ollama)</td>
+    <td>Llama 3.2 3B</td>
+    <td class="speed">~6 tok/s</td>
+  </tr>
+</table>
+
+<div class="red">
+<strong>Вердикт Geerling:</strong> «Этот кластер — не электростанция. И доллар за доллар, если ты тратишь $3000+ на вычислительный кластер, это не лучшее вложение.» 10× Pi 5 (16 ГБ) ≈ $2050+ только за платы, + блоки питания, свитч, корпус = ~$2500–3000. За те же деньги — <strong>один Framework Desktop (Strix Halo, 128 ГБ)</strong> за $1999, который запускает Qwen3-235B локально.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2 id="software">4. ⚙️ Программное обеспечение для SBC-кластеров</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Фреймворк</th>
+    <th>Тип параллелизма</th>
+    <th>Протокол</th>
+    <th>Поддержка SBC</th>
+    <th>Масштабирование на Pi</th>
+  </tr>
+  <tr>
+    <td><strong>distributed-llama</strong></td>
+    <td><strong>Тензорный</strong></td>
+    <td>TCP (сокеты)</td>
+    <td><span class="badge badge-green">Отличная</span> ARM + Vulkan + CPU</td>
+    <td><span class="badge badge-green">Положительное</span> 4× Pi 5 = 2× скорость 1 узла</td>
+  </tr>
+  <tr>
+    <td>llama.cpp RPC</td>
+    <td>Pipeline</td>
+    <td>TCP</td>
+    <td><span class="badge badge-green">Отличная</span> все бэкенды</td>
+    <td><span class="badge badge-red">Отрицательное</span> замедляется с узлами</td>
+  </tr>
+  <tr>
+    <td>Ollama</td>
+    <td>Один узел</td>
+    <td>—</td>
+    <td><span class="badge badge-blue">Хорошая</span> ARM CPU</td>
+    <td>— (нет кластеризации)</td>
+  </tr>
+  <tr>
+    <td>Llamafile</td>
+    <td>Один узел</td>
+    <td>—</td>
+    <td><span class="badge badge-green">Отличная</span> универсальный бинарник</td>
+    <td>— (нет кластеризации, но в 4× быстрее Ollama)</td>
+  </tr>
+  <tr>
+    <td>EXO</td>
+    <td>Тензорный</td>
+    <td>RDMA (macOS) / TCP</td>
+    <td><span class="badge badge-red">Плохая</span> только CPU через Tinygrad</td>
+    <td>Не работает на Pi-кластерах (Geerling)</td>
+  </tr>
+  <tr>
+    <td>RKLLama</td>
+    <td>Один узел (NPU)</td>
+    <td>—</td>
+    <td><span class="badge badge-orange">RK3588 only</span></td>
+    <td>— (нет кластеризации, но использует NPU)</td>
+  </tr>
+  <tr>
+    <td>RKLLM (Rockchip)</td>
+    <td>Один узел (NPU)</td>
+    <td>—</td>
+    <td><span class="badge badge-orange">RK3588 only</span> закрытый toolchain</td>
+    <td>—</td>
+  </tr>
+</table>
+
+<h3>distributed-llama: пошаговая настройка на 4× Pi 5</h3>
+
+<p><strong>Топология:</strong></p>
+<div class="cmd">[🔀 TP-Link LS1008G Switch (Gigabit)]
+|       |       |       |
+|_______ 🔸 Pi 5 #1 (ROOT)   10.0.0.1
+|       |
+|_______ 🔹 Pi 5 #2 (WORKER) 10.0.0.2:9999
+|       |
+|_______ 🔹 Pi 5 #3 (WORKER) 10.0.0.3:9999
+|
+|_______ 🔹 Pi 5 #4 (WORKER) 10.0.0.4:9999</div>
+
+<p><strong>Установка:</strong></p>
+<div class="cmd"># На каждом Pi 5:
+git clone https://github.com/b4rtaz/distributed-llama.git
+cd distributed-llama
+make
+
+# Скачать модель (на root-узле):
+python launch.py qwen3_30b_a3b_q40
+
+# Запуск worker'ов (на каждом worker Pi):
+./dllama worker --port 9999 --nthreads 4
+
+# Запуск инференса (на root-узле):
+./dllama inference \
+  --model models/qwen3_30b_a3b_q40/dllama_model_qwen3_30b_a3b_q40.m \
+  --tokenizer models/qwen3_30b_a3b_q40/dllama_tokenizer_qwen3_30b_a3b_q40.t \
+  --buffer-float-type q80 \
+  --nthreads 4 \
+  --max-seq-len 4096 \
+  --workers 10.0.0.2:9999 10.0.0.3:9999 10.0.0.4:9999 \
+  --prompt "Hello, explain quantum computing" \
+  --steps 128</div>
+
+<div class="note">
+<strong>Ограничения distributed-llama:</strong> Работает только на 1, 2, 4, 8... 2^n узлах. Максимальное число узлов = числу KV-голов в модели. Поддерживаются только определённые квантизации. Vulkan-поддержка для MoE-моделей добавлена недавно. Количество потоков (nthreads) не должно превышать число ядер CPU.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2 id="networking">5. 🌐 Сеть и интерконнекты для SBC-кластеров</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Интерконнект</th>
+    <th>Bandwidth</th>
+    <th>Латентность</th>
+    <th>RDMA?</th>
+    <th>Доступность на SBC</th>
+    <th>Стоимость</th>
+  </tr>
+  <tr>
+    <td><strong>Gigabit Ethernet</strong></td>
+    <td>1 Гбит/с (125 МБ/с)</td>
+    <td>~300–500 мкс</td>
+    <td>❌</td>
+    <td>Все Pi 5, все RK3588</td>
+    <td class="price">Свитч $15–30</td>
+  </tr>
+  <tr>
+    <td><strong>2.5 GbE</strong></td>
+    <td>2.5 Гбит/с (312 МБ/с)</td>
+    <td>~200–400 мкс</td>
+    <td>❌</td>
+    <td>Orange Pi 5 Plus (встроен), Rock 5B (через M.2)</td>
+    <td class="price">Свитч $30–60</td>
+  </tr>
+  <tr>
+    <td>USB Ethernet адаптер (2.5G)</td>
+    <td>2.5 Гбит/с</td>
+    <td>~300–500 мкс</td>
+    <td>❌</td>
+    <td>Pi 5 через USB3</td>
+    <td class="price">Адаптер $12–20</td>
+  </tr>
+  <tr>
+    <td>PoE (Power over Ethernet)</td>
+    <td>1 Гбит/с</td>
+    <td>~300 мкс</td>
+    <td>❌</td>
+    <td>Pi 5 с PoE HAT</td>
+    <td class="price">HAT $12 + PoE свитч $50–80</td>
+  </tr>
+  <tr>
+    <td>ClusterHAT (USB gadget)</td>
+    <td>~100 Мбит/с</td>
+    <td>~500+ мкс</td>
+    <td>❌</td>
+    <td>Pi Zero только</td>
+    <td class="price">HAT ~$25</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Главное ограничение:</strong> Все SBC-кластеры работают через <strong>TCP поверх Gigabit Ethernet</strong>. Нет ни одного SBC с поддержкой RDMA, Thunderbolt 5, или InfiniBand. Это значит <strong>латентность 300+ мкс</strong> на каждую синхронизацию — на порядки хуже, чем 3 мкс у Apple TB5 RDMA. distributed-llama смягчает это, используя оптимизированные TCP-сокеты и буферизацию q80, но фундаментальное ограничение остаётся.
+</div>
+
+<h3>Оптимальная сетевая конфигурация для SBC-кластера</h3>
+<p><strong>Минимум:</strong> Гигабитный неуправляемый свитч (TP-Link LS1008G, ~$20) + Cat5e/Cat6 кабели. Это работает и проверено.</p>
+<p><strong>Оптимально:</strong> 2.5 GbE свитч + SBC с 2.5G портами (Orange Pi 5 Plus). 2.5× больше bandwidth = меньше времени на синхронизацию между узлами.</p>
+<p><strong>PoE:</strong> Для чистоты проводки — PoE HAT на Pi 5 + PoE свитч. Один кабель = питание + сеть. Но PoE свитчи дороже ($50–80 за 8 портов).</p>
+
+<h3>Почему Orange Pi 5 Plus — лучший SBC для кластера</h3>
+<p>Единственный SBC из доступных с <strong>двумя портами 2.5 GbE</strong> (Realtek RTL8125). Это позволяет:</p>
+<p>Один порт — внутренний кластерный трафик. Второй порт — внешняя связь с интернетом/LAN. Без необходимости в USB-адаптерах или WiFi. Плюс 8 ядер RK3588 (vs 4 у Pi 5) и до 32 ГБ RAM (vs 16 у Pi 5).</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2 id="builds">6. 💰 Конкретные сборки с ценами (февраль 2026)</h2>
+<div class="s">
+
+<h3>Сборка 1: Бюджетный кластер 4× Pi 5 (8 ГБ)</h3>
+<table>
+  <tr><th>Компонент</th><th>Кол-во</th><th>Цена/шт</th><th>Итого</th></tr>
+  <tr><td>Raspberry Pi 5, 8 ГБ</td><td>4</td><td class="price">$110</td><td class="price">$440</td></tr>
+  <tr><td>microSD 64 ГБ (A2)</td><td>4</td><td>$10</td><td>$40</td></tr>
+  <tr><td>USB-C блок питания 27W</td><td>4</td><td>$12</td><td>$48</td></tr>
+  <tr><td>TP-Link LS1008G свитч (8p Gigabit)</td><td>1</td><td>$20</td><td>$20</td></tr>
+  <tr><td>Cat6 кабели 30 см</td><td>4</td><td>$3</td><td>$12</td></tr>
+  <tr><td>Стойка/корпус (3D-печать или кластерный кейс)</td><td>1</td><td>$15–30</td><td>$25</td></tr>
+  <tr><td colspan="3"><strong>ИТОГО</strong></td><td class="price"><strong>~$585</strong></td></tr>
+</table>
+<p><strong>Общая RAM:</strong> 32 ГБ · <strong>Лучшая модель:</strong> Qwen3-30B-A3B @ 13 tok/s · <strong>Потребление:</strong> ~40 Вт</p>
+
+<h3>Сборка 2: Продвинутый кластер 4× Pi 5 (16 ГБ)</h3>
+<table>
+  <tr><th>Компонент</th><th>Кол-во</th><th>Цена/шт</th><th>Итого</th></tr>
+  <tr><td>Raspberry Pi 5, 16 ГБ</td><td>4</td><td class="price">$205</td><td class="price">$820</td></tr>
+  <tr><td>NVMe SSD 256 ГБ + HAT</td><td>4</td><td>$25</td><td>$100</td></tr>
+  <tr><td>PoE+ HAT</td><td>4</td><td>$20</td><td>$80</td></tr>
+  <tr><td>PoE свитч 8p Gigabit</td><td>1</td><td>$65</td><td>$65</td></tr>
+  <tr><td>Cat6 кабели</td><td>4</td><td>$3</td><td>$12</td></tr>
+  <tr><td>Кластерный корпус (Turing Pi style или кастомный)</td><td>1</td><td>$40</td><td>$40</td></tr>
+  <tr><td colspan="3"><strong>ИТОГО</strong></td><td class="price"><strong>~$1 117</strong></td></tr>
+</table>
+<p><strong>Общая RAM:</strong> 64 ГБ · <strong>Модели:</strong> Llama 3.3 70B Q4 (@ ~0.85 tok/s), DeepSeek R1 8B (@ ~6 tok/s) · <strong>Потребление:</strong> ~55 Вт</p>
+
+<h3>Сборка 3: Orange Pi 5 Plus кластер (32 ГБ × 4)</h3>
+<table>
+  <tr><th>Компонент</th><th>Кол-во</th><th>Цена/шт</th><th>Итого</th></tr>
+  <tr><td>Orange Pi 5 Plus, 32 ГБ</td><td>4</td><td class="price">$170</td><td class="price">$680</td></tr>
+  <tr><td>NVMe SSD 256 ГБ</td><td>4</td><td>$20</td><td>$80</td></tr>
+  <tr><td>USB-C блок питания 5V/4A</td><td>4</td><td>$10</td><td>$40</td></tr>
+  <tr><td>2.5 GbE свитч 8p</td><td>1</td><td>$45</td><td>$45</td></tr>
+  <tr><td>Cat6 кабели</td><td>4</td><td>$3</td><td>$12</td></tr>
+  <tr><td>Корпус</td><td>1</td><td>$25</td><td>$25</td></tr>
+  <tr><td colspan="3"><strong>ИТОГО</strong></td><td class="price"><strong>~$882</strong></td></tr>
+</table>
+<p><strong>Общая RAM:</strong> 128 ГБ · <strong>Преимущества:</strong> 2.5 GbE (2.5× bandwidth vs Pi 5), 8 ядер/узел, NPU 6 TOPS, больше RAM · <strong>Потребление:</strong> ~60 Вт</p>
+
+<h3>Сборка 4: Гигантский кластер Geerling — 10× Pi 5 (16 ГБ)</h3>
+<table>
+  <tr><th>Компонент</th><th>Итого</th></tr>
+  <tr><td>10× Raspberry Pi 5 (16 ГБ) + аксессуары</td><td class="price">~$2 500–3 000</td></tr>
+  <tr><td><strong>Общая RAM:</strong> 160 ГБ</td><td></td></tr>
+  <tr><td><strong>Результат:</strong> Llama 70B @ 0.28–0.85 tok/s</td><td class="badge badge-red">Непрактично</td></tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2 id="comparison">7. ⚖️ Сравнение с Mac Mini и мини-ПК</h2>
+<div class="s">
+
+<h3>Сводная таблица: одинаковый бюджет — разные результаты</h3>
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Бюджет</th>
+    <th>RAM</th>
+    <th>Llama 70B tok/s</th>
+    <th>Лучшая модель</th>
+    <th>Вт</th>
+  </tr>
+  <tr>
+    <td>4× Pi 5 (8 ГБ) + distributed-llama</td>
+    <td class="price">$585</td>
+    <td>32 ГБ</td>
+    <td>❌ не влезает</td>
+    <td>Qwen3-30B-A3B @ 13 tok/s</td>
+    <td>40</td>
+  </tr>
+  <tr>
+    <td>4× Pi 5 (16 ГБ) + distributed-llama</td>
+    <td class="price">$1 117</td>
+    <td>64 ГБ</td>
+    <td>~0.85</td>
+    <td>DeepSeek R1 8B @ 6 tok/s</td>
+    <td>55</td>
+  </tr>
+  <tr>
+    <td>4× Orange Pi 5 Plus (32 ГБ)</td>
+    <td class="price">$882</td>
+    <td>128 ГБ</td>
+    <td>~1–2 (оценка)</td>
+    <td>MoE-модели до 30B</td>
+    <td>60</td>
+  </tr>
+  <tr>
+    <td><strong>1× Mac Mini M4 (16 ГБ)</strong></td>
+    <td class="price"><strong>$599</strong></td>
+    <td>16 ГБ</td>
+    <td>❌ не влезает</td>
+    <td>Llama 8B @ <strong>30+ tok/s</strong></td>
+    <td>15</td>
+  </tr>
+  <tr>
+    <td><strong>1× Mac Mini M4 Pro (64 ГБ)</strong></td>
+    <td class="price"><strong>$2 199</strong></td>
+    <td>64 ГБ</td>
+    <td><strong>~4–5</strong></td>
+    <td>Llama 70B @ 4–5 tok/s</td>
+    <td>25</td>
+  </tr>
+  <tr>
+    <td><strong>1× Framework Desktop (128 ГБ)</strong></td>
+    <td class="price"><strong>$1 999</strong></td>
+    <td>128 ГБ</td>
+    <td><strong>~4–5</strong></td>
+    <td>Qwen3-235B @ ~5–10 tok/s!</td>
+    <td>65</td>
+  </tr>
+  <tr>
+    <td>4× Mac Mini M4 Pro + EXO (TB5 RDMA)</td>
+    <td class="price">$8 796</td>
+    <td>256 ГБ</td>
+    <td><strong>~32 tok/s</strong></td>
+    <td>DeepSeek V3 671B @ 32 tok/s</td>
+    <td>100</td>
+  </tr>
+</table>
+
+<div class="red">
+<strong>Жёсткая правда:</strong><br>
+• <strong>Mac Mini M4 за $599</strong> на 8B-модели даёт <strong>30+ tok/s</strong> — в 5× быстрее, чем весь Pi-кластер за $585 на той же модели (~6 tok/s).<br>
+• <strong>Framework Desktop за $1 999</strong> запускает <strong>Qwen3-235B</strong> — модель, которая не влезет ни в какой кластер из Pi (нужно 128 ГБ подряд).<br>
+• Кластер 4× Pi 5 (16 ГБ) за $1 117 на 70B модели даёт <strong>0.85 tok/s</strong>. Mac Mini M4 Pro за $2 199 — <strong>4–5 tok/s</strong>. Разница в 5× при разнице в цене 2×.<br>
+• <strong>Единственное преимущество Pi-кластера:</strong> MoE-модели (Qwen3-30B-A3B) при 13 tok/s на $585 — неплохо для бюджета.
+</div>
+
+<h3>Когда SBC-кластер имеет смысл</h3>
+<div class="good">
+<strong>✅ Образование и обучение:</strong> Построить кластер — отличный способ изучить распределённые вычисления, Linux, сети, MPI, и AI. Raspberry Pi имеет гигантское сообщество и документацию.<br><br>
+<strong>✅ MoE-модели на бюджете:</strong> Qwen3-30B-A3B на 4× Pi 5 за $585 = 13 tok/s. Это реально полезная скорость для чатбота. Лучшее соотношение цена/качество для offline AI на бюджете.<br><br>
+<strong>✅ Edge AI / IoT:</strong> Десяток Pi с мелкими моделями (1–3B) — для умного дома, видеонаблюдения, голосовых ассистентов. Каждый узел обрабатывает свою задачу.<br><br>
+<strong>✅ Homelab / Kubernetes:</strong> Pi-кластеры отлично подходят для изучения K8s, Docker Swarm, MicroK8s. Это их основной use case.<br><br>
+<strong>✅ Низкое энергопотребление:</strong> 4× Pi 5 = ~40 Вт. Работает тихо, можно оставлять включённым 24/7.
+</div>
+
+<div class="red">
+<strong>❌ Когда SBC-кластер НЕ имеет смысла:</strong><br><br>
+<strong>Для быстрого инференса больших моделей:</strong> Один Mac Mini M4 Pro или Framework Desktop бьёт любой Pi-кластер по скорости tok/s на доллар.<br><br>
+<strong>Для моделей 70B+:</strong> 0.28–0.85 tok/s — непрактично. Один ответ на промпт занимает минуты.<br><br>
+<strong>Для продакшн-использования:</strong> distributed-llama иногда выдаёт мусор. llama.cpp RPC замедляется с узлами. Стабильность не гарантирована.<br><br>
+<strong>По соотношению цена/производительность:</strong> С учётом кризиса цен на RAM в 2026 (Pi 5 16 ГБ = $205), б/у мини-ПК x86 (Dell OptiPlex, HP ProDesk, $50–100 с 16 ГБ DDR4) часто выгоднее.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2 id="agent-usecase">8. 🤖 Для агентов с облачным API — совсем другая математика</h2>
+<div class="s">
+<p>Если AI-агент (типа Moltbot) использует облачные API (Claude, GPT, DeepSeek), то <strong>всё вышеизложенное про bandwidth, кластеры и tok/s — не имеет значения</strong>. Сервер агента — просто «диспетчер»: принимает задачу, формирует промпт, отправляет в API, получает ответ, автоматизирует действия.</p>
+
+<p>Для этого нужен: стабильный интернет, Python/Node.js, 2–4 ГБ RAM, надёжная работа 24/7. Любой из этих вариантов справится одинаково:</p>
+
+<table>
+  <tr><th>Устройство</th><th>Цена</th><th>Мощность</th><th>Для агента</th></tr>
+  <tr><td>Raspberry Pi 5 (2 ГБ)</td><td class="price">$60</td><td>5–10 Вт</td><td><span class="badge badge-green">Отлично</span></td></tr>
+  <tr><td>Orange Pi 5 (4 ГБ)</td><td class="price">$75</td><td>5–8 Вт</td><td><span class="badge badge-green">Отлично</span></td></tr>
+  <tr><td>Б/у Dell OptiPlex (8 ГБ)</td><td class="price">$50–80</td><td>15–30 Вт</td><td><span class="badge badge-green">Отлично</span></td></tr>
+  <tr><td>Mac Mini M4 (16 ГБ)</td><td class="price">$599</td><td>5–15 Вт</td><td><span class="badge badge-blue">Избыточно, но отлично</span></td></tr>
+  <tr><td>TV Box на Amlogic S905 + Termux</td><td class="price">$25–40</td><td>5–10 Вт</td><td><span class="badge badge-orange">Рискованно, но возможно</span></td></tr>
+</table>
+
+<p><strong>Скорость определяется латентностью API</strong> (100–2000 мс на запрос), а не тем, на каком железе работает агент. Pi 5 за $60 и Mac Mini за $599 дадут <strong>идентичный</strong> результат при работе с облачным API.</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 9 ==================== -->
+<h2 id="verdict">9. 🎯 Итоговый вердикт</h2>
+<div class="s">
+
+<div class="highlight">
+<h3>Для локального LLM-инференса</h3>
+<p><strong>SBC-кластеры имеют нишу, но она узкая.</strong></p>
+<p>Единственная конфигурация, которая действительно <em>работает</em> хорошо: <strong>4× Raspberry Pi 5 (8 ГБ) + distributed-llama + MoE-модель (Qwen3-30B-A3B)</strong> за <strong>~$585</strong> → <strong>13 tok/s</strong>. Это приемлемая скорость для чатбота при минимальном бюджете.</p>
+<p>Для всего остального — моделей 70B+, быстрого инференса, стабильности — <strong>один мини-ПК за те же деньги побеждает</strong>.</p>
+</div>
+
+<h3>Рекомендации по бюджету</h3>
+<table>
+  <tr><th>Бюджет</th><th>Для локального AI</th><th>Для облачного агента</th></tr>
+  <tr>
+    <td class="price">$50–100</td>
+    <td>Б/у Dell OptiPlex 16 ГБ + Ollama (7B @ 3–5 tok/s)</td>
+    <td>Raspberry Pi 5 (2 ГБ) $60 — идеально</td>
+  </tr>
+  <tr>
+    <td class="price">$100–300</td>
+    <td>Pi 5 (8 ГБ) × 1 — модели до 3B. Или б/у mini-PC с 32 ГБ RAM</td>
+    <td>Pi 5 (2–4 ГБ) — больше не нужно</td>
+  </tr>
+  <tr>
+    <td class="price">$300–600</td>
+    <td><strong>4× Pi 5 (8 ГБ)</strong> — Qwen3-30B-A3B @ 13 tok/s. Или Mac Mini M4 (16 ГБ) $599 — 8B @ 30 tok/s</td>
+    <td>Что угодно из вышеперечисленного</td>
+  </tr>
+  <tr>
+    <td class="price">$600–1200</td>
+    <td>4× Orange Pi 5 Plus (32 ГБ) — больше RAM + 2.5 GbE. Или б/у мини-ПК x86 с 64 ГБ</td>
+    <td>Mac Mini M4 $599 — если хочется «всё в одном»</td>
+  </tr>
+  <tr>
+    <td class="price">$1200–2000</td>
+    <td><strong>Framework Desktop (Strix Halo, 128 ГБ) $1 999</strong> — Qwen3-235B локально. Бьёт любой SBC-кластер</td>
+    <td>Не нужно тратить столько для агента</td>
+  </tr>
+  <tr>
+    <td class="price">$2000+</td>
+    <td><strong>Mac Mini M4 Pro (64 ГБ)</strong> — 70B @ 4–5 tok/s. Или 4× Mac Mini + EXO для 671B</td>
+    <td>Не нужно</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Финальная мысль:</strong> SBC-кластеры — это прежде всего <strong>образовательный проект и хобби</strong>. Они учат распределённым вычислениям, Linux-администрированию, сетям, и AI на edge. Для <em>практического</em> AI-инференса — один мощный узел (Mac Mini, Framework Desktop, или даже б/у серверный ПК) всегда побеждает кластер из маленьких плат. Для облачных агентов — самое дешёвое стабильное устройство с интернетом.
+</div>
+</div>
+
+<div class="footer">
+  Данные актуальны на февраль 2026. Цены могут отличаться из-за кризиса RAM.<br>
+  Источники: Jeff Geerling, distributed-llama (b4rtaz), arXiv:2511.07425, Raspberry Pi Foundation, TinyComputers.io, RKLLama, ServeTheHome.<br>
+  <a href="clustering.html">← Часть 1 (кластеризация)</a> · 
+  <a href="clustering-part2.html">← Часть 2</a> · 
+  <a href="clustering-part3.html">← Часть 3</a> · 
+  <a href="high-bandwidth-minipc-ru.html">← Часть 4 (Strix Halo)</a>
+</div>
+
+</body>
+</html>
