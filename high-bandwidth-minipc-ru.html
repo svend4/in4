@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Высокоскоростные мини-ПК для распределённого LLM-инференса</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.7; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.6em; color: #58a6ff; margin-bottom: 6px; }
+  h2 { font-size: 1.2em; color: #79c0ff; margin: 28px 0 12px 0; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+  h3 { font-size: 1.02em; color: #d2a8ff; margin: 18px 0 8px 0; }
+  .sub { color: #8b949e; font-size: 0.92em; margin-bottom: 18px; }
+  .s { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.84em; }
+  th { background: #1c2333; color: #79c0ff; text-align: left; padding: 7px 9px; border: 1px solid #30363d; font-weight: 600; }
+  td { padding: 7px 9px; border: 1px solid #30363d; vertical-align: top; }
+  tr:nth-child(even) td { background: #161b22; }
+  tr:nth-child(odd) td { background: #0d1117; }
+  .note { background: #1a2a3a; border-left: 3px solid #58a6ff; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .warn { background: #2d1a0e; border-left: 3px solid #d29922; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .good { background: #0d2818; border-left: 3px solid #238636; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .red { background: #2d0e0e; border-left: 3px solid #da3633; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .price { color: #e3b341; font-weight: 600; }
+  .sp { color: #8b949e; font-size: 0.85em; }
+  a { color: #58a6ff; text-decoration: none; }
+  .footer { margin-top: 28px; color: #484f58; font-size: 0.8em; text-align: center; }
+  strong { color: #e6edf3; }
+  .highlight { background: #1a1a3a; border: 1px solid #6e40c9; border-radius: 6px; padding: 12px; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<h1>🖥️ Высокоскоростные мини-ПК для распределённого LLM-инференса: текущее состояние</h1>
+<p class="sub">Исследование: февраль 2026. Источники: Jeff Geerling, LLM Tracker, AMD, Framework, ServeTheHome, LMSYS.</p>
+
+<div class="highlight">
+<strong>Ключевой вывод:</strong> Чипы AMD Strix Halo сломали потолок пропускной способности памяти на ПК — они дают ~256 ГБ/с в компактных десктопах вроде Framework Desktop за $1 999, что почти совпадает с 273 ГБ/с у Mac Mini M4 Pro. Инференс на одном узле теперь примерно сопоставим. Но для кластеризации Apple удерживает непреодолимое преимущество: проприетарный RDMA через Thunderbolt 5 позволяет использовать тензорный параллелизм, который масштабируется положительно при добавлении узлов, тогда как ПК-кластеры через TCP/Ethernet на самом деле <em>замедляются</em> при добавлении узлов. Разрыв не в железе — он в софте. У ПК мини-ПК есть тот же физический TB5, но драйвера RDMA на уровне ОС не существует за пределами macOS.
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2>🔥 AMD Strix Halo переписывает правила bandwidth памяти на ПК</h2>
+<div class="s">
+<p>AMD Ryzen AI Max+ 395 («Strix Halo») — первый x86-чип с <strong>256-битной шиной памяти LPDDR5X-8000</strong>, обеспечивающей <strong>256 ГБ/с теоретической пропускной способности</strong> (~212 ГБ/с измеренных). В сочетании с <strong>до 128 ГБ единой памяти</strong> — где CPU, GPU (40 вычислительных блоков RDNA 3.5, 59.4 ТФЛОПС FP16) и 50-TOPS NPU делят общий пул — это фундаментальный архитектурный сдвиг. До <strong>96 ГБ можно выделить как VRAM</strong>, что позволяет загружать модели, значительно превышающие возможности любой дискретной потребительской GPU.</p>
+
+<p>Все SKU Strix Halo используют один и тот же 256-битный контроллер памяти и одинаковый потолок bandwidth. Линейка различается только ядрами CPU и количеством вычислительных блоков GPU:</p>
+
+<table>
+  <tr><th>SKU</th><th>Ядра</th><th>GPU CU</th><th>Отличие</th></tr>
+  <tr><td>Ryzen AI Max+ 395</td><td>16C/32T</td><td>40</td><td>Полный чип</td></tr>
+  <tr><td>Ryzen AI Max+ 392</td><td>12C/24T</td><td>40</td><td>Полный GPU, меньше ядер CPU</td></tr>
+  <tr><td>Ryzen AI Max 390</td><td>12C/24T</td><td>32</td><td>Меньше GPU CU</td></tr>
+  <tr><td>Ryzen AI Max 385</td><td>8C/16T</td><td>32</td><td>Начальный уровень</td></tr>
+</table>
+
+<div class="warn">
+<strong>Важная оговорка:</strong> Бенчмарки AIDA64 выявляют <strong>асимметрию доступа к памяти</strong> — скорость записи достигает ~216 ГБ/с, но чтение — лишь ~122 ГБ/с, что указывает на эффективную 128-битную ширину канала чтения. Во время LLM-инференса реальное использование bandwidth достигает <strong>70–73% от теоретического</strong> (181–188 ГБ/с), тогда как Apple Silicon достигает 85–90%. Этот разрыв отражает незрелость драйверов ROCm/Vulkan для архитектуры gfx1151, которые быстро улучшаются — производительность выросла на ~50% между маем и августом 2025 только за счёт обновлений драйверов.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2>🏪 Ландшафт компактных десктопов: семь систем на Strix Halo</h2>
+<div class="s">
+<p>Рынок взорвался мини-ПК на Strix Halo. Ключевые конкуренты, ранжированные по соотношению цена/подключения:</p>
+
+<table>
+  <tr>
+    <th>Система</th>
+    <th>Объём</th>
+    <th>Цена (128 ГБ)</th>
+    <th>Ethernet</th>
+    <th>Высокоскоростной I/O</th>
+    <th>Ключевая особенность</th>
+  </tr>
+  <tr>
+    <td><strong>Framework Desktop</strong></td>
+    <td>4.5 л</td>
+    <td class="price">$1 999 (DIY)</td>
+    <td>5 GbE</td>
+    <td>2× USB4 40 Гбит/с</td>
+    <td>Слот PCIe x4, Mini-ITX, модульный</td>
+  </tr>
+  <tr>
+    <td>Corsair AI Workstation 300</td>
+    <td>4.4 л</td>
+    <td class="price">$1 999–2 299</td>
+    <td>2.5 GbE</td>
+    <td>2× USB4 40 Гбит/с</td>
+    <td>Предсобранный, комплект AI-софта</td>
+  </tr>
+  <tr>
+    <td><strong>Minisforum MS-S1 Max</strong></td>
+    <td>3.2 л</td>
+    <td class="price">$2 299</td>
+    <td><strong>2× 10 GbE</strong></td>
+    <td><strong>2× USB4v2 80 Гбит/с</strong> + 2× USB4</td>
+    <td>Лучшие подключения для кластеров!</td>
+  </tr>
+  <tr>
+    <td>HP Z2 Mini G1a</td>
+    <td>~3 л</td>
+    <td class="price">$3 199–4 999</td>
+    <td>2.5 GbE (10G опция)</td>
+    <td>2× TB4 40 Гбит/с</td>
+    <td>ISV-сертификация, ECC, enterprise</td>
+  </tr>
+  <tr>
+    <td>ZOTAC MAGNUS</td>
+    <td><strong>2.65 л</strong></td>
+    <td class="price">~$2 000+</td>
+    <td>2× 2.5 GbE</td>
+    <td>USB4</td>
+    <td>Самый маленький форм-фактор</td>
+  </tr>
+  <tr>
+    <td>Beelink GTR9 Pro</td>
+    <td>малый</td>
+    <td class="price">~$1 999+</td>
+    <td>—</td>
+    <td>2× USB4 40 Гбит/с</td>
+    <td>Бюджетный вариант</td>
+  </tr>
+  <tr>
+    <td>MOREFINE H1</td>
+    <td>малый</td>
+    <td class="price">$2 199</td>
+    <td>—</td>
+    <td>USB4</td>
+    <td>Бюджетная альтернатива</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Minisforum MS-S1 Max</strong> выделяется для кластеризации: это единственная система с <strong>двойным 10 GbE</strong> (Realtek RTL8127) и <strong>USB4 Version 2 на 80 Гбит/с</strong> — вдвое больше bandwidth, чем стандартный USB4. Для любого, кто строит многоузловой кластер инференса, это преимущество в подключениях решающее.
+</div>
+
+<div class="note">
+<strong>Framework Desktop</strong> предлагает лучшую цену за $1 999 со стандартным форм-фактором Mini-ITX, слотом расширения PCIe x4 (для установки сетевой карты) и сильной поддержкой сообщества. Framework прямо рекламирует, что может «запускать Llama 3.3 70B Q6 на скорости разговорной речи в реальном времени».
+</div>
+
+<p>Помимо Strix Halo, <strong>HP ZBook Ultra G1a</strong> — это 14-дюймовый ноутбук (не мини-ПК) с тем же чипом от $2 229–4 100, а <strong>Minisforum BD395i MAX</strong> — предстоящая материнская плата Mini-ITX с полноценным <strong>слотом PCIe 5.0 x16</strong> для сочетания Strix Halo с дискретной GPU — ожидается от $1 500+.</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2>⚔️ Конкуренты за пределами AMD и как они сравниваются</h2>
+<div class="s">
+<p>За пределами экосистемы Strix Halo три платформы превышают порог 100 ГБ/с:</p>
+
+<h3>NVIDIA DGX Spark (GB10 Grace Blackwell)</h3>
+<p>Пожалуй, самый интересный не-AMD вариант. За <strong>~$3 000</strong> в крошечном корпусе 1.1 л он даёт <strong>273 ГБ/с bandwidth</strong> (точно как M4 Pro) с <strong>128 ГБ единой памяти LPDDR5X</strong>, GPU Blackwell с 6 144 ядрами CUDA и <strong>1 ПФЛОПС вычислений FP4</strong>. Также включает <strong>ConnectX-7 NIC с поддержкой 200 Гбит/с</strong> и 10 GbE — единственная компактная система со встроенной сетью RDMA корпоративного уровня. Ограничение: работает на DGX OS (только Linux) и позиционируется как рабочая станция разработчика.</p>
+
+<h3>Intel Lunar Lake</h3>
+<p>Например, ASUS NUC 14 Pro AI за ~$850 — использует встроенную LPDDR5X-8533 с 128-битной шиной, дающей <strong>~136.5 ГБ/с</strong> — на 50% выше стандартной DDR5 — но ограничен <strong>32 ГБ RAM</strong>, что непрактично для моделей больше ~14B параметров.</p>
+
+<h3>Qualcomm Snapdragon X2 Elite Extreme</h3>
+<p>Анонсирован на H1 2026, обещает <strong>228 ГБ/с bandwidth</strong> с <strong>до 128 ГБ памяти</strong> на 3-нм техпроцессе — приближается к bandwidth Apple, оставаясь в экосистеме Windows. Однако готового железа пока нет, и программная экосистема Qualcomm для LLM-инференса остаётся незрелой (только CPU в llama.cpp, без ускорения GPU/NPU).</p>
+
+<h3>Сводная таблица платформ</h3>
+<table>
+  <tr>
+    <th>Платформа</th>
+    <th>Bandwidth</th>
+    <th>Макс. RAM</th>
+    <th>Цена</th>
+    <th>ОС</th>
+    <th>Готовность для LLM</th>
+  </tr>
+  <tr>
+    <td><strong>Mac Mini M4 Pro</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td>64 ГБ</td>
+    <td class="price">$1 399–1 999</td>
+    <td>macOS</td>
+    <td>Отличная (Metal)</td>
+  </tr>
+  <tr>
+    <td><strong>DGX Spark</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td>128 ГБ</td>
+    <td class="price">~$3 000</td>
+    <td>Linux</td>
+    <td>Отличная (CUDA)</td>
+  </tr>
+  <tr>
+    <td><strong>Strix Halo (Framework)</strong></td>
+    <td><strong>256 ГБ/с</strong></td>
+    <td>128 ГБ</td>
+    <td class="price">$1 999</td>
+    <td>Win/Linux</td>
+    <td>Хорошая (Vulkan/ROCm улучшается)</td>
+  </tr>
+  <tr>
+    <td>Snapdragon X2 Extreme</td>
+    <td>228 ГБ/с</td>
+    <td>128 ГБ</td>
+    <td class="price">TBD</td>
+    <td>Windows</td>
+    <td>Слабая (ещё не выпущен)</td>
+  </tr>
+  <tr>
+    <td>Jetson AGX Orin 64GB</td>
+    <td>204.8 ГБ/с</td>
+    <td>64 ГБ</td>
+    <td class="price">$1 599</td>
+    <td>Linux</td>
+    <td>Хорошая (CUDA, edge)</td>
+  </tr>
+  <tr>
+    <td>Intel Lunar Lake</td>
+    <td>136.5 ГБ/с</td>
+    <td>32 ГБ</td>
+    <td class="price">$850+</td>
+    <td>Windows</td>
+    <td>Умеренная (OpenVINO)</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2>📊 LLM-инференс: Strix Halo сравнялся с M4 Pro токен-в-токен</h2>
+<div class="s">
+<p>На стандартном бенчмарке Llama-2 7B Q4_0 Strix Halo и M4 Pro фактически равны по генерации токенов: <strong>~51–53 tok/s</strong>. Strix Halo вдвое быстрее M4 Pro в обработке промпта (884 vs 440 tok/s) благодаря более высокой вычислительной мощности. Для 70B dense-моделей обе платформы выдают <strong>~4–5 tok/s</strong> — узкое место в bandwidth памяти, не в вычислениях.</p>
+
+<p>Где Strix Halo вырывается вперёд — это <strong>ёмкость</strong>. Со 128 ГБ единой памяти против потолка 64 ГБ у M4 Pro он может запускать модели, которые Mac просто не потянет:</p>
+
+<table>
+  <tr><th>Модель</th><th>tok/s на Strix Halo</th><th>Комментарий</th></tr>
+  <tr><td>Qwen3-30B-A3B (MoE, 3B активных)</td><td><strong>75 tok/s</strong></td><td>Отлично для интерактивного использования</td></tr>
+  <tr><td>Llama 4 Scout (109B, 17B активных)</td><td><strong>20 tok/s</strong></td><td>Невозможно на 64 ГБ Mac</td></tr>
+  <tr><td>GPT-OSS-120B</td><td><strong>34–38 tok/s</strong></td><td>Помещается целиком в память</td></tr>
+  <tr><td>Qwen3-235B</td><td>Работает!</td><td>Не влезает ни в одну consumer GPU или Mac</td></tr>
+</table>
+
+<div class="note">
+<strong>Софтверная история более нюансирована:</strong> <strong>Vulkan — лучший backend</strong> для коротких контекстов (почти 2.5× быстрее ROCm для обработки промптов), тогда как <strong>ROCm + WMMA + Flash Attention</strong> превосходит для длинного контекста. Linux настоятельно рекомендуется вместо Windows — версия ядра имеет значение, с <strong>15% разницей в производительности</strong> между ядром 6.14 и 6.15. Сообщество создало отличные инструменты (Docker-тулбоксы kyuz0, гайды Framework), но экосистема остаётся значительно менее отполированной, чем Metal у Apple или CUDA у NVIDIA.
+</div>
+
+<p><strong>DGX Spark</strong> заслуживает отдельного упоминания: несмотря на те же 273 ГБ/с bandwidth, что и M4 Pro, архитектура Blackwell выдаёт <strong>~38.5 tok/s на 120B MoE-модели</strong> — существенно быстрее ~34 tok/s у Strix Halo на той же нагрузке. Это доказывает, что bandwidth сам по себе не определяет производительность.</p>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2>🚧 Разрыв в интерконнектах: почему ПК-кластеры не могут догнать Apple</h2>
+<div class="s">
+<p>Вот где картина становится резкой. Тесты Jeff Geerling рассказывают всю историю:</p>
+
+<div class="good">
+<strong>4× Mac Studio (M3 Ultra, RDMA через TB5, EXO 1.0):</strong><br>
+DeepSeek V3.1 671B: 21.1 tok/s (1 узел) → <strong>32.5 tok/s (4 узла)</strong> — положительное масштабирование!
+</div>
+
+<div class="red">
+<strong>4× Framework Desktop (Strix Halo, Ethernet, llama.cpp RPC):</strong><br>
+Llama 3.1 405B Q4: <strong>~0.7 tok/s (4 узла)</strong> — по сути непригодно для использования<br>
+Llama 3.2 3B: 88.1 tok/s (1 узел) vs 154.6 tok/s у Mac Studio
+</div>
+
+<p>Фундаментальная проблема — <strong>латентность, а не bandwidth</strong>. RDMA Apple через Thunderbolt 5 даёт <strong>~3 мкс латентности</strong> между узлами, тогда как TCP через Ethernet — <strong>~300 мкс</strong> — разница в 100×. Тензорный параллелизм требует операций all-reduce на каждом слое трансформера (дважды на слой), создавая барьеры синхронизации, где даже микросекунды накапливаются на десятках слоёв. С TCP генерация каждого токена превращается в «эстафету», которая замедляется с каждым дополнительным узлом.</p>
+
+<h3>Доступные варианты интерконнектов для ПК мини-ПК</h3>
+<table>
+  <tr><th>Интерконнект</th><th>Bandwidth</th><th>Латентность</th><th>RDMA?</th><th>Статус</th></tr>
+  <tr>
+    <td><strong>TB5 / USB4v2 на ПК</strong></td>
+    <td>80 Гбит/с</td>
+    <td>—</td>
+    <td>❌ Нет драйвера RDMA на Linux/Windows</td>
+    <td>Железо есть (Framework, MS-S1 Max), софт — нет</td>
+  </tr>
+  <tr>
+    <td><strong>10/25 GbE с RoCE</strong></td>
+    <td>10–25 Гбит/с</td>
+    <td><strong>3–5 мкс</strong></td>
+    <td>✅ Да!</td>
+    <td>Самый жизнеспособный вариант RDMA для ПК. Mellanox ConnectX-3 б/у ~$20–50</td>
+  </tr>
+  <tr>
+    <td><strong>InfiniBand б/у</strong></td>
+    <td>40–100 Гбит/с</td>
+    <td><strong>1–2 мкс</strong></td>
+    <td>✅ Да!</td>
+    <td>Лучший вариант на бумаге, но нужны спец. свитчи + subnet manager + мини-ПК со слотом PCIe</td>
+  </tr>
+  <tr>
+    <td>OCuLink</td>
+    <td>64 Гбит/с</td>
+    <td>~5 мкс</td>
+    <td>❌</td>
+    <td>Только point-to-point для периферии, нет межузлового протокола</td>
+  </tr>
+  <tr>
+    <td>CXL</td>
+    <td>64–128 ГБ/с</td>
+    <td>200–500 нс</td>
+    <td>Когерентный</td>
+    <td>Только серверы. Ни один потребительский CPU не поддерживает. Нет дорожной карты для десктопов</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Ключевой момент:</strong> У ПК мини-ПК физически есть Thunderbolt 5 (Framework Desktop, MS-S1 Max имеют USB4/USB4v2 порты), но <strong>драйвера RDMA-over-Thunderbolt не существует на Linux или Windows</strong>. RDMA у Apple — это проприетарный драйвер ядра macOS. Никто публично не работает над Linux RDMA-over-Thunderbolt.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2>⚙️ Программные фреймворки: EXO лидирует, но только на macOS</h2>
+<div class="s">
+
+<table>
+  <tr><th>Фреймворк</th><th>Тип параллелизма</th><th>Протокол</th><th>Масштабирование</th><th>Платформа</th></tr>
+  <tr>
+    <td><strong>EXO 1.0</strong></td>
+    <td>Тензорный параллель</td>
+    <td>RDMA через TB5</td>
+    <td><strong>3.2× ускорение на 4 узлах</strong></td>
+    <td>macOS (RDMA). Linux = только CPU, без GPU</td>
+  </tr>
+  <tr>
+    <td>llama.cpp RPC</td>
+    <td>Pipeline параллель</td>
+    <td>TCP</td>
+    <td>❌ <strong>Замедляется</strong>: 20.4→15.2 tok/s на 4 узлах</td>
+    <td>Все платформы (CUDA, Vulkan, ROCm, Metal)</td>
+  </tr>
+  <tr>
+    <td>distributed-llama</td>
+    <td>Тензорный через Ethernet</td>
+    <td>TCP</td>
+    <td>Обещающе, но ограниченная поддержка моделей</td>
+    <td>Linux/Mac, проблемы с Vulkan</td>
+  </tr>
+  <tr>
+    <td>vLLM</td>
+    <td>Тензорный (NCCL)</td>
+    <td>NVLink/IB</td>
+    <td>Для датацентров, не для потребителей</td>
+    <td>Linux CUDA</td>
+  </tr>
+  <tr>
+    <td>Petals</td>
+    <td>Pipeline через интернет</td>
+    <td>TCP</td>
+    <td>~4–6 tok/s на 70B через добровольцев</td>
+    <td>Linux GPU</td>
+  </tr>
+</table>
+
+<h3>Практические варианты для ПК мини-ПК сегодня</h3>
+<div class="s">
+<p><strong>1. Один узел с максимумом RAM</strong> — масштабируйтесь вертикально. Система на 128 ГБ Strix Halo, запускающая Qwen3-235B локально на ~5–10 tok/s, бьёт любой многоузловой кластер через TCP.</p>
+<p><strong>2. Pipeline параллель через 10 GbE</strong> — используйте llama.cpp RPC или GPUStack для пропускной способности по нескольким запросам (не скорости одного запроса). Пропускная способность масштабируется с параллельными запросами даже при росте латентности на запрос.</p>
+<p><strong>3. RoCE-based тензорный параллель</strong> — теоретически возможен с ConnectX NIC и DCB-совместимым свитчем в мини-ПК со слотами PCIe, но никто не опубликовал результатов для LLM-инференса этим способом.</p>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2>🔮 Будущее: нет явного пути к паритету</h2>
+<div class="s">
+<p>Ни один анонсированный стандарт или продукт не закрывает разрыв между Apple TB5 RDMA и тем, что доступно на ПК:</p>
+
+<table>
+  <tr><th>Технология</th><th>Статус</th><th>Поможет с кластерами?</th></tr>
+  <tr>
+    <td><strong>USB4v2</strong></td>
+    <td>Спецификация финализирована (сентябрь 2025). Контроллеры ASMedia/Via Labs ожидаются конец 2026 — начало 2027</td>
+    <td>❌ <strong>Спецификация не включает RDMA.</strong> Туннелирует PCIe, USB и DisplayPort — не операции с памятью</td>
+  </tr>
+  <tr>
+    <td><strong>CXL 3.0/4.0</strong></td>
+    <td>Спецификации готовы. Серверное железо 2025–2027</td>
+    <td>❌ Нет ни одного потребительского CPU с CXL. Нет дорожной карты для десктопов</td>
+  </tr>
+  <tr>
+    <td><strong>UALink</strong></td>
+    <td>Спецификация 200G ратифицирована (апрель 2025). AMD, Intel, Apple и др.</td>
+    <td>❌ Нацелен на датацентры, не на потребителей</td>
+  </tr>
+  <tr>
+    <td><strong>Linux RDMA-over-TB</strong></td>
+    <td>Физический слой TB5 уже есть на ПК. Linux имеет подсистему RDMA в ядре</td>
+    <td>⚠️ Возможно, но никто публично не работает над соединением этих стеков</td>
+  </tr>
+  <tr>
+    <td><strong>25/100G RoCE</strong></td>
+    <td>Б/у ConnectX-3/4 дешевеют ($20–50). Нужен мини-ПК со слотом PCIe</td>
+    <td>✅ <strong>Самый реальный путь.</strong> 25 Гбит/с RDMA при ~3 мкс латентности</td>
+  </tr>
+  <tr>
+    <td><strong>DGX Spark кластеризация</strong></td>
+    <td>Встроенный ConnectX-7 NIC. NVIDIA не анонсировала этот use-case</td>
+    <td>⚠️ Потенциально — нативный RDMA кластеринг, но нет объявления</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2>📋 Итоговое заключение</h2>
+<div class="s">
+
+<div class="good">
+<strong>Разрыв в bandwidth памяти между ПК мини-ПК и Apple Silicon фактически закрыт:</strong> 256 ГБ/с Strix Halo находится в пределах 7% от 273 ГБ/с M4 Pro, а его ёмкость 128 ГБ — вдвое больше максимума Apple. Для инференса на одном узле Framework Desktop за $1 999 соответствует или превосходит Mac Mini M4 Pro за $1 999 на большинстве нагрузок, и может запускать модели вдвое больше. DGX Spark точно совпадает с bandwidth Apple при зрелой экосистеме CUDA, но за $3 000.
+</div>
+
+<div class="red">
+<strong>Непреодолимый разрыв — в кластеризации.</strong> Проприетарный RDMA-over-Thunderbolt-5 Apple, доступный только на macOS 26.2+, позволяет распределённый инференс с тензорным параллелизмом, который масштабируется положительно — 4 Mac Studio достигают <strong>32.5 tok/s на 671B модели</strong>. Идентичный тест на 4 Framework Desktop через Ethernet даёт <strong>~0.7 tok/s на 405B модели</strong>. Этот <strong>разрыв в 46×</strong> по производительности проистекает целиком из <strong>разницы латентности в 100×</strong> между RDMA (3 мкс) и TCP (300 мкс), а не из недостатков bandwidth или вычислений.
+</div>
+
+<h3>Практические рекомендации</h3>
+<table>
+  <tr><th>Задача</th><th>Рекомендация</th></tr>
+  <tr>
+    <td>Максимальный размер модели на одном узле</td>
+    <td><strong>Strix Halo 128 ГБ</strong> (Framework Desktop $1 999 или MS-S1 Max $2 299). Побеждает Mac Mini по ёмкости вдвое</td>
+  </tr>
+  <tr>
+    <td>Быстрый инференс одной модели ≤64 ГБ</td>
+    <td><strong>Mac Mini M4 Pro 64 ГБ</strong> ($2 199) или <strong>DGX Spark</strong> ($3 000). Лучший bandwidth + софт</td>
+  </tr>
+  <tr>
+    <td>Кластер для 405B–671B моделей</td>
+    <td><strong>Только Mac'и с EXO + RDMA.</strong> ПК кластеры через Ethernet не конкурентоспособны</td>
+  </tr>
+  <tr>
+    <td>Бюджетный «попробовать кластер»</td>
+    <td>Один 128 ГБ Strix Halo лучше, чем 4× дешёвых мини-ПК в кластере</td>
+  </tr>
+  <tr>
+    <td>Ожидание паритета ПК с Apple</td>
+    <td>Минимум 12–18 месяцев. Самый реальный путь — б/у RoCE 25G + мини-ПК со слотом PCIe</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Прагматичная стратегия для пользователей ПК:</strong> масштабируйтесь вертикально — купите одну 128 ГБ систему Strix Halo вместо кластеризации четырёх — и ждите, пока созреет либо Linux RDMA-over-Thunderbolt, либо доступный RoCE-нетворкинг для форм-фактора мини-ПК.
+</div>
+</div>
+
+<div class="footer">
+  Данные актуальны на февраль 2026.<br>
+  Источники: Jeff Geerling, LLM Tracker, AMD Developer, Framework, ServeTheHome, LMSYS, Hardware Corner, Chips and Cheese.<br>
+  <a href="clustering.html">← Часть 1</a> · <a href="clustering-part2.html">← Часть 2</a> · <a href="clustering-part3.html">← Часть 3</a>
+</div>
+
+</body>
+</html>

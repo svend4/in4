@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кластеризация для AI — Часть 3: Практическое руководство</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.65; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #58a6ff; margin-bottom: 4px; }
+  h2 { font-size: 1.25em; color: #79c0ff; margin: 28px 0 14px 0; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+  h3 { font-size: 1.05em; color: #d2a8ff; margin: 20px 0 10px 0; }
+  h4 { font-size: 0.95em; color: #ffa657; margin: 14px 0 8px 0; }
+  .sub { color: #8b949e; font-size: 0.92em; margin-bottom: 20px; }
+  .s { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.86em; }
+  th { background: #1c2333; color: #79c0ff; text-align: left; padding: 8px 10px; border: 1px solid #30363d; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #30363d; vertical-align: top; }
+  tr:nth-child(even) td { background: #161b22; }
+  tr:nth-child(odd) td { background: #0d1117; }
+  .note { background: #1a2a3a; border-left: 3px solid #58a6ff; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .warn { background: #2d1a0e; border-left: 3px solid #d29922; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .good { background: #0d2818; border-left: 3px solid #238636; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .red { background: #2d0e0e; border-left: 3px solid #da3633; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .price { color: #e3b341; font-weight: 600; }
+  .sp { color: #8b949e; font-size: 0.85em; }
+  .code { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 14px; margin: 10px 0; font-family: 'Courier New', monospace; font-size: 0.84em; line-height: 1.55; color: #e6edf3; white-space: pre; overflow-x: auto; }
+  .cmd { color: #7ee787; }
+  .cmt { color: #8b949e; }
+  .out { color: #d2a8ff; }
+  .diagram { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin: 12px 0; font-family: 'Courier New', monospace; font-size: 0.82em; line-height: 1.5; color: #7ee787; white-space: pre; overflow-x: auto; }
+  .fl { display: flex; gap: 14px; margin: 10px 0; flex-wrap: wrap; }
+  .fl > div { flex: 1; min-width: 280px; padding: 14px; border-radius: 8px; }
+  .fl-a { background: #0d2818; border: 1px solid #238636; }
+  .fl-b { background: #2d1a0e; border: 1px solid #9e6a03; }
+  .fl-c { background: #1a1a3a; border: 1px solid #6e40c9; }
+  .footer { margin-top: 28px; color: #484f58; font-size: 0.8em; text-align: center; }
+  a { color: #58a6ff; text-decoration: none; }
+  .step { background: #1a2a1a; border: 1px solid #238636; border-radius: 8px; padding: 14px; margin: 12px 0; }
+  .step-num { display: inline-block; background: #238636; color: #fff; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: 700; font-size: 0.9em; margin-right: 8px; }
+  .step-title { font-weight: 600; color: #7ee787; font-size: 1em; }
+  .tco-row { display: flex; gap: 10px; margin: 8px 0; flex-wrap: wrap; }
+  .tco-item { flex: 1; min-width: 180px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 10px; text-align: center; }
+  .tco-val { font-size: 1.4em; font-weight: 700; }
+  .tco-lab { font-size: 0.8em; color: #8b949e; }
+</style>
+</head>
+<body>
+
+<h1>🔗 Кластеризация для AI — Часть 3</h1>
+<p class="sub">Пошаговые инструкции, расчёт стоимости владения (TCO), troubleshooting. Февраль 2026.</p>
+
+<!-- ==================== РАЗДЕЛ 1: ПОШАГОВАЯ НАСТРОЙКА APPLE ==================== -->
+<h2>🍎 Пошаговое руководство: Mac Mini кластер с EXO</h2>
+<div class="s">
+
+<h3>Что покупаем</h3>
+<table>
+  <tr>
+    <th>Компонент</th>
+    <th>Количество</th>
+    <th>Цена за шт.</th>
+    <th>Итого</th>
+  </tr>
+  <tr>
+    <td>Mac Mini M4 Pro, 24 ГБ, 512 ГБ SSD</td>
+    <td>2 шт. (стартовый кластер)</td>
+    <td class="price">$1 399</td>
+    <td class="price">$2 798</td>
+  </tr>
+  <tr>
+    <td>Thunderbolt 5 кабель (0.8–1м, активный)</td>
+    <td>1 шт.</td>
+    <td class="price">$40–70</td>
+    <td class="price">$55</td>
+  </tr>
+  <tr>
+    <td><span class="sp">Опционально:</span> Ethernet 10G свитч</td>
+    <td>1 шт.</td>
+    <td class="price">$100–200</td>
+    <td class="price">—</td>
+  </tr>
+  <tr>
+    <td><span class="sp">Опционально:</span> Стойка / полка</td>
+    <td>1 шт.</td>
+    <td class="price">$30–80</td>
+    <td class="price">—</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="text-align:right;font-weight:700;">ИТОГО (2 узла):</td>
+    <td class="price" style="font-size:1.1em;">~$2 853</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Почему 2 узла для старта?</strong> 2× Mac Mini M4 Pro 24 ГБ = 48 ГБ общей памяти. Этого хватит для Llama 30B (Q4), Qwen 32B (Q4), и многих других моделей, которые не помещаются в один Mac. При расширении добавляете 3-й и 4-й Mac Mini — кабели TB5 и EXO автоматически подхватит.
+</div>
+
+<h3>Пошаговая настройка</h3>
+
+<div class="step">
+<span class="step-num">1</span> <span class="step-title">Обновите macOS до Tahoe 26.2+</span>
+<p class="sp">System Settings → General → Software Update. RDMA доступен только с 26.2.</p>
+</div>
+
+<div class="step">
+<span class="step-num">2</span> <span class="step-title">Включите RDMA (на КАЖДОМ Mac'е)</span>
+<div class="code"><span class="cmt"># Выключите Mac</span>
+<span class="cmt"># Зажмите кнопку питания на 10 секунд → появится меню загрузки</span>
+<span class="cmt"># Выберите "Options" → Recovery Mode</span>
+<span class="cmt"># В Recovery: Utilities → Terminal</span>
+
+<span class="cmd">rdma_ctl enable</span>
+
+<span class="cmt"># Перезагрузите Mac</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">3</span> <span class="step-title">Соедините Mac'и кабелем Thunderbolt 5</span>
+<div class="diagram">
+Mac Mini A ──── TB5 кабель ──── Mac Mini B
+
+⚠️ На Mac Studio: НЕ используйте TB5 порт рядом с Ethernet!
+    Используйте любой из остальных 4 портов.
+
+Для 4 узлов — полная mesh-сеть (каждый к каждому):
+Mac A ─── Mac B
+  │  \  / │
+  │   \/  │
+  │   /\  │
+  │  /  \ │
+Mac C ─── Mac D
+(6 кабелей для full-mesh, или daisy-chain с меньшим числом)
+</div>
+</div>
+
+<div class="step">
+<span class="step-num">4</span> <span class="step-title">Установите EXO (на КАЖДОМ Mac'е)</span>
+<div class="code"><span class="cmt"># Установите Homebrew (если нет)</span>
+<span class="cmd">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</span>
+
+<span class="cmt"># Установите зависимости</span>
+<span class="cmd">brew install python@3.12 node git</span>
+
+<span class="cmt"># Установите uv (менеджер пакетов Python)</span>
+<span class="cmd">curl -LsSf https://astral.sh/uv/install.sh | sh</span>
+
+<span class="cmt"># Клонируйте EXO</span>
+<span class="cmd">git clone https://github.com/exo-explore/exo.git</span>
+<span class="cmd">cd exo</span>
+
+<span class="cmt"># Соберите dashboard</span>
+<span class="cmd">cd dashboard && npm install && npm run build && cd ..</span>
+
+<span class="cmt"># Настройте RDMA сеть (отключает TB Bridge, включает DHCP на RDMA портах)</span>
+<span class="cmd">bash tmp/set_rdma_network_config.sh</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">5</span> <span class="step-title">Запустите EXO (на КАЖДОМ Mac'е)</span>
+<div class="code"><span class="cmd">uv run exo</span>
+
+<span class="cmt"># EXO автоматически обнаружит другие устройства!</span>
+<span class="cmt"># Dashboard доступен по адресу: http://localhost:52415</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">6</span> <span class="step-title">Запустите модель через API</span>
+<div class="code"><span class="cmt"># Посмотрите, какие модели можно запустить на вашем кластере:</span>
+<span class="cmd">curl "http://localhost:52415/instance/previews?model_id=llama-3.2-1b"</span>
+
+<span class="cmt"># Создайте инстанс модели (EXO сам распределит по узлам):</span>
+<span class="cmd">curl -X POST http://localhost:52415/instance \</span>
+<span class="cmd">  -H 'Content-Type: application/json' \</span>
+<span class="cmd">  -d '{"model_id": "mlx-community/Llama-3.2-1B-Instruct-4bit"}'</span>
+
+<span class="cmt"># Отправьте запрос:</span>
+<span class="cmd">curl -N -X POST http://localhost:52415/v1/chat/completions \</span>
+<span class="cmd">  -H 'Content-Type: application/json' \</span>
+<span class="cmd">  -d '{</span>
+<span class="cmd">    "model": "mlx-community/Llama-3.2-1B-Instruct-4bit",</span>
+<span class="cmd">    "messages": [{"role": "user", "content": "Привет!"}]</span>
+<span class="cmd">  }'</span></div>
+</div>
+
+<div class="good">
+<strong>Готово!</strong> EXO предоставляет OpenAI-совместимый API. Вы можете подключить к нему любой клиент: Open WebUI, Continue (VS Code), SillyTavern, или свой Moltbot-агент.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2: НАСТРОЙКА PC КЛАСТЕРА ==================== -->
+<h2>🔧 Пошаговое руководство: PC / мини-ПК кластер с llama.cpp RPC</h2>
+<div class="s">
+
+<h3>Что покупаем (бюджетный вариант)</h3>
+<table>
+  <tr>
+    <th>Компонент</th>
+    <th>Количество</th>
+    <th>Цена за шт.</th>
+    <th>Итого</th>
+  </tr>
+  <tr>
+    <td>Beelink EQR6 (Ryzen 7 5825U, 32 ГБ DDR4)</td>
+    <td>3 шт.</td>
+    <td class="price">$389</td>
+    <td class="price">$1 167</td>
+  </tr>
+  <tr>
+    <td>Ethernet свитч 2.5G (5-port)</td>
+    <td>1 шт.</td>
+    <td class="price">$40</td>
+    <td class="price">$40</td>
+  </tr>
+  <tr>
+    <td>Ethernet кабели Cat6 (1м)</td>
+    <td>3 шт.</td>
+    <td class="price">$5</td>
+    <td class="price">$15</td>
+  </tr>
+  <tr>
+    <td colspan="3" style="text-align:right;font-weight:700;">ИТОГО:</td>
+    <td class="price" style="font-size:1.1em;">~$1 222</td>
+  </tr>
+</table>
+
+<h3>Пошаговая настройка</h3>
+
+<div class="step">
+<span class="step-num">1</span> <span class="step-title">Установите Linux на все узлы</span>
+<div class="code"><span class="cmt"># Ubuntu 24.04 Server рекомендуется</span>
+<span class="cmt"># Установите SSH для удалённого управления</span>
+<span class="cmd">sudo apt update && sudo apt install -y openssh-server</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">2</span> <span class="step-title">Установите llama.cpp на ВСЕХ узлах</span>
+<div class="code"><span class="cmd">sudo apt install -y build-essential cmake git</span>
+<span class="cmd">git clone https://github.com/ggml-org/llama.cpp.git</span>
+<span class="cmd">cd llama.cpp</span>
+<span class="cmd">cmake -B build</span>
+<span class="cmd">cmake --build build --config Release -j$(nproc)</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">3</span> <span class="step-title">Запустите RPC-серверы на воркерах (узлы B, C)</span>
+<div class="code"><span class="cmt"># На узле B (IP: 192.168.1.102):</span>
+<span class="cmd">./build/bin/llama-rpc-server --host 0.0.0.0 --port 50052 --mem 28000</span>
+
+<span class="cmt"># На узле C (IP: 192.168.1.103):</span>
+<span class="cmd">./build/bin/llama-rpc-server --host 0.0.0.0 --port 50052 --mem 28000</span>
+
+<span class="cmt"># --mem указывает сколько МБ RAM отдать под модель</span></div>
+</div>
+
+<div class="step">
+<span class="step-num">4</span> <span class="step-title">Запустите мастер-узел (узел A) с подключением к воркерам</span>
+<div class="code"><span class="cmt"># Скачайте модель (только на мастере — он раздаст слои воркерам):</span>
+<span class="cmd">wget https://huggingface.co/bartowski/Llama-3.1-70B-Instruct-GGUF/resolve/main/Llama-3.1-70B-Instruct-Q4_K_M.gguf</span>
+
+<span class="cmt"># Запустите с RPC-воркерами:</span>
+<span class="cmd">./build/bin/llama-server \</span>
+<span class="cmd">  -m Llama-3.1-70B-Instruct-Q4_K_M.gguf \</span>
+<span class="cmd">  --rpc 192.168.1.102:50052,192.168.1.103:50052 \</span>
+<span class="cmd">  --host 0.0.0.0 --port 8080 \</span>
+<span class="cmd">  -c 4096 -ngl 0</span>
+
+<span class="cmt"># llama.cpp автоматически распределит слои по узлам</span>
+<span class="cmt"># API доступен на http://192.168.1.101:8080</span></div>
+</div>
+
+<div class="warn">
+<strong>Ожидайте:</strong> На 3× Beelink с Ethernet 2.5G, Llama 70B Q4 будет выдавать ~1–2 tok/s. Это работает, но мучительно медленно. Для комфортной работы (10+ tok/s на 70B) нужен Mac-кластер с RDMA или один Mac Studio Ultra.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3: ТОЧНЫЕ БЕНЧМАРКИ ==================== -->
+<h2>📊 Детальные бенчмарки Jeff Geerling (декабрь 2025)</h2>
+<div class="s">
+<p>Тесты на 4× Mac Studio M3 Ultra (2× 512 ГБ + 2× 256 ГБ = 1.5 ТБ), TB5 RDMA.</p>
+
+<h3>Qwen3 235B (MoE, 8-bit)</h3>
+<table>
+  <tr>
+    <th>Узлов</th>
+    <th>llama.cpp RPC (tok/s)</th>
+    <th>EXO + RDMA (tok/s)</th>
+    <th>Разница</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>20.4</td>
+    <td>19.5</td>
+    <td>llama.cpp чуть быстрее на 1 узле</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>17.2 ↓</td>
+    <td><strong>26.2 ↑</strong></td>
+    <td>EXO на 52% быстрее</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>15.2 ↓↓</td>
+    <td><strong>31.9 ↑↑</strong></td>
+    <td>EXO в 2.1× быстрее!</td>
+  </tr>
+</table>
+
+<h3>DeepSeek V3.1 671B (MoE, 8-bit)</h3>
+<table>
+  <tr>
+    <th>Узлов</th>
+    <th>llama.cpp RPC (tok/s)</th>
+    <th>EXO + RDMA (tok/s)</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td colspan="2" style="text-align:center;color:#8b949e;">Не помещается в 512 ГБ</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>18.5</td>
+    <td><strong>21.6</strong></td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>—</td>
+    <td><strong>32.5</strong></td>
+  </tr>
+</table>
+
+<h3>Kimi K2 Thinking ~1T (MoE)</h3>
+<table>
+  <tr>
+    <th>Узлов</th>
+    <th>EXO + RDMA (tok/s)</th>
+    <th>Комментарий</th>
+  </tr>
+  <tr>
+    <td>4 (1.5 ТБ)</td>
+    <td><strong>~28</strong></td>
+    <td>1 триллион параметров на столе за $40K.<br>Сопоставимое NVIDIA решение: $270K+</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Главный вывод:</strong>
+<br>• llama.cpp RPC: каждый добавленный узел = МЕДЛЕННЕЕ (20.4 → 17.2 → 15.2 tok/s)
+<br>• EXO с RDMA: каждый добавленный узел = БЫСТРЕЕ (19.5 → 26.2 → 31.9 tok/s)
+<br>• Разница при 4 узлах: 2.1× в пользу EXO RDMA. Это tensor parallel vs pipeline parallel.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4: TCO ==================== -->
+<h2>💰 Расчёт стоимости владения (TCO) за 2 года</h2>
+<div class="s">
+<p>Не только цена покупки, но и электричество, и «стоимость токена».</p>
+
+<h3>Конфигурация A: 4× Mac Mini M4 Pro 64 ГБ ($8 800)</h3>
+<div class="tco-row">
+  <div class="tco-item"><div class="tco-val price">$8 800</div><div class="tco-lab">Покупка</div></div>
+  <div class="tco-item"><div class="tco-val">100 Вт</div><div class="tco-lab">Мощность под нагрузкой</div></div>
+  <div class="tco-item"><div class="tco-val">$175/год</div><div class="tco-lab">Электричество 24/7<br>($0.12/кВт·ч × 0.1 кВт × 8760ч)</div></div>
+  <div class="tco-item"><div class="tco-val price">$9 150</div><div class="tco-lab">TCO за 2 года</div></div>
+</div>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>tok/s</th>
+    <th>Токенов в день (24/7)</th>
+    <th>Стоимость 1M токенов</th>
+  </tr>
+  <tr>
+    <td>Llama 70B Q4</td>
+    <td>~10–15</td>
+    <td>~1 080 000</td>
+    <td class="price">~$0.012</td>
+  </tr>
+  <tr>
+    <td>DeepSeek V3 671B Q4</td>
+    <td>~5–8</td>
+    <td>~518 000</td>
+    <td class="price">~$0.024</td>
+  </tr>
+</table>
+
+<h3>Конфигурация B: 2× DGX Spark ($8 000)</h3>
+<div class="tco-row">
+  <div class="tco-item"><div class="tco-val price">$8 000</div><div class="tco-lab">Покупка</div></div>
+  <div class="tco-item"><div class="tco-val">480 Вт</div><div class="tco-lab">Мощность под нагрузкой</div></div>
+  <div class="tco-item"><div class="tco-val">$505/год</div><div class="tco-lab">Электричество 24/7</div></div>
+  <div class="tco-item"><div class="tco-val price">$9 010</div><div class="tco-lab">TCO за 2 года</div></div>
+</div>
+
+<h3>Конфигурация C: 4× мини-ПК 64 ГБ ($3 600)</h3>
+<div class="tco-row">
+  <div class="tco-item"><div class="tco-val price">$3 600</div><div class="tco-lab">Покупка</div></div>
+  <div class="tco-item"><div class="tco-val">200 Вт</div><div class="tco-lab">Мощность</div></div>
+  <div class="tco-item"><div class="tco-val">$210/год</div><div class="tco-lab">Электричество 24/7</div></div>
+  <div class="tco-item"><div class="tco-val price">$4 020</div><div class="tco-lab">TCO за 2 года</div></div>
+</div>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>tok/s</th>
+    <th>Токенов в день (24/7)</th>
+    <th>Стоимость 1M токенов</th>
+  </tr>
+  <tr>
+    <td>Llama 70B Q4</td>
+    <td>~1–2</td>
+    <td>~130 000</td>
+    <td class="price">~$0.042</td>
+  </tr>
+</table>
+
+<h3>Конфигурация D: Cloud API (для сравнения)</h3>
+<div class="tco-row">
+  <div class="tco-item"><div class="tco-val price">$0</div><div class="tco-lab">Покупка</div></div>
+  <div class="tco-item"><div class="tco-val">0 Вт</div><div class="tco-lab">Мощность</div></div>
+  <div class="tco-item"><div class="tco-val">по расходу</div><div class="tco-lab">Электричество</div></div>
+  <div class="tco-item"><div class="tco-val price">$600–6 000+</div><div class="tco-lab">TCO за 2 года<br>(зависит от объёма)</div></div>
+</div>
+<table>
+  <tr>
+    <th>API</th>
+    <th>Модель</th>
+    <th>Цена за 1M токенов (output)</th>
+    <th>Breakeven vs Mac кластер</th>
+  </tr>
+  <tr>
+    <td>Claude API</td>
+    <td>Sonnet 4.5</td>
+    <td class="price">$15</td>
+    <td>~610 M токенов (~7 мес при 3M/день)</td>
+  </tr>
+  <tr>
+    <td>OpenAI</td>
+    <td>GPT-4o</td>
+    <td class="price">$10</td>
+    <td>~915 M токенов (~10 мес)</td>
+  </tr>
+  <tr>
+    <td>DeepSeek</td>
+    <td>R1</td>
+    <td class="price">$2.19</td>
+    <td>~4.2B токенов (~3.8 лет)</td>
+  </tr>
+  <tr>
+    <td>Together.ai</td>
+    <td>Llama 70B</td>
+    <td class="price">$0.88</td>
+    <td>~10B токенов (~9 лет)</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>Когда локальный кластер выгоднее облака?</strong>
+<br>• При использовании дорогих API (Claude, GPT-4o) → окупается за 7–10 месяцев
+<br>• При большом объёме (>3M токенов/день) → однозначно выгоднее
+<br>• При требованиях к приватности → бесценно
+<br>• При использовании дешёвых API (DeepSeek, Together.ai) → облако выгоднее 3–9 лет
+<br>• <strong>Вывод:</strong> Для Moltbot-агента с облачным API — Mac Mini за $599 как сервер + облачный API = оптимально. Кластер для LLM — если хотите полный оффлайн и большие модели.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5: TROUBLESHOOTING ==================== -->
+<h2>🔧 Частые проблемы и решения</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Проблема</th>
+    <th>Причина</th>
+    <th>Решение</th>
+  </tr>
+  <tr>
+    <td><strong>EXO не видит другие Mac'и</strong></td>
+    <td>Thunderbolt Bridge включён</td>
+    <td>Запустите <code>bash tmp/set_rdma_network_config.sh</code> — он отключит TB Bridge и настроит DHCP</td>
+  </tr>
+  <tr>
+    <td><strong>RDMA не работает</strong></td>
+    <td>Не включён в Recovery</td>
+    <td>Перезагрузите в Recovery и выполните <code>rdma_ctl enable</code>. Проверьте macOS ≥ 26.2</td>
+  </tr>
+  <tr>
+    <td><strong>TB5 порт не определяется как RDMA</strong></td>
+    <td>На Mac Studio: порт рядом с Ethernet не работает для RDMA</td>
+    <td>Используйте любой другой TB5 порт</td>
+  </tr>
+  <tr>
+    <td><strong>Кабель TB5 не работает</strong></td>
+    <td>Пассивный кабель или USB-C вместо TB5</td>
+    <td>Используйте сертифицированный активный Thunderbolt 5 кабель</td>
+  </tr>
+  <tr>
+    <td><strong>Модель не загружается (OOM)</strong></td>
+    <td>Недостаточно памяти в кластере</td>
+    <td>Используйте более агрессивную квантизацию (Q4 → Q2_K) или добавьте узлы</td>
+  </tr>
+  <tr>
+    <td><strong>llama.cpp RPC — медленно на 4 узлах</strong></td>
+    <td>Pipeline parallel: больше узлов = больше простоев</td>
+    <td>Нормальное поведение. Переходите на EXO + RDMA или используйте только 2 узла</td>
+  </tr>
+  <tr>
+    <td><strong>PC кластер: ROCm ошибки</strong></td>
+    <td>AMD драйвера нестабильны для AI</td>
+    <td>Используйте Vulkan backend или CPU. ROCm для consumer GPU = лотерея</td>
+  </tr>
+  <tr>
+    <td><strong>EXO на Linux — нет GPU</strong></td>
+    <td>Linux поддержка = CPU-only (пока)</td>
+    <td>Используйте llama.cpp RPC для Linux. EXO GPU — только на Mac (MLX)</td>
+  </tr>
+  <tr>
+    <td><strong>Высокая латентность между узлами</strong></td>
+    <td>Ethernet 1G / Wi-Fi</td>
+    <td>Минимум Ethernet 2.5G. Для серьёзных задач — 10G или Thunderbolt</td>
+  </tr>
+  <tr>
+    <td><strong>Модель генерирует мусор</strong></td>
+    <td>Баг в distributed-llama / Vulkan</td>
+    <td>Попробуйте другой backend (CPU вместо Vulkan) или другую версию софта</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6: NETWORKING ОПТИМИЗАЦИЯ ==================== -->
+<h2>🌐 Оптимизация сети для AI кластеров</h2>
+<div class="s">
+
+<h3>Иерархия скорости соединений</h3>
+<div class="diagram">
+🏆 TB5 RDMA (10 ГБ/с, 3 мкс)
+   │
+   ├── Для Apple кластеров: ЕДИНСТВЕННЫЙ выбор для tensor parallel
+   │   Настройка: rdma_ctl enable + TB5 кабель
+   │
+🥈 Ethernet 10G (1.25 ГБ/с, ~100 мкс)
+   │
+   ├── Для PC кластеров: хороший вариант
+   │   Свитч ~$150, SFP+ карты ~$30/шт
+   │   С jumbo frames (MTU 9000) → до 15% ускорение
+   │
+🥉 Ethernet 5G (625 МБ/с, ~150 мкс)
+   │
+   ├── Framework Desktop имеет 5G встроенный
+   │   Свитч NICGIGA 5G ~$80
+   │
+😐 Ethernet 2.5G (312 МБ/с, ~200 мкс)
+   │
+   ├── Большинство мини-ПК. Минимум для кластера.
+   │   Свитч ~$40
+   │
+😞 Ethernet 1G (125 МБ/с, ~500 мкс)
+   │
+   └── Слишком медленно для AI. Не используйте.
+</div>
+
+<h3>Советы по оптимизации сети</h3>
+<table>
+  <tr>
+    <th>Оптимизация</th>
+    <th>Эффект</th>
+    <th>Как</th>
+  </tr>
+  <tr>
+    <td><strong>Jumbo Frames (MTU 9000)</strong></td>
+    <td>+10–15% throughput</td>
+    <td><code>sudo ip link set eth0 mtu 9000</code><br>Свитч тоже должен поддерживать!</td>
+  </tr>
+  <tr>
+    <td><strong>Отдельная сеть для кластера</strong></td>
+    <td>Убирает конкуренцию за bandwidth</td>
+    <td>Подсеть 10.0.0.0/24 только для AI узлов</td>
+  </tr>
+  <tr>
+    <td><strong>Direct connect (без свитча)</strong></td>
+    <td>-30% латентности</td>
+    <td>Прямой кабель между 2 ПК (crossover не нужен для GbE+)</td>
+  </tr>
+  <tr>
+    <td><strong>CPU affinity для RPC-сервера</strong></td>
+    <td>+5–10% стабильности</td>
+    <td><code>taskset -c 0-3 ./llama-rpc-server ...</code></td>
+  </tr>
+  <tr>
+    <td><strong>Отключить firewalled / power saving</strong></td>
+    <td>Убирает случайные задержки</td>
+    <td><code>sudo ufw disable</code>, отключить sleep/hibernate</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7: ШПАРГАЛКА ==================== -->
+<h2>📋 Финальная шпаргалка</h2>
+<div class="s">
+
+<h3>Таблица решений</h3>
+<table>
+  <tr>
+    <th>Вопрос</th>
+    <th>→ Ответ</th>
+  </tr>
+  <tr>
+    <td>У меня $700, хочу начать с AI</td>
+    <td>→ <strong>1× Mac Mini M4 24 ГБ</strong> ($699). Не кластер — один сервер. 7–13B моделей хватит.</td>
+  </tr>
+  <tr>
+    <td>У меня $3 000, хочу 70B модель</td>
+    <td>→ <strong>2× Mac Mini M4 Pro 24 ГБ</strong> ($2 800) + TB5 RDMA + EXO. 48 ГБ = Llama 70B Q2_K.</td>
+  </tr>
+  <tr>
+    <td>У меня $6 000, хочу 70B модель комфортно</td>
+    <td>→ <strong>2× Mac Mini M4 Pro 48 ГБ</strong> ($3 600) или <strong>1× Mac Mini M4 Pro 64 ГБ</strong> + <strong>1× Mac Mini M4 Pro 48 ГБ</strong>. 96–112 ГБ = Llama 70B Q6 с запасом.</td>
+  </tr>
+  <tr>
+    <td>У меня $9 000, хочу DeepSeek 671B</td>
+    <td>→ <strong>4× Mac Mini M4 Pro 64 ГБ</strong> ($8 800). 256 ГБ = DeepSeek V3 Q4.</td>
+  </tr>
+  <tr>
+    <td>Мне нужна CUDA совместимость</td>
+    <td>→ <strong>DGX Spark</strong> ($4 000). Или <strong>PC с RTX 4090</strong> ($2 500) для 7–32B моделей.</td>
+  </tr>
+  <tr>
+    <td>У меня есть мини-ПК, хочу кластер</td>
+    <td>→ <strong>llama.cpp RPC</strong> через Ethernet. Работает, но медленно. Для экспериментов ОК.</td>
+  </tr>
+  <tr>
+    <td>Можно ли смешивать Mac и PC?</td>
+    <td>→ Да! <strong>EXO</strong> поддерживает гетерогенные кластеры (Mac MLX + Linux tinygrad). Но RDMA только между Mac'ами.</td>
+  </tr>
+  <tr>
+    <td>Стоит ли ждать CXL для PC?</td>
+    <td>→ <strong>Нет.</strong> В десктопных CPU не раньше 2027–28. Покупайте то, что работает сейчас.</td>
+  </tr>
+  <tr>
+    <td>Мне нужен AI-агент (Moltbot), не LLM</td>
+    <td>→ <strong>1× Mac Mini M4 16 ГБ</strong> ($599) + облачный API. Кластер не нужен.</td>
+  </tr>
+  <tr>
+    <td>Что лучше: кластер дешёвых Mac Mini или один Mac Studio Ultra?</td>
+    <td>→ Кластер: больше памяти, дешевле. Studio: быстрее (819 ГБ/с bandwidth), проще. Для 70B → Studio. Для 671B → кластер.</td>
+  </tr>
+</table>
+
+<h3>Ссылки на софт</h3>
+<table>
+  <tr>
+    <th>Инструмент</th>
+    <th>GitHub / Сайт</th>
+    <th>Для чего</th>
+  </tr>
+  <tr>
+    <td>EXO 1.0</td>
+    <td>github.com/exo-explore/exo</td>
+    <td>Mac-кластеры, TB5 RDMA, tensor parallel</td>
+  </tr>
+  <tr>
+    <td>llama.cpp</td>
+    <td>github.com/ggml-org/llama.cpp</td>
+    <td>Универсальный inference, RPC для кластеров</td>
+  </tr>
+  <tr>
+    <td>distributed-llama</td>
+    <td>github.com/b4rtaz/distributed-llama</td>
+    <td>Простой кластер, даже Raspberry Pi</td>
+  </tr>
+  <tr>
+    <td>Petals</td>
+    <td>github.com/bigscience-workshop/petals</td>
+    <td>P2P через интернет, бесплатно</td>
+  </tr>
+  <tr>
+    <td>LocalAI</td>
+    <td>localai.io</td>
+    <td>OpenAI-совместимый сервер + P2P</td>
+  </tr>
+  <tr>
+    <td>Ollama</td>
+    <td>ollama.com</td>
+    <td>Простейший способ запустить LLM (1 машина)</td>
+  </tr>
+  <tr>
+    <td>ipex-llm (Intel)</td>
+    <td>github.com/intel/ipex-llm</td>
+    <td>LLM на Intel GPU (Arc A770/B580)</td>
+  </tr>
+  <tr>
+    <td>vLLM</td>
+    <td>github.com/vllm-project/vllm</td>
+    <td>Production inference, NVIDIA GPU</td>
+  </tr>
+  <tr>
+    <td>MLX</td>
+    <td>github.com/ml-explore/mlx</td>
+    <td>Apple Silicon inference framework</td>
+  </tr>
+  <tr>
+    <td>Beowulf AI Cluster</td>
+    <td>github.com/geerlingguy/beowulf-ai-cluster</td>
+    <td>Ansible-автоматизация развёртывания кластера (Jeff Geerling)</td>
+  </tr>
+</table>
+</div>
+
+<div class="footer">
+  Часть 3. Данные актуальны на февраль 2026.<br>
+  Источники: Jeff Geerling, EXO Labs (GitHub), Apple Developer Docs, LMSYS/SGLang benchmarks.<br>
+  <a href="clustering.html">← Часть 1: Основы</a> · <a href="clustering-part2.html">← Часть 2: Глубокое погружение</a>
+</div>
+
+</body>
+</html>

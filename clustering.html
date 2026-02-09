@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кластеризация: объединение компьютеров для AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; line-height: 1.65; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #58a6ff; margin-bottom: 4px; }
+  h2 { font-size: 1.25em; color: #79c0ff; margin: 28px 0 14px 0; border-bottom: 1px solid #21262d; padding-bottom: 6px; }
+  h3 { font-size: 1.05em; color: #d2a8ff; margin: 20px 0 10px 0; }
+  .sub { color: #8b949e; font-size: 0.92em; margin-bottom: 20px; }
+  .s { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.86em; }
+  th { background: #1c2333; color: #79c0ff; text-align: left; padding: 8px 10px; border: 1px solid #30363d; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #30363d; vertical-align: top; }
+  tr:nth-child(even) td { background: #161b22; }
+  tr:nth-child(odd) td { background: #0d1117; }
+  .note { background: #1a2a3a; border-left: 3px solid #58a6ff; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .warn { background: #2d1a0e; border-left: 3px solid #d29922; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .good { background: #0d2818; border-left: 3px solid #238636; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.8em; font-weight: 600; }
+  .t-hw { background: #1a3a2a; color: #7ee787; }
+  .t-sw { background: #1a2a3a; color: #79c0ff; }
+  .t-std { background: #3a1a3a; color: #d2a8ff; }
+  .t-warn { background: #3d2a1a; color: #ffa657; }
+  .price { color: #e3b341; font-weight: 600; }
+  .sp { color: #8b949e; font-size: 0.85em; }
+  .diagram { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin: 12px 0; font-family: 'Courier New', monospace; font-size: 0.82em; line-height: 1.5; color: #7ee787; white-space: pre; overflow-x: auto; }
+  .fl { display: flex; gap: 14px; margin: 10px 0; flex-wrap: wrap; }
+  .fl > div { flex: 1; min-width: 280px; padding: 14px; border-radius: 8px; }
+  .fl-a { background: #0d2818; border: 1px solid #238636; }
+  .fl-b { background: #2d1a0e; border: 1px solid #9e6a03; }
+  .fl-c { background: #1a1a3a; border: 1px solid #6e40c9; }
+  .footer { margin-top: 28px; color: #484f58; font-size: 0.8em; text-align: center; }
+  a { color: #58a6ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>🔗 Объединение компьютеров в кластер для AI</h1>
+<p class="sub">Стандарты связи, софт, архитектуры — от потребительских до серверных. Февраль 2026.</p>
+
+<!-- ==================== УРОВЕНЬ 1: ПРОБЛЕМА ==================== -->
+<h2>📌 Суть проблемы: почему память не объединяется «просто так»</h2>
+<div class="s">
+<p>Когда у тебя 4 компьютера по 16 ГБ RAM, у тебя <strong>не 64 ГБ общей памяти</strong>. Каждый компьютер видит только свою память. Чтобы использовать память другого компьютера, нужно:</p>
+
+<div class="diagram">
+Компьютер A (16 ГБ)  ──┐
+                        │  какой-то канал связи
+Компьютер B (16 ГБ)  ──┤  (Ethernet / Thunderbolt / InfiniBand)
+                        │
+Компьютер C (16 ГБ)  ──┤  ➜  Софт разбивает модель на части
+                        │     и раздаёт каждому компьютеру свой кусок
+Компьютер D (16 ГБ)  ──┘
+
+Проблема: скорость связи между компьютерами НАМНОГО медленнее,
+чем доступ к своей памяти.
+
+Своя RAM:    50 000–800 000 МБ/с (50–800 ГБ/с)
+Ethernet 1G:         125 МБ/с     (в 400–6000× медленнее!)
+Ethernet 10G:      1 250 МБ/с
+Thunderbolt 4:     5 000 МБ/с     (40 Гбит/с)
+Thunderbolt 5:    10 000 МБ/с     (80 Гбит/с, до 120 в пике)
+RDMA (TB5):       10 000 МБ/с     (без накладных расходов TCP)
+NVLink 5:        225 000 МБ/с     (1 800 Гбит/с) — только NVIDIA
+InfiniBand:      50 000 МБ/с      (400 Гбит/с) — серверы
+</div>
+
+<div class="warn">
+<strong>Ключевой инсайт:</strong> При кластеризации узкое место — не вычислительная мощность, а <strong>bandwidth канала связи</strong> между узлами. Если канал медленный, добавление узлов ЗАМЕДЛЯЕТ inference, а не ускоряет!
+</div>
+</div>
+
+<!-- ==================== УРОВЕНЬ 2: СТАНДАРТЫ СВЯЗИ ==================== -->
+<h2>🔌 Стандарты физического соединения</h2>
+<div class="s">
+<table>
+  <tr>
+    <th>Стандарт</th>
+    <th>Bandwidth</th>
+    <th>Латентность</th>
+    <th>RDMA</th>
+    <th>Где доступен</th>
+    <th>Цена подключения</th>
+  </tr>
+  <tr>
+    <td><strong>Ethernet 1 Гбит</strong><br><span class="sp">RJ45, Cat5e+</span></td>
+    <td>125 МБ/с</td>
+    <td>~500 мкс</td>
+    <td>❌</td>
+    <td>Везде</td>
+    <td class="price">$0 (встроен)</td>
+  </tr>
+  <tr>
+    <td><strong>Ethernet 2.5 Гбит</strong><br><span class="sp">RJ45, Cat5e+</span></td>
+    <td>312 МБ/с</td>
+    <td>~300 мкс</td>
+    <td>❌</td>
+    <td>Большинство новых ПК/мини-ПК</td>
+    <td class="price">$0–30</td>
+  </tr>
+  <tr>
+    <td><strong>Ethernet 5/10 Гбит</strong><br><span class="sp">RJ45 Cat6a / SFP+</span></td>
+    <td>625–1 250 МБ/с</td>
+    <td>~100 мкс</td>
+    <td>RoCE v2 ✅</td>
+    <td>Серверы, свитчи $100+</td>
+    <td class="price">$80–300</td>
+  </tr>
+  <tr>
+    <td><strong>Thunderbolt 4</strong><br><span class="sp">USB-C, PCIe тоннель</span></td>
+    <td>5 000 МБ/с</td>
+    <td>~10 мкс</td>
+    <td>❌ (TCP)</td>
+    <td>Mac, PC (Intel/AMD)</td>
+    <td class="price">$15–40 (кабель)</td>
+  </tr>
+  <tr style="background:#0d2818;">
+    <td><strong>Thunderbolt 5</strong> ⭐<br><span class="sp">USB-C, PCIe 4.0 тоннель</span></td>
+    <td><strong>10 000 МБ/с</strong><br>(80 Гбит/с)</td>
+    <td><strong>~3 мкс</strong> (RDMA)</td>
+    <td><strong>✅ macOS 26.2+</strong></td>
+    <td>Mac (M4 Pro/Max), новые PC</td>
+    <td class="price">$30–60 (кабель)</td>
+  </tr>
+  <tr>
+    <td><strong>OCuLink</strong><br><span class="sp">PCIe 4.0 x4 прямой</span></td>
+    <td>8 000 МБ/с<br>(63 Гбит/с)</td>
+    <td>~5 мкс</td>
+    <td>❌</td>
+    <td>Мини-ПК (Minisforum, GMKtec)</td>
+    <td class="price">$20–50 (кабель)</td>
+  </tr>
+  <tr>
+    <td><strong>InfiniBand HDR/NDR</strong><br><span class="sp">QSFP56/OSFP</span></td>
+    <td>25 000–50 000 МБ/с</td>
+    <td>~1 мкс</td>
+    <td>✅ (нативный)</td>
+    <td>Дата-центры</td>
+    <td class="price">$1 000–5 000+</td>
+  </tr>
+  <tr>
+    <td><strong>NVLink 5</strong><br><span class="sp">Проприетарный NVIDIA</span></td>
+    <td><strong>225 000 МБ/с</strong><br>(1 800 Гбит/с)</td>
+    <td>~0.5 мкс</td>
+    <td>✅</td>
+    <td>Только NVIDIA GPU<br>(внутри сервера)</td>
+    <td class="price">Встроен в GPU</td>
+  </tr>
+</table>
+
+<div class="note">
+<strong>RDMA (Remote Direct Memory Access)</strong> — технология, при которой данные передаются напрямую из памяти одного устройства в память другого, минуя CPU и операционную систему. Это снижает латентность в 100× по сравнению с обычным TCP/IP. Apple добавила RDMA через Thunderbolt 5 в macOS 26.2 (декабрь 2025) — это прорыв для потребительского сегмента.
+</div>
+</div>
+
+<!-- ==================== УРОВЕНЬ 3: APPLE КЛАСТЕРЫ ==================== -->
+<h2>🍎 Кластеризация Apple Mac</h2>
+<div class="s">
+
+<h3>Архитектура</h3>
+<div class="diagram">
+Mac Mini M4 Pro ──── TB5 ──── Mac Mini M4 Pro
+      │                              │
+     TB5                            TB5
+      │                              │
+Mac Mini M4 Pro ──── TB5 ──── Mac Mini M4 Pro
+
+Каждый Mac имеет до 5 портов Thunderbolt 5.
+Соединение: daisy-chain или через хаб.
+RDMA снижает латентность с 300 мкс до 3 мкс.
+</div>
+
+<h3>Реальные кластеры</h3>
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Общая память</th>
+    <th>Стоимость</th>
+    <th>Что запускали</th>
+    <th>Результат</th>
+  </tr>
+  <tr>
+    <td>4× Mac Mini M4 ($599)<br>+ 1× MacBook Pro M4 Max</td>
+    <td>~496 ГБ</td>
+    <td class="price">~$5 000</td>
+    <td>Qwen 2.5 Coder 32B</td>
+    <td>18 tok/s</td>
+  </tr>
+  <tr>
+    <td>3× Mac Mini M2 Pro (64 ГБ)</td>
+    <td>192 ГБ</td>
+    <td class="price">~$4 500</td>
+    <td>Llama 3.1 70B</td>
+    <td>Работает, медленно</td>
+  </tr>
+  <tr>
+    <td>4× Mac Studio M3 Ultra (512 ГБ)</td>
+    <td><strong>2 ТБ</strong></td>
+    <td class="price">~$38 000</td>
+    <td>DeepSeek V3.1 671B<br>Kimi K2 Thinking 1T</td>
+    <td>32 tok/s (Qwen3 235B)<br>Работает на 1T модели!</td>
+  </tr>
+  <tr>
+    <td>2× DGX Spark + 1× Mac Studio<br>(гибрид NVIDIA+Apple)</td>
+    <td>Гибрид</td>
+    <td class="price">~$25 000+</td>
+    <td>Llama 3.1 8B</td>
+    <td>2.8× ускорение vs Mac Solo</td>
+  </tr>
+</table>
+
+<h3>Софт для Apple-кластеров</h3>
+<table>
+  <tr>
+    <th>Инструмент</th>
+    <th>Метод</th>
+    <th>RDMA</th>
+    <th>Статус</th>
+  </tr>
+  <tr>
+    <td><strong>EXO 1.0</strong> <span class="tag t-sw">софт</span></td>
+    <td>P2P, автообнаружение, tensor parallel</td>
+    <td>✅ TB5 RDMA</td>
+    <td>Активно развивается, Apache 2.0</td>
+  </tr>
+  <tr>
+    <td><strong>MLX Distributed</strong> <span class="tag t-sw">софт</span></td>
+    <td>OpenMPI, Apple-native</td>
+    <td>✅ TB5 RDMA</td>
+    <td>Официальный Apple фреймворк</td>
+  </tr>
+  <tr>
+    <td><strong>llama.cpp RPC</strong> <span class="tag t-sw">софт</span></td>
+    <td>Послойное распределение (pipeline)</td>
+    <td>❌ (TCP)</td>
+    <td>Экспериментальный, кроссплатформа</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Прорыв декабря 2025:</strong> macOS 26.2 добавила RDMA через Thunderbolt 5. EXO 1.0 использует его для tensor parallel — это принципиально быстрее, чем pipeline parallel по TCP. Латентность между Mac'ами упала с 300 мкс до 3 мкс, и кластер ускоряется при добавлении узлов, а не замедляется.
+</div>
+</div>
+
+<!-- ==================== УРОВЕНЬ 4: PC КЛАСТЕРЫ ==================== -->
+<h2>🔧 Кластеризация PC / Мини-ПК</h2>
+<div class="s">
+
+<h3>Внутри одного ПК: Multi-GPU</h3>
+<table>
+  <tr>
+    <th>Метод</th>
+    <th>Bandwidth</th>
+    <th>Как работает</th>
+    <th>Ограничения</th>
+  </tr>
+  <tr>
+    <td><strong>PCIe 4.0 x16</strong></td>
+    <td>~32 ГБ/с</td>
+    <td>Стандартный слот для GPU</td>
+    <td>Каждый GPU видит только свой VRAM. Обмен через PCIe.</td>
+  </tr>
+  <tr>
+    <td><strong>PCIe 5.0 x16</strong></td>
+    <td>~64 ГБ/с</td>
+    <td>Новые платформы Intel/AMD</td>
+    <td>То же. Нет объединения VRAM.</td>
+  </tr>
+  <tr>
+    <td><strong>NVLink (потреб.)</strong></td>
+    <td>~112 ГБ/с</td>
+    <td>RTX 3090 поддерживала NVLink bridge</td>
+    <td>❌ Убрано в RTX 4090 и 5090!</td>
+  </tr>
+  <tr>
+    <td><strong>NVLink (серверн.)</strong></td>
+    <td>900–1800 ГБ/с</td>
+    <td>A100, H100, B200 — объединяет VRAM</td>
+    <td>Цена от $10 000+ за GPU</td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Важно:</strong> В потребительских GPU (RTX 40xx, 50xx) NVIDIA убрала NVLink. Два RTX 5090 в одном ПК НЕ объединят свои 32+32=64 ГБ VRAM. Каждый видит только свои 32 ГБ. Для LLM софт (vLLM, llama.cpp) может разбить модель на 2 GPU, но обмен идёт через PCIe — это медленнее NVLink в 5–50×.
+</div>
+
+<h3>Между несколькими ПК / Мини-ПК</h3>
+<div class="diagram">
+Мини-ПК A (32 ГБ DDR5, Ryzen AI) ──── Ethernet 2.5G ──── Мини-ПК B
+         │                                                       │
+    OCuLink ─── eGPU (RTX 3090)                          OCuLink ─── eGPU
+         │                                                       │
+    USB4/TB4 ──── ещё один мини-ПК C                    Ethernet ─── ПК D с GPU
+    
+Проблемы:
+1. Ethernet 2.5G = 312 МБ/с — очень медленно для AI
+2. USB4 = 5 ГБ/с — лучше, но нет RDMA
+3. OCuLink = 8 ГБ/с — для eGPU, не для кластера
+4. Нет эквивалента Apple RDMA в мире PC
+</div>
+
+<h3>Софт для PC-кластеров</h3>
+<table>
+  <tr>
+    <th>Инструмент</th>
+    <th>Платформа</th>
+    <th>Метод</th>
+    <th>Особенности</th>
+  </tr>
+  <tr>
+    <td><strong>EXO</strong></td>
+    <td>Mac + Linux + (Windows)</td>
+    <td>P2P ring, auto-discovery</td>
+    <td>Гетерогенный: можно смешивать Mac, Linux, GPU, CPU</td>
+  </tr>
+  <tr>
+    <td><strong>llama.cpp RPC</strong></td>
+    <td>Все платформы</td>
+    <td>Pipeline parallel, TCP</td>
+    <td>Самый универсальный. Каждый узел — RPC-сервер.</td>
+  </tr>
+  <tr>
+    <td><strong>distributed-llama</strong></td>
+    <td>Linux, Mac</td>
+    <td>Layer splitting</td>
+    <td>Простой, работает даже на Raspberry Pi</td>
+  </tr>
+  <tr>
+    <td><strong>Petals</strong></td>
+    <td>Linux (GPU)</td>
+    <td>BitTorrent-style P2P</td>
+    <td>Через интернет! Волонтёры делят модель между собой</td>
+  </tr>
+  <tr>
+    <td><strong>LocalAI P2P</strong></td>
+    <td>Linux, Mac</td>
+    <td>llama.cpp RPC + P2P discovery</td>
+    <td>Простая настройка через токен</td>
+  </tr>
+  <tr>
+    <td><strong>vLLM</strong></td>
+    <td>Linux (CUDA)</td>
+    <td>Tensor parallel, Ray</td>
+    <td>Production-grade, но только NVIDIA GPU</td>
+  </tr>
+  <tr>
+    <td><strong>ipex-llm (Intel)</strong></td>
+    <td>Linux, Windows</td>
+    <td>Pipeline parallel для Intel GPU</td>
+    <td>Arc A770/B580, поддержка DeepSeek 671B на 1–2 Arc!</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== УРОВЕНЬ 5: СРАВНЕНИЕ ПОДХОДОВ ==================== -->
+<h2>⚖️ Сравнение: Apple-кластер vs PC-кластер vs eGPU</h2>
+<div class="s">
+<table>
+  <tr>
+    <th>Параметр</th>
+    <th>🍎 Apple Mac кластер</th>
+    <th>🔧 PC кластер (Ethernet)</th>
+    <th>🔧 Мини-ПК + eGPU</th>
+    <th>🏢 Серверный (NVLink)</th>
+  </tr>
+  <tr>
+    <td><strong>Объединение памяти</strong></td>
+    <td>✅ Unified memory + RDMA TB5</td>
+    <td>⚠️ Только через софт (TCP)</td>
+    <td>❌ GPU имеет свой VRAM</td>
+    <td>✅ NVLink объединяет VRAM</td>
+  </tr>
+  <tr>
+    <td><strong>Bandwidth между узлами</strong></td>
+    <td>10 ГБ/с (TB5 RDMA)</td>
+    <td>0.3–1.25 ГБ/с (Ethernet)</td>
+    <td>5–8 ГБ/с (TB4/OCuLink)</td>
+    <td>225–900 ГБ/с (NVLink)</td>
+  </tr>
+  <tr>
+    <td><strong>Латентность</strong></td>
+    <td>3 мкс (RDMA)</td>
+    <td>100–500 мкс</td>
+    <td>10–50 мкс</td>
+    <td>0.5 мкс</td>
+  </tr>
+  <tr>
+    <td><strong>Масштабируемость</strong></td>
+    <td>3–5 Mac (реально)</td>
+    <td>Любое количество</td>
+    <td>1 ПК + 1–2 eGPU</td>
+    <td>8–72 GPU в одной стойке</td>
+  </tr>
+  <tr>
+    <td><strong>Энергопотребление</strong></td>
+    <td>~50–500 Вт (весь кластер)</td>
+    <td>500–2000 Вт</td>
+    <td>200–600 Вт</td>
+    <td>5 000–30 000 Вт</td>
+  </tr>
+  <tr>
+    <td><strong>Стоимость 256 ГБ памяти</strong></td>
+    <td class="price">~$6 000 (4× Mac Mini M4 Pro 64 ГБ)</td>
+    <td class="price">~$400–600 (DDR5)<br>но не видеопамять!</td>
+    <td class="price">Невозможно в VRAM</td>
+    <td class="price">$100 000+ (A100/H100)</td>
+  </tr>
+  <tr>
+    <td><strong>DeepSeek R1 671B</strong></td>
+    <td>✅ 4× Mac Studio Ultra</td>
+    <td>⚠️ Очень медленно</td>
+    <td>❌</td>
+    <td>✅ 2× DGX</td>
+  </tr>
+  <tr>
+    <td><strong>Удобство настройки</strong></td>
+    <td>EXO: установи и запусти</td>
+    <td>Сложнее: сеть, драйвера</td>
+    <td>Средне (eGPU dock)</td>
+    <td>Очень сложно</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== УРОВЕНЬ 6: КОНКРЕТНЫЕ СХЕМЫ ==================== -->
+<h2>💡 Практические схемы: что можно собрать</h2>
+<div class="s">
+
+<div class="fl">
+  <div class="fl-a">
+    <h3>🟢 Бюджетный Mac-кластер</h3>
+    <p><strong>4× Mac Mini M4 Pro 24 ГБ</strong></p>
+    <p>Общая память: <strong>96 ГБ</strong></p>
+    <p>Связь: Thunderbolt 5 + RDMA</p>
+    <p>Софт: EXO 1.0</p>
+    <p>Стоимость: <span class="price">~$5 600</span></p>
+    <p>Энергия: ~80 Вт всего</p>
+    <p class="sp">Тянет: Llama 70B (Q4), Qwen 32B, DeepSeek 37B</p>
+  </div>
+  <div class="fl-a">
+    <h3>🟢 Мощный Mac-кластер</h3>
+    <p><strong>4× Mac Mini M4 Pro 64 ГБ</strong></p>
+    <p>Общая память: <strong>256 ГБ</strong></p>
+    <p>Связь: Thunderbolt 5 + RDMA</p>
+    <p>Софт: EXO 1.0</p>
+    <p>Стоимость: <span class="price">~$8 800</span></p>
+    <p>Энергия: ~100 Вт</p>
+    <p class="sp">Тянет: DeepSeek V3 671B (Q4), Llama 405B</p>
+  </div>
+</div>
+
+<div class="fl">
+  <div class="fl-b">
+    <h3>🟠 PC-кластер на Ethernet</h3>
+    <p><strong>4× Мини-ПК Ryzen AI 9 (64 ГБ DDR5)</strong></p>
+    <p>Общая RAM: <strong>256 ГБ</strong></p>
+    <p>Связь: Ethernet 2.5G + switch</p>
+    <p>Софт: llama.cpp RPC / distributed-llama</p>
+    <p>Стоимость: <span class="price">~$4 000</span></p>
+    <p>Энергия: ~200 Вт</p>
+    <p class="sp">Тянет: Те же модели, но в 3–10× медленнее из-за Ethernet!</p>
+  </div>
+  <div class="fl-b">
+    <h3>🟠 Гибрид: Мини-ПК + eGPU</h3>
+    <p><strong>1× Minisforum UM890 Pro + RTX 3090 через OCuLink</strong></p>
+    <p>VRAM: <strong>24 ГБ</strong> (GPU) + 32 ГБ RAM</p>
+    <p>Связь: OCuLink 63 Гбит/с</p>
+    <p>Софт: Ollama / llama.cpp</p>
+    <p>Стоимость: <span class="price">~$1 500–1 800</span></p>
+    <p>Энергия: ~400 Вт под нагрузкой</p>
+    <p class="sp">Быстро для 7–13B, но 70B не влезет в 24 ГБ VRAM</p>
+  </div>
+</div>
+
+<div class="fl">
+  <div class="fl-c">
+    <h3>🟣 Гетерогенный (Mac + PC)</h3>
+    <p><strong>2× DGX Spark + 1× Mac Studio M3 Ultra</strong></p>
+    <p>Связь: Ethernet 10G</p>
+    <p>Софт: EXO (disaggregated inference)</p>
+    <p>Стоимость: <span class="price">~$25 000+</span></p>
+    <p class="sp">DGX → prefill (compute-bound), Mac → decode (bandwidth-bound). 2.8× ускорение!</p>
+  </div>
+  <div class="fl-c">
+    <h3>🟣 Petals (через интернет)</h3>
+    <p><strong>N волонтёров с GPU по всему миру</strong></p>
+    <p>Связь: Интернет</p>
+    <p>Софт: Petals (BitTorrent-style)</p>
+    <p>Стоимость: <span class="price">Бесплатно</span></p>
+    <p class="sp">Каждый хостит несколько слоёв модели. Медленно, но работает для 70B+ моделей. Идеально для экспериментов.</p>
+  </div>
+</div>
+</div>
+
+<!-- ==================== УРОВЕНЬ 7: APPLE vs PC ==================== -->
+<h2>🏆 Почему Apple побеждает в кластеризации (пока)</h2>
+<div class="s">
+
+<div class="fl">
+  <div class="fl-a">
+    <h3 style="color:#7ee787;">Преимущества Apple</h3>
+    <p><strong>1. Unified Memory Architecture</strong> — вся память доступна GPU. На PC 64 ГБ DDR5 — это просто RAM, GPU её «не видит» быстро.</p>
+    <p><strong>2. RDMA через Thunderbolt 5</strong> — c декабря 2025 Mac'и могут передавать данные напрямую в память друг друга, минуя TCP/IP. В мире PC такого нет на потребительском уровне.</p>
+    <p><strong>3. EXO + MLX</strong> — софт, заточенный под Apple Silicon, с tensor parallel и автообнаружением. Настройка = запустить одну команду.</p>
+    <p><strong>4. Энергоэффективность</strong> — 4 Mac Mini потребляют меньше, чем 1 RTX 4090.</p>
+  </div>
+  <div class="fl-b">
+    <h3 style="color:#ffa657;">Что может PC</h3>
+    <p><strong>1. Апгрейд RAM</strong> — на мини-ПК можно поставить 96 ГБ DDR5, на Mac память распаяна навсегда.</p>
+    <p><strong>2. eGPU через OCuLink</strong> — можно подключить RTX 3090/4090 к мини-ПК. У Apple нет внешних GPU.</p>
+    <p><strong>3. Цена RAM</strong> — 64 ГБ DDR5 стоит $100–150. На Mac за 64 ГБ unified нужно доплатить $400+.</p>
+    <p><strong>4. Будущее: CXL</strong> — стандарт Compute Express Link (CXL 3.0) позволит объединять память между серверами. Пока не в потребительских ПК, но к 2027–2028 ожидается.</p>
+  </div>
+</div>
+
+<div class="note">
+<strong>CXL (Compute Express Link)</strong> — это «забытый старый» ставший «новым». Стандарт на базе PCIe, который позволяет нескольким процессорам/GPU видеть общий пул памяти. CXL 3.0 (2024+) поддерживает memory pooling и sharing между узлами. Это потенциально уравняет шансы PC и Apple, но пока CXL — серверная технология стоимостью тысячи долларов.
+</div>
+</div>
+
+<!-- ==================== УРОВЕНЬ 8: ТРЕНДЫ ==================== -->
+<h2>📈 Тренды и будущее (2026–2028)</h2>
+<div class="s">
+<table>
+  <tr>
+    <th>Тренд</th>
+    <th>Что это</th>
+    <th>Когда</th>
+    <th>Влияние</th>
+  </tr>
+  <tr>
+    <td><strong>Apple RDMA over TB5</strong></td>
+    <td>Mac-to-Mac кластеры с низкой латентностью</td>
+    <td>✅ Уже (дек. 2025)</td>
+    <td>Mac Mini кластеры = доступный «суперкомпьютер»</td>
+  </tr>
+  <tr>
+    <td><strong>CXL 3.0 Memory Pooling</strong></td>
+    <td>Общий пул памяти для нескольких CPU/GPU</td>
+    <td>Серверы 2025, ПК 2027–28</td>
+    <td>PC получат аналог unified memory</td>
+  </tr>
+  <tr>
+    <td><strong>NVIDIA DGX Spark</strong></td>
+    <td>Настольный мини-сервер с Grace + Blackwell</td>
+    <td>✅ 2025</td>
+    <td>$3 000–5 000 за 128 ГБ unified NVIDIA memory</td>
+  </tr>
+  <tr>
+    <td><strong>Disaggregated Inference</strong></td>
+    <td>Prefill на GPU, decode на CPU/Apple — разделение фаз</td>
+    <td>✅ EXO 1.0 (2025)</td>
+    <td>Оптимальное использование разного железа</td>
+  </tr>
+  <tr>
+    <td><strong>MoE модели</strong></td>
+    <td>Mixture-of-Experts: 671B параметров, но 37B активных</td>
+    <td>✅ DeepSeek V3, Qwen3 235B</td>
+    <td>Нужно много памяти, но мало compute → идеально для Mac кластеров</td>
+  </tr>
+  <tr>
+    <td><strong>USB4v2 / TB5+ (120 Гбит/с)</strong></td>
+    <td>Удвоение bandwidth TB5</td>
+    <td>2026–2027</td>
+    <td>Ещё быстрее кластеры</td>
+  </tr>
+  <tr>
+    <td><strong>Intel/AMD NPU</strong></td>
+    <td>Нейропроцессоры в потребительских CPU</td>
+    <td>✅ Уже, но софт незрелый</td>
+    <td>Пока мало используются для LLM</td>
+  </tr>
+  <tr>
+    <td><strong>Petals 2.0 / P2P inference</strong></td>
+    <td>Распределённый inference через интернет</td>
+    <td>Развивается</td>
+    <td>Демократизация: любой может «подключить» свой GPU</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РЕЗЮМЕ ==================== -->
+<h2>📋 Резюме: что выбрать</h2>
+<div class="s">
+<table>
+  <tr>
+    <th>Ваш сценарий</th>
+    <th>Рекомендация</th>
+    <th>Бюджет</th>
+  </tr>
+  <tr>
+    <td>Нужно запустить 70B+ модель дома, минимум возни</td>
+    <td><span class="tag t-hw">2–4× Mac Mini M4 Pro</span> + <span class="tag t-sw">EXO</span></td>
+    <td class="price">$3 000–9 000</td>
+  </tr>
+  <tr>
+    <td>Максимальная скорость 7–32B моделей</td>
+    <td><span class="tag t-hw">ПК с RTX 4090/5090</span> + <span class="tag t-sw">Ollama/vLLM</span></td>
+    <td class="price">$2 500–5 000</td>
+  </tr>
+  <tr>
+    <td>Минимальный бюджет, эксперименты</td>
+    <td><span class="tag t-hw">2–3× мини-ПК Ryzen</span> + <span class="tag t-sw">llama.cpp RPC</span></td>
+    <td class="price">$1 000–2 000</td>
+  </tr>
+  <tr>
+    <td>Мини-ПК сейчас + расширение позже</td>
+    <td><span class="tag t-hw">Minisforum с OCuLink</span> + <span class="tag t-sw">eGPU позже</span></td>
+    <td class="price">$500 → $1 500</td>
+  </tr>
+  <tr>
+    <td>Хочу попробовать 671B бесплатно</td>
+    <td><span class="tag t-sw">Petals</span> (P2P через интернет)</td>
+    <td class="price">$0</td>
+  </tr>
+  <tr>
+    <td>Продакшн, стартап, нужна надёжность</td>
+    <td><span class="tag t-hw">DGX Spark</span> или <span class="tag t-hw">Mac Studio Ultra</span></td>
+    <td class="price">$5 000–40 000</td>
+  </tr>
+</table>
+</div>
+
+<div class="footer">
+  Данные актуальны на февраль 2026. Тренды и цены быстро меняются.<br>
+  Источники: Jeff Geerling, EXO Labs, Apple Developer, Tom's Hardware, VentureBeat, Scientific American.
+</div>
+
+</body>
+</html>

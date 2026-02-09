@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apple vs PC: Сравнение для локального AI</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; padding: 24px; line-height: 1.6; }
+  h1 { font-size: 1.8em; color: #58a6ff; margin-bottom: 6px; }
+  h2 { font-size: 1.3em; color: #79c0ff; margin: 32px 0 16px 0; border-bottom: 1px solid #21262d; padding-bottom: 8px; }
+  h3 { font-size: 1.1em; color: #d2a8ff; margin: 24px 0 12px 0; }
+  .subtitle { color: #8b949e; font-size: 0.95em; margin-bottom: 24px; }
+  .section { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.88em; }
+  th { background: #1c2333; color: #79c0ff; text-align: left; padding: 10px 12px; border: 1px solid #30363d; font-weight: 600; }
+  td { padding: 9px 12px; border: 1px solid #30363d; vertical-align: top; }
+  tr:nth-child(even) td { background: #161b22; }
+  tr:nth-child(odd) td { background: #0d1117; }
+  .apple { color: #7ee787; }
+  .pc { color: #ffa657; }
+  .highlight { background: #1a3a2a !important; }
+  .warn { background: #3d2a1a !important; }
+  .best { color: #7ee787; font-weight: 600; }
+  .mid { color: #e3b341; }
+  .weak { color: #f47067; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.82em; font-weight: 600; }
+  .tag-apple { background: #1a3a2a; color: #7ee787; }
+  .tag-pc { background: #3d2a1a; color: #ffa657; }
+  .tag-both { background: #1a2a3a; color: #79c0ff; }
+  .note { background: #1a2a3a; border-left: 3px solid #58a6ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 6px 6px 0; font-size: 0.9em; }
+  .vs { display: flex; gap: 16px; margin: 12px 0; }
+  .vs > div { flex: 1; padding: 14px; border-radius: 8px; }
+  .vs-apple { background: #0d2818; border: 1px solid #238636; }
+  .vs-pc { background: #2d1a0e; border: 1px solid #9e6a03; }
+  .vs h4 { margin-bottom: 8px; font-size: 1em; }
+  .emoji { font-size: 1.1em; }
+  .price { color: #e3b341; font-weight: 600; }
+  .speed { font-size: 0.85em; color: #8b949e; }
+  .footer { margin-top: 32px; color: #484f58; font-size: 0.82em; text-align: center; }
+  @media (max-width: 700px) {
+    .vs { flex-direction: column; }
+    table { font-size: 0.8em; }
+    th, td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🖥️ Apple Silicon vs x86 PC</h1>
+<p class="subtitle">Детальное сравнение для запуска локальных AI-моделей (LLM inference) — февраль 2026</p>
+
+<!-- ===== ТАБЛИЦА 1: КОНФИГУРАЦИИ APPLE ===== -->
+<h2><span class="apple">🍎</span> Apple Mac Mini M4 — все конфигурации</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Память (unified)</th>
+    <th>Bandwidth</th>
+    <th>Цена (MSRP)</th>
+    <th>Цена (скидки)</th>
+    <th>Какие модели потянет</th>
+  </tr>
+  <tr class="highlight">
+    <td><strong>M4, 16 ГБ, 256 ГБ SSD</strong><br><span class="speed">10-core CPU / 10-core GPU</span></td>
+    <td><strong>16 ГБ</strong></td>
+    <td>120 ГБ/с</td>
+    <td class="price">$599</td>
+    <td class="price">$479–549</td>
+    <td>7B (Q4) — комфортно<br>13B (Q4) — на пределе<br><span class="speed">~15–20 tok/s на 7B</span></td>
+  </tr>
+  <tr>
+    <td><strong>M4, 16 ГБ, 512 ГБ SSD</strong></td>
+    <td><strong>16 ГБ</strong></td>
+    <td>120 ГБ/с</td>
+    <td class="price">$799</td>
+    <td class="price">~$699</td>
+    <td>То же + больше места для моделей</td>
+  </tr>
+  <tr class="highlight">
+    <td><strong>M4, 24 ГБ, 256 ГБ SSD</strong><br><span class="speed">⭐ Лучшее соотношение цена/RAM</span></td>
+    <td><strong>24 ГБ</strong></td>
+    <td>120 ГБ/с</td>
+    <td class="price">$799</td>
+    <td class="price">$699</td>
+    <td>13B (Q4) — комфортно<br>7B (Q6/Q8) — высокое качество</td>
+  </tr>
+  <tr>
+    <td><strong>M4, 24 ГБ, 512 ГБ SSD</strong></td>
+    <td><strong>24 ГБ</strong></td>
+    <td>120 ГБ/с</td>
+    <td class="price">$999</td>
+    <td class="price">~$929</td>
+    <td>То же + больше моделей на диске</td>
+  </tr>
+  <tr>
+    <td><strong>M4, 32 ГБ, 512 ГБ SSD</strong></td>
+    <td><strong>32 ГБ</strong></td>
+    <td>120 ГБ/с</td>
+    <td class="price">$1 199</td>
+    <td class="price">~$1 099</td>
+    <td>13B (Q6) — отлично<br>30B (Q4) — медленно, но можно</td>
+  </tr>
+  <tr>
+    <td><strong>M4 Pro, 24 ГБ, 512 ГБ SSD</strong><br><span class="speed">12-core CPU / 16-core GPU</span></td>
+    <td><strong>24 ГБ</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td class="price">$1 399</td>
+    <td class="price">$1 289</td>
+    <td>13B — быстро<br>7B — очень быстро<br><span class="speed">Bandwidth в 2.3× выше!</span></td>
+  </tr>
+  <tr>
+    <td><strong>M4 Pro, 48 ГБ, 512 ГБ SSD</strong></td>
+    <td><strong>48 ГБ</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td class="price">$1 799</td>
+    <td class="price">~$1 699</td>
+    <td>30B (Q4) — комфортно<br>70B (Q4) — на пределе</td>
+  </tr>
+  <tr>
+    <td><strong>M4 Pro, 64 ГБ, 1 ТБ SSD</strong></td>
+    <td><strong>64 ГБ</strong></td>
+    <td><strong>273 ГБ/с</strong></td>
+    <td class="price">$2 199</td>
+    <td class="price">~$2 099</td>
+    <td>70B (Q4) — комфортно<br><span class="speed">~8–12 tok/s на 70B</span></td>
+  </tr>
+</table>
+<div class="note">
+  <strong>Ключевое преимущество:</strong> вся память доступна и CPU, и GPU, и Neural Engine одновременно. Нет разделения на «оперативку» и «видеопамять». Модель на 20 ГБ просто лежит в общем пуле 24 ГБ.
+</div>
+</div>
+
+<!-- ===== ТАБЛИЦА 2: PC ВАРИАНТЫ ===== -->
+<h2><span class="pc">🔧</span> PC-альтернативы — GPU + система</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Вариант</th>
+    <th>VRAM / RAM</th>
+    <th>Bandwidth</th>
+    <th>Цена GPU</th>
+    <th>Цена системы*</th>
+    <th>Какие модели потянет</th>
+  </tr>
+  <tr>
+    <td><strong>RTX 3090 (б/у)</strong><br><span class="speed">NVIDIA, 24 ГБ GDDR6X</span></td>
+    <td>24 ГБ VRAM<br>+ 32 ГБ RAM</td>
+    <td>936 ГБ/с</td>
+    <td class="price">$700–900</td>
+    <td class="price">$1 200–1 500</td>
+    <td>7B — очень быстро<br>13B — быстро<br>30B (Q4) — на пределе<br><span class="speed">~40–50 tok/s на 7B</span></td>
+  </tr>
+  <tr>
+    <td><strong>RTX 4060 Ti 16GB</strong><br><span class="speed">NVIDIA, 16 ГБ GDDR6</span></td>
+    <td>16 ГБ VRAM<br>+ 32 ГБ RAM</td>
+    <td>288 ГБ/с</td>
+    <td class="price">$430–500</td>
+    <td class="price">$900–1 200</td>
+    <td>7B (Q4) — хорошо<br>13B — на пределе<br><span class="speed">~30–40 tok/s на 7B</span></td>
+  </tr>
+  <tr>
+    <td><strong>RTX 4090</strong><br><span class="speed">NVIDIA, 24 ГБ GDDR6X</span></td>
+    <td>24 ГБ VRAM<br>+ 64 ГБ RAM</td>
+    <td>1 008 ГБ/с</td>
+    <td class="price">$1 650–2 755</td>
+    <td class="price">$2 500–3 800</td>
+    <td>7B — молниеносно<br>13B — быстро<br>30B (Q4) — хорошо<br><span class="speed">~80–130 tok/s на 7B</span></td>
+  </tr>
+  <tr>
+    <td><strong>RTX 5090</strong><br><span class="speed">NVIDIA, 32 ГБ GDDR7</span></td>
+    <td>32 ГБ VRAM<br>+ 64 ГБ RAM</td>
+    <td><strong>1 792 ГБ/с</strong></td>
+    <td class="price">$1 999–4 438</td>
+    <td class="price">$3 000–5 500</td>
+    <td>Всё до 70B (Q4)<br><span class="speed">~213 tok/s на 7B!</span></td>
+  </tr>
+  <tr>
+    <td><strong>RX 7900 XTX</strong><br><span class="speed">AMD, 24 ГБ GDDR6</span></td>
+    <td>24 ГБ VRAM<br>+ 32 ГБ RAM</td>
+    <td>960 ГБ/с</td>
+    <td class="price">$890–1 200</td>
+    <td class="price">$1 400–1 800</td>
+    <td>Как RTX 3090, но<br><span class="weak">софт (ROCm) хуже</span></td>
+  </tr>
+  <tr>
+    <td><strong>Intel Arc B580</strong><br><span class="speed">Intel, 12 ГБ GDDR6</span></td>
+    <td>12 ГБ VRAM<br>+ 32 ГБ RAM</td>
+    <td>456 ГБ/с</td>
+    <td class="price">$200–249</td>
+    <td class="price">$600–900</td>
+    <td>7B (Q4) — базовый уровень<br><span class="weak">Экосистема незрелая</span></td>
+  </tr>
+</table>
+<p class="speed" style="margin-top: 8px;">* Цена системы = GPU + CPU + RAM + материнская плата + БП + корпус + SSD (без монитора). Приблизительно.</p>
+
+<div class="note">
+  <strong>Важно:</strong> на ПК модель должна <em>целиком</em> поместиться в VRAM видеокарты. Если не помещается — часть уходит в оперативку (CPU offloading), и скорость падает в 5–10 раз. На Apple такой проблемы нет — вся память единая.
+</div>
+</div>
+
+<!-- ===== ТАБЛИЦА 3: МИНИ-ПК БЕЗ GPU ===== -->
+<h2><span class="pc">📦</span> Мини-ПК (без дискретного GPU)</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>CPU / iGPU</th>
+    <th>RAM</th>
+    <th>Цена</th>
+    <th>LLM-возможности</th>
+  </tr>
+  <tr>
+    <td><strong>Beelink EQR6</strong></td>
+    <td>AMD Ryzen 9 6900HX<br>Radeon 680M</td>
+    <td>32 ГБ DDR5</td>
+    <td class="price">~$389</td>
+    <td>7B (Q4) — 8–12 tok/s<br><span class="weak">Ниже Mac Mini M4</span></td>
+  </tr>
+  <tr>
+    <td><strong>Minisforum UM890 Pro</strong></td>
+    <td>AMD Ryzen 9 8945HS<br>Radeon 780M</td>
+    <td>32 ГБ DDR5<br>(до 96 ГБ)</td>
+    <td class="price">~$479</td>
+    <td>7B — 10–15 tok/s<br>13B — 5–8 tok/s<br><span class="speed">USB4 → eGPU возможно</span></td>
+  </tr>
+  <tr>
+    <td><strong>GMKtec EVO-T1</strong></td>
+    <td>Intel Core Ultra 9 285H<br>Arc 140T + NPU</td>
+    <td>64 ГБ DDR5</td>
+    <td class="price">~$1 000</td>
+    <td>7B — 10–12 tok/s<br>13B — возможно<br><span class="speed">3× M.2, расширяемый</span></td>
+  </tr>
+  <tr>
+    <td><strong>GEEKOM GT2 Mega</strong></td>
+    <td>Intel Core Ultra 9 285H<br>Arc 140T + NPU</td>
+    <td>32–64 ГБ DDR5</td>
+    <td class="price">~$950</td>
+    <td>7B — 10–12 tok/s<br><span class="speed">VESA-mount, тихий</span></td>
+  </tr>
+</table>
+<div class="note">
+  <strong>Проблема мини-ПК:</strong> DDR5 на материнской плате даёт только 50–90 ГБ/с bandwidth. Это в 1.5–2.5× медленнее, чем у Mac Mini M4 (120 ГБ/с), и в 3–5× медленнее M4 Pro (273 ГБ/с). Для LLM inference bandwidth — это главный фактор скорости.
+</div>
+</div>
+
+<!-- ===== СВОДНАЯ ТАБЛИЦА ===== -->
+<h2>⚖️ Сводное сравнение: «Что я получу за $X?»</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Бюджет</th>
+    <th><span class="apple">Apple</span></th>
+    <th><span class="pc">PC (с GPU)</span></th>
+    <th><span class="pc">Мини-ПК (без GPU)</span></th>
+    <th>Победитель для LLM</th>
+  </tr>
+  <tr>
+    <td class="price">~$500</td>
+    <td>Mac Mini M4<br>16 ГБ unified<br>120 ГБ/с<br><span class="speed">15–20 tok/s (7B)</span></td>
+    <td>—<br><span class="speed">Невозможно собрать<br>адекватную систему</span></td>
+    <td>Beelink EQR6<br>32 ГБ DDR5<br>~70 ГБ/с<br><span class="speed">8–12 tok/s (7B)</span></td>
+    <td><span class="tag tag-apple">Apple 🏆</span><br><span class="speed">Быстрее + тише + 24/7</span></td>
+  </tr>
+  <tr>
+    <td class="price">~$700</td>
+    <td>Mac Mini M4<br><strong>24 ГБ</strong> unified<br>120 ГБ/с<br><span class="speed">15–20 tok/s (7B)<br>Тянет 13B!</span></td>
+    <td>—<br><span class="speed">GPU за $700 = RTX 3090 б/у<br>но нужна ещё система</span></td>
+    <td>Minisforum UM890<br>32 ГБ DDR5<br>~80 ГБ/с<br><span class="speed">10–15 tok/s (7B)</span></td>
+    <td><span class="tag tag-apple">Apple 🏆</span><br><span class="speed">24 ГБ единой памяти за $699</span></td>
+  </tr>
+  <tr>
+    <td class="price">~$1 200</td>
+    <td>Mac Mini M4<br>32 ГБ unified<br>120 ГБ/с</td>
+    <td>RTX 3090 б/у + система<br>24 ГБ VRAM<br>936 ГБ/с<br><span class="speed">40–50 tok/s (7B)</span></td>
+    <td>GMKtec EVO-T1<br>64 ГБ DDR5<br>~80 ГБ/с</td>
+    <td><span class="tag tag-both">Зависит от задачи</span><br><span class="speed">Скорость → PC<br>Тишина/24/7 → Apple</span></td>
+  </tr>
+  <tr>
+    <td class="price">~$1 400</td>
+    <td>Mac Mini <strong>M4 Pro</strong><br>24 ГБ unified<br><strong>273 ГБ/с</strong></td>
+    <td>RTX 3090 б/у + хорошая система<br>24 ГБ VRAM<br>936 ГБ/с</td>
+    <td>—</td>
+    <td><span class="tag tag-both">Паритет</span><br><span class="speed">PC быстрее в tok/s<br>Apple тише и проще</span></td>
+  </tr>
+  <tr>
+    <td class="price">~$2 000–2 500</td>
+    <td>Mac Mini M4 Pro<br><strong>64 ГБ</strong> unified<br>273 ГБ/с<br><span class="speed">8–12 tok/s (70B!)</span></td>
+    <td>RTX 4090 + система<br>24 ГБ VRAM<br>1 008 ГБ/с<br><span class="speed">80–130 tok/s (7B)<br>❌ 70B не влезет в VRAM</span></td>
+    <td>—</td>
+    <td><span class="tag tag-apple">Apple для больших моделей</span><br><span class="tag tag-pc">PC для скорости малых</span></td>
+  </tr>
+  <tr>
+    <td class="price">$3 000+</td>
+    <td>Mac Studio M3 Ultra<br>до 192 ГБ unified<br>819 ГБ/с<br><span class="speed">Тянет 70B–130B!</span></td>
+    <td>RTX 5090 + система<br>32 ГБ VRAM<br>1 792 ГБ/с<br><span class="speed">213 tok/s (7B)<br>61 tok/s (32B)</span></td>
+    <td>—</td>
+    <td><span class="tag tag-apple">Apple для огромных моделей</span><br><span class="tag tag-pc">PC для скорости</span></td>
+  </tr>
+</table>
+</div>
+
+<!-- ===== КЛЮЧЕВЫЕ РАЗЛИЧИЯ ===== -->
+<h2>🔑 Ключевые различия архитектур</h2>
+<div class="section">
+<div class="vs">
+  <div class="vs-apple">
+    <h4 class="apple">🍎 Apple Silicon (UMA)</h4>
+    <table>
+      <tr><td><strong>Память</strong></td><td>Единая, на чипе (on-package LPDDR5)</td></tr>
+      <tr><td><strong>Доступ</strong></td><td>CPU + GPU + NPU → один пул</td></tr>
+      <tr><td><strong>Модель 40 ГБ</strong></td><td>✅ Просто лежит в 48 ГБ unified</td></tr>
+      <tr><td><strong>Апгрейд RAM</strong></td><td>❌ Невозможен (распаяна)</td></tr>
+      <tr><td><strong>Энергия</strong></td><td>7–15 Вт в работе</td></tr>
+      <tr><td><strong>Шум</strong></td><td>Практически бесшумно</td></tr>
+      <tr><td><strong>Скорость tok/s</strong></td><td>Средняя (5–20 tok/s)</td></tr>
+      <tr><td><strong>Макс. модель</strong></td><td>До 192 ГБ (Mac Studio Ultra)</td></tr>
+      <tr><td><strong>Экосистема</strong></td><td>MLX, llama.cpp, Ollama</td></tr>
+    </table>
+  </div>
+  <div class="vs-pc">
+    <h4 class="pc">🔧 Обычный ПК (раздельная память)</h4>
+    <table>
+      <tr><td><strong>Память</strong></td><td>RAM отдельно + VRAM на GPU</td></tr>
+      <tr><td><strong>Доступ</strong></td><td>GPU → свой VRAM, CPU → своя RAM</td></tr>
+      <tr><td><strong>Модель 40 ГБ</strong></td><td>❌ Не влезет в 24 ГБ VRAM → offload</td></tr>
+      <tr><td><strong>Апгрейд RAM</strong></td><td>✅ RAM — да, GPU — замена</td></tr>
+      <tr><td><strong>Энергия</strong></td><td>150–575 Вт (GPU под нагрузкой)</td></tr>
+      <tr><td><strong>Шум</strong></td><td>Заметный (вентиляторы GPU)</td></tr>
+      <tr><td><strong>Скорость tok/s</strong></td><td>Высокая (40–213 tok/s)</td></tr>
+      <tr><td><strong>Макс. модель</strong></td><td>32 ГБ (1 GPU) или multi-GPU</td></tr>
+      <tr><td><strong>Экосистема</strong></td><td>CUDA, vLLM, TensorRT, Ollama</td></tr>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ===== РАЗМЕРЫ МОДЕЛЕЙ ===== -->
+<h2>📊 Справка: Сколько памяти нужно моделям</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Параметры</th>
+    <th>Q4 (4-bit)</th>
+    <th>Q6 (6-bit)</th>
+    <th>FP16 (полная)</th>
+    <th>Качество (условно)</th>
+  </tr>
+  <tr>
+    <td>Phi-3 Mini</td>
+    <td>3.8B</td>
+    <td>~2.5 ГБ</td>
+    <td>~3.5 ГБ</td>
+    <td>~7.6 ГБ</td>
+    <td>Базовые задачи</td>
+  </tr>
+  <tr>
+    <td>Llama 3 / Mistral / Qwen 2.5</td>
+    <td>7–8B</td>
+    <td>~4.5 ГБ</td>
+    <td>~6 ГБ</td>
+    <td>~16 ГБ</td>
+    <td>Хороший «daily driver»</td>
+  </tr>
+  <tr>
+    <td>Llama 3 / Qwen 2.5</td>
+    <td>13B</td>
+    <td>~7.5 ГБ</td>
+    <td>~10 ГБ</td>
+    <td>~26 ГБ</td>
+    <td>Заметно умнее 7B</td>
+  </tr>
+  <tr>
+    <td>Qwen 2.5 Coder</td>
+    <td>32B</td>
+    <td>~18 ГБ</td>
+    <td>~24 ГБ</td>
+    <td>~64 ГБ</td>
+    <td>«GPT-4o killer» для кода</td>
+  </tr>
+  <tr>
+    <td>Llama 3 / Qwen 2.5</td>
+    <td>70B</td>
+    <td>~40 ГБ</td>
+    <td>~55 ГБ</td>
+    <td>~140 ГБ</td>
+    <td>Приближается к GPT-4</td>
+  </tr>
+  <tr>
+    <td>DeepSeek-R1 / Llama</td>
+    <td>405B</td>
+    <td>~230 ГБ</td>
+    <td>~310 ГБ</td>
+    <td>~810 ГБ</td>
+    <td>Максимальное качество</td>
+  </tr>
+</table>
+<div class="note">
+  <strong>Правило:</strong> Для комфортной работы нужно, чтобы модель + ОС + контекст помещались в доступную память. Обычно это размер модели + 2–4 ГБ сверху.<br><br>
+  <strong>Q4 квантизация</strong> — модель сжата в ~4× с минимальной потерей качества. Это стандарт для локального запуска.
+</div>
+</div>
+
+<!-- ===== ВЫВОД ===== -->
+<h2>🎯 Когда что выбирать</h2>
+<div class="section">
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Рекомендация</th>
+    <th>Почему</th>
+  </tr>
+  <tr>
+    <td>Бюджет до $700, нужен тихий 24/7 сервер для AI-агента</td>
+    <td><span class="tag tag-apple">Mac Mini M4 24 ГБ</span></td>
+    <td>Лучшее соотношение цена/память/тишина/энергоэффективность</td>
+  </tr>
+  <tr>
+    <td>Максимальная скорость inference для 7B–13B моделей</td>
+    <td><span class="tag tag-pc">ПК с RTX 4090/5090</span></td>
+    <td>VRAM bandwidth 1000–1800 ГБ/с → 80–213 tok/s</td>
+  </tr>
+  <tr>
+    <td>Запуск больших моделей (70B+) локально</td>
+    <td><span class="tag tag-apple">Mac Studio / Mac Mini M4 Pro 64 ГБ</span></td>
+    <td>64 ГБ unified memory дешевле, чем 2× GPU с суммарным VRAM</td>
+  </tr>
+  <tr>
+    <td>Максимальная экономия, только эксперименты</td>
+    <td><span class="tag tag-pc">Мини-ПК Ryzen + 32 ГБ</span></td>
+    <td>$400–500, тянет 7B, можно добавить eGPU позже</td>
+  </tr>
+  <tr>
+    <td>Всё и сразу: большие модели + высокая скорость</td>
+    <td><span class="tag tag-pc">2× RTX 3090 NVLink</span></td>
+    <td>48 ГБ VRAM суммарно, ~$1 400–1 800 за б/у пару</td>
+  </tr>
+  <tr>
+    <td>Moltbot / AI-агент как «домашний сервер»</td>
+    <td><span class="tag tag-apple">Mac Mini M4 базовый</span></td>
+    <td>Moltbot использует облачные API для «мозга» → 16 ГБ хватает</td>
+  </tr>
+</table>
+</div>
+
+<div class="footer">
+  Данные актуальны на февраль 2026. Цены могут отличаться из-за DRAM-кризиса и дефицита.<br>
+  Скорости tok/s приблизительные, зависят от модели, квантизации и контекста.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prima.cpp → Vulkan: Полное руководство по портированию</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+:root {
+  --bg: #0b0e14;
+  --bg2: #111620;
+  --bg3: #151b27;
+  --card: #161d2b;
+  --border: #1e2738;
+  --border2: #2a3548;
+  --text: #c5cdd9;
+  --text2: #8b95a5;
+  --heading: #e6ecf5;
+  --accent: #5eead4;
+  --accent2: #22d3ee;
+  --green: #4ade80;
+  --yellow: #fbbf24;
+  --orange: #fb923c;
+  --red: #f87171;
+  --purple: #c084fc;
+  --blue: #60a5fa;
+  --pink: #f472b6;
+  --code-bg: #0d1117;
+  --code-border: #21262d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* HEADER */
+.hero {
+  padding: 80px 0 60px;
+  text-align: center;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+}
+.hero h1 {
+  font-size: 2.8em;
+  font-weight: 900;
+  color: var(--heading);
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+.hero h1 span { color: var(--accent); }
+.hero .subtitle {
+  font-size: 1.2em;
+  color: var(--text2);
+  margin-top: 16px;
+  max-width: 700px;
+  margin-left: auto; margin-right: auto;
+}
+.hero .meta {
+  margin-top: 24px;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.hero .meta span {
+  background: var(--bg3);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85em;
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+/* TABLE OF CONTENTS */
+.toc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  margin: 40px 0;
+}
+.toc h2 {
+  font-size: 1.3em;
+  color: var(--heading);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.toc ol {
+  list-style: none;
+  counter-reset: toc;
+  columns: 2;
+  column-gap: 40px;
+}
+.toc li {
+  counter-increment: toc;
+  padding: 6px 0;
+  color: var(--text2);
+  break-inside: avoid;
+}
+.toc li::before {
+  content: counter(toc, decimal-leading-zero) ".";
+  color: var(--accent);
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  margin-right: 10px;
+  font-size: 0.9em;
+}
+.toc a { color: var(--text); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+/* SECTIONS */
+section {
+  margin: 48px 0;
+  padding: 40px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+section > h2 {
+  font-size: 1.7em;
+  color: var(--heading);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+section > h2 .num {
+  background: var(--accent);
+  color: var(--bg);
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  font-size: 0.65em;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+section > .desc {
+  color: var(--text2);
+  margin-bottom: 28px;
+  font-size: 1.05em;
+}
+
+h3 {
+  font-size: 1.2em;
+  color: var(--heading);
+  margin: 28px 0 14px;
+  padding-left: 14px;
+  border-left: 3px solid var(--accent);
+}
+
+h4 {
+  font-size: 1.05em;
+  color: var(--blue);
+  margin: 20px 0 10px;
+}
+
+p { margin: 10px 0; }
+
+/* TABLES */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.92em;
+}
+th, td {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+th {
+  background: var(--bg3);
+  color: var(--heading);
+  font-weight: 600;
+  white-space: nowrap;
+}
+td { background: var(--bg2); }
+tr:hover td { background: var(--bg3); }
+
+/* CODE BLOCKS */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  line-height: 1.6;
+  margin: 12px 0;
+  color: #e6edf3;
+}
+code {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--accent2);
+}
+pre code { background: none; padding: 0; color: inherit; }
+
+.kw { color: #ff7b72; }
+.fn { color: #d2a8ff; }
+.str { color: #a5d6ff; }
+.cm { color: #8b949e; }
+.num { color: #79c0ff; }
+.type { color: #ffa657; }
+
+/* BOXES */
+.box {
+  padding: 20px 24px;
+  border-radius: 10px;
+  margin: 16px 0;
+  border-left: 4px solid;
+}
+.box-green { background: rgba(74,222,128,0.08); border-color: var(--green); }
+.box-yellow { background: rgba(251,191,36,0.08); border-color: var(--yellow); }
+.box-red { background: rgba(248,113,113,0.08); border-color: var(--red); }
+.box-blue { background: rgba(96,165,250,0.08); border-color: var(--blue); }
+.box-purple { background: rgba(192,132,252,0.08); border-color: var(--purple); }
+.box-accent { background: rgba(94,234,212,0.08); border-color: var(--accent); }
+.box strong { color: var(--heading); }
+
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+.tag-green { background: rgba(74,222,128,0.15); color: var(--green); }
+.tag-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.tag-red { background: rgba(248,113,113,0.15); color: var(--red); }
+.tag-blue { background: rgba(96,165,250,0.15); color: var(--blue); }
+
+/* COMPARISON BLOCKS */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0;
+}
+.compare > div {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.compare > div h4 { margin-top: 0; }
+
+/* TIMELINE / STEPS */
+.step {
+  display: flex;
+  gap: 20px;
+  margin: 20px 0;
+  padding: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1.1em;
+}
+.step-content { flex: 1; }
+.step-content h4 { margin-top: 0; color: var(--heading); }
+
+/* CHECKLIST */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+}
+.check-icon {
+  width: 22px; height: 22px;
+  border: 2px solid var(--border2);
+  border-radius: 6px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* DIAGRAM */
+.diagram {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin: 16px 0;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85em;
+  line-height: 2;
+  color: var(--text2);
+  overflow-x: auto;
+}
+.diagram strong { color: var(--accent); }
+.diagram em { color: var(--yellow); font-style: normal; }
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 40px 0;
+  color: var(--text2);
+  font-size: 0.85em;
+  border-top: 1px solid var(--border);
+  margin-top: 60px;
+}
+
+@media (max-width: 768px) {
+  .hero h1 { font-size: 1.8em; }
+  section { padding: 24px; }
+  .toc ol { columns: 1; }
+  .compare { grid-template-columns: 1fr; }
+  table { font-size: 0.82em; }
+  th, td { padding: 6px 8px; }
+}
+
+@media print {
+  body { background: #fff; color: #222; }
+  section, .toc { border-color: #ddd; background: #fafafa; }
+  .hero { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- HEADER -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="hero">
+<div class="container">
+  <h1>Prima.cpp → <span>Vulkan</span><br>Полное руководство по портированию</h1>
+  <div class="subtitle">Техническая документация для добавления поддержки AMD, Intel, ARM Mali и Qualcomm Adreno GPU через Vulkan бэкенд</div>
+  <div class="meta">
+    <span>📄 Версия 1.0</span>
+    <span>📅 Февраль 2026</span>
+    <span>🔧 Для хакатона Claude Code</span>
+    <span>⏱️ ~14–28 часов работы</span>
+  </div>
+</div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TABLE OF CONTENTS -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="toc">
+<h2>📋 Содержание</h2>
+<ol>
+  <li><a href="#s01">Зачем портировать на Vulkan</a></li>
+  <li><a href="#s02">Архитектура prima.cpp: 4-уровневый стек</a></li>
+  <li><a href="#s03">Что такое Vulkan бэкенд llama.cpp</a></li>
+  <li><a href="#s04">Словарь перевода CUDA → Vulkan</a></li>
+  <li><a href="#s05">Инвентаризация шейдеров (уже написанных)</a></li>
+  <li><a href="#s06">Конвейер компиляции шейдеров</a></li>
+  <li><a href="#s07">Код бок о бок: CUDA vs Vulkan</a></li>
+  <li><a href="#s08">Фаза 0: Разведка — анализ кодовой базы</a></li>
+  <li><a href="#s09">Фаза 1: Интеграция сборки (Makefile/CMake)</a></li>
+  <li><a href="#s10">Фаза 2: Halda + Vulkan (ядро портирования)</a></li>
+  <li><a href="#s11">Фаза 3: PRP-кольцо и сетевой слой</a></li>
+  <li><a href="#s12">Фаза 4: Prefetch, mmap и дисковый I/O</a></li>
+  <li><a href="#s13">Фаза 5: Тестирование и валидация</a></li>
+  <li><a href="#s14">Бенчмарки: Vulkan vs CUDA vs CPU</a></li>
+  <li><a href="#s15">Подводные камни и edge cases</a></li>
+  <li><a href="#s16">Поддержка конкретных платформ</a></li>
+  <li><a href="#s17">Чеклист для хакатона (по часам)</a></li>
+  <li><a href="#s18">Будущее: WebGPU, SYCL, расширяемость</a></li>
+</ol>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 01. ЗАЧЕМ ПОРТИРОВАТЬ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s01">
+<h2><span class="num">01</span> Зачем портировать prima.cpp на Vulkan</h2>
+<p class="desc">Текущая проблема и стратегическое обоснование</p>
+
+<h3>Текущее состояние prima.cpp</h3>
+<p>Prima.cpp — первая распределённая система инференса для домашних кластеров. Она запускает 70B-модели (Llama 3, DeepSeek R1, QwQ-32B) на обычных устройствах через Wi-Fi. <strong>Но поддерживает только NVIDIA CUDA для GPU-ускорения.</strong></p>
+
+<table>
+<tr><th>GPU-ускорение</th><th>Статус в prima.cpp</th><th>% рынка GPU</th></tr>
+<tr><td>NVIDIA CUDA</td><td><span class="tag tag-green">✅ Работает</span></td><td>~20% (дискретные)</td></tr>
+<tr><td>AMD ROCm / Vulkan</td><td><span class="tag tag-red">❌ Нет</span></td><td>~12% (дискретные)</td></tr>
+<tr><td>Intel Arc / Xe (SYCL / Vulkan)</td><td><span class="tag tag-red">❌ Нет</span></td><td>~3% (дискретные) + ~65% (iGPU)</td></tr>
+<tr><td>Apple Metal</td><td><span class="tag tag-red">❌ Нет</span></td><td>~15% (macOS)</td></tr>
+<tr><td>ARM Mali (Android)</td><td><span class="tag tag-red">❌ Нет</span></td><td>~45% (мобильные GPU)</td></tr>
+<tr><td>Qualcomm Adreno (Android)</td><td><span class="tag tag-red">❌ Нет</span></td><td>~35% (мобильные GPU)</td></tr>
+</table>
+
+<div class="box box-red">
+<strong>Проблема:</strong> ~80% GPU в мире не могут использовать prima.cpp для ускорения. Пользователи с AMD Radeon, Intel Arc, мобильными телефонами (Mali, Adreno) — вынуждены считать всё на CPU, теряя 5–50× производительности.
+</div>
+
+<h3>Почему именно Vulkan?</h3>
+<table>
+<tr><th>Подход</th><th>Покрытие</th><th>Время разработки</th><th>Обслуживание</th></tr>
+<tr><td><strong>Vulkan (один раз)</strong></td><td>NVIDIA + AMD + Intel + Mali + Adreno + Android</td><td>14–28 часов</td><td>1× (один код)</td></tr>
+<tr><td>ROCm (для AMD)</td><td>Только AMD Radeon</td><td>10–20 часов</td><td>+1× (отдельный код)</td></tr>
+<tr><td>SYCL (для Intel)</td><td>Только Intel Arc/Xe</td><td>10–20 часов</td><td>+1× (отдельный код)</td></tr>
+<tr><td>Metal (для Apple)</td><td>Только macOS/iOS</td><td>10–20 часов</td><td>+1× (отдельный код)</td></tr>
+<tr><td>OpenCL (устаревший)</td><td>Широко, но медленно</td><td>20–40 часов</td><td>+1× (заброшен в llama.cpp)</td></tr>
+</table>
+
+<div class="box box-green">
+<strong>Vulkan = пол (все получают GPU-ускорение), нативные бэкенды = потолок (максимум на выбранных платформах).</strong> Стратегия llama.cpp: сначала Vulkan для охвата всех, потом CUDA/Metal/SYCL для максимальной скорости на конкретных платформах.
+</div>
+
+<h3>Что получит prima.cpp после портирования</h3>
+<table>
+<tr><th>Возможность</th><th>Сейчас (CUDA only)</th><th>После (+ Vulkan)</th></tr>
+<tr><td>AMD Radeon RX 7900 XT</td><td>❌ Только CPU → ~5 t/s на 7B</td><td>✅ GPU → ~90 t/s на 7B</td></tr>
+<tr><td>Intel Arc A770</td><td>❌ Только CPU</td><td>✅ GPU → ~35 t/s на 7B</td></tr>
+<tr><td>Android телефон (Mali G710)</td><td>❌ Только CPU → ~1 t/s</td><td>✅ GPU → ~3–5 t/s (WIP)</td></tr>
+<tr><td>Гетерогенный кластер</td><td>CUDA + CPU</td><td>CUDA + Vulkan + CPU (любые GPU вместе!)</td></tr>
+<tr><td>Домашний кластер без NVIDIA</td><td>Все устройства на CPU</td><td>Каждый GPU используется оптимально</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 02. АРХИТЕКТУРА -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s02">
+<h2><span class="num">02</span> Архитектура prima.cpp: 4-уровневый стек</h2>
+<p class="desc">Понимание того, где именно нужны изменения</p>
+
+<div class="diagram">
+┌─────────────────────────────────────────────────────────────┐<br>
+│ <strong>Уровень 4: ПРИЛОЖЕНИЕ</strong>                                       │<br>
+│ llama-cli, llama-server, API                                │<br>
+│ <em>prima.cpp добавил: PRP-кольцо, ZMQ-сеть, CLI-параметры</em>     │<br>
+├─────────────────────────────────────────────────────────────┤<br>
+│ <strong>Уровень 3: МОДЕЛЬ</strong>                                           │<br>
+│ llama.cpp — загрузка GGUF, граф вычислений, sampling         │<br>
+│ <em>prima.cpp добавил: mmap/prefetch, Halda-планировщик</em>         │<br>
+├─────────────────────────────────────────────────────────────┤<br>
+│ <strong>Уровень 2: ТЕНЗОРНАЯ БИБЛИОТЕКА</strong>                             │<br>
+│ ggml.c — тензорные операции, абстракция бэкендов             │<br>
+│ <em>prima.cpp: минимальные изменения (если есть)</em>                │<br>
+├──────────┬──────────┬──────────┬──────────┬─────────────────┤<br>
+│ <strong>ggml-cuda</strong>│ <strong>ggml-vk</strong>  │<strong>ggml-metal</strong>│ <strong>ggml-sycl</strong>│ <strong>ggml-cpu</strong>        │<br>
+│ NVIDIA   │ Vulkan   │ Apple    │ Intel    │ Все платформы   │<br>
+│ <em>prima: ✅</em> │ <em>ЦЕЛЬ! →</em>  │ <em>нет</em>      │ <em>нет</em>      │ <em>prima: ✅</em>       │<br>
+└──────────┴──────────┴──────────┴──────────┴─────────────────┘
+</div>
+
+<div class="box box-accent">
+<strong>Ключевой инсайт:</strong> Prima.cpp НЕ модифицировала GPU-бэкенды (Уровень 1). Все изменения — на верхних уровнях: PRP-кольцо, ZMQ, Halda, mmap/prefetch. Vulkan бэкенд уже существует в ggml. Портирование = подключение существующего кода + модификация Halda.
+</div>
+
+<h3>Что конкретно prima.cpp добавила к llama.cpp</h3>
+<table>
+<tr><th>Компонент</th><th>Что делает</th><th>Зависит от GPU бэкенда?</th><th>Нужно менять для Vulkan?</th></tr>
+<tr><td><strong>PRP (Piped-Ring Parallelism)</strong></td><td>Устройства образуют кольцо, каждое обрабатывает часть слоёв и передаёт результат следующему через ZMQ</td><td>❌ Нет — передача через RAM</td><td><span class="tag tag-green">Нет</span></td></tr>
+<tr><td><strong>ZMQ сетевой слой</strong></td><td>Передача промежуточных тензоров между узлами по TCP/Wi-Fi</td><td>❌ Нет — работает с RAM-буферами</td><td><span class="tag tag-green">Нет</span></td></tr>
+<tr><td><strong>mmap загрузка</strong></td><td>Ленивая загрузка весов модели с диска через memory-mapped файлы</td><td>❌ Нет — это ОС-операция</td><td><span class="tag tag-green">Нет</span></td></tr>
+<tr><td><strong>Prefetch</strong></td><td>Предзагрузка следующих слоёв пока текущие вычисляются</td><td>⚠️ Частично — если prefetch вызывает CUDA API напрямую</td><td><span class="tag tag-yellow">Возможно</span></td></tr>
+<tr><td><strong>Halda (планировщик)</strong></td><td>Оптимальное распределение слоёв между CPU и GPU каждого устройства</td><td>⚠️ <strong>Да</strong> — профилирование GPU, замер VRAM</td><td><span class="tag tag-red">ДА</span></td></tr>
+<tr><td><strong>Профилировщик устройств</strong></td><td>Замер TFLOPS CPU/GPU, bandwidth, VRAM, дисковой скорости, сетевой задержки</td><td>⚠️ <strong>Да</strong> — GPU-часть через CUDA</td><td><span class="tag tag-red">ДА</span></td></tr>
+<tr><td><strong>HiGHS LP-солвер</strong></td><td>Решение задачи целочисленного линейного программирования (ILP) для Halda</td><td>❌ Нет — чистая математика</td><td><span class="tag tag-green">Нет</span></td></tr>
+<tr><td><strong>Makefile / система сборки</strong></td><td>Компиляция с флагом <code>GGML_CUDA=1</code></td><td>⚠️ Нужен новый флаг <code>GGML_VULKAN=1</code></td><td><span class="tag tag-red">ДА</span></td></tr>
+</table>
+
+<div class="box box-green">
+<strong>Итого из 8 компонентов prima.cpp:</strong> 5 не требуют изменений, 1 возможно требует, 2 точно требуют. Основная работа — Halda-профилировщик и система сборки.
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 03. ЧТО ТАКОЕ VULKAN БЭКЕНД -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s03">
+<h2><span class="num">03</span> Что такое Vulkan бэкенд llama.cpp</h2>
+<p class="desc">Полная техническая карта того, что уже написано и работает</p>
+
+<h3>Структура файлов</h3>
+<p>Vulkan бэкенд находится в <code>ggml/src/ggml-vulkan/</code> внутри llama.cpp:</p>
+<table>
+<tr><th>Файл</th><th>Строк</th><th>Назначение</th></tr>
+<tr><td><code>ggml-vulkan.cpp</code></td><td>~12,000</td><td>Ядро бэкенда: инициализация GPU, управление памятью, создание пайплайнов, диспетчеризация вычислений, реализация всех тензорных операций через Vulkan API</td></tr>
+<tr><td><code>vulkan-shaders/mul_mm.comp</code></td><td>~500</td><td>Главный шейдер: матричное умножение (GEMM). Отвечает за ~90% вычислений нейросети. Поддерживает тайлинг, shared memory, CoopMat</td></tr>
+<tr><td><code>vulkan-shaders/mul_mat_vec.comp</code></td><td>~300</td><td>Матрица × вектор (GEMV). Используется при генерации каждого нового токена (batch=1). Ограничен пропускной способностью памяти</td></tr>
+<tr><td><code>vulkan-shaders/mul_mm_cm2.comp</code></td><td>~400</td><td>CooperativeMatrix2 — использует тензорные ядра NVIDIA RTX через расширение VK_NV_cooperative_matrix2. Только NVIDIA, даёт максимальную скорость</td></tr>
+<tr><td><code>vulkan-shaders/flash_attn*.comp</code></td><td>~800</td><td>Flash Attention — эффективный механизм внимания без квадратичного расхода памяти. 3 варианта: scalar, CoopMat1, CoopMat2</td></tr>
+<tr><td><code>vulkan-shaders/soft_max.comp</code></td><td>~100</td><td>Softmax-нормализация. Используется в attention-слоях</td></tr>
+<tr><td><code>vulkan-shaders/rope_*.comp</code></td><td>~200</td><td>Rotary Position Embedding — кодирование позиций токенов</td></tr>
+<tr><td><code>vulkan-shaders/norm.comp / rms_norm.comp</code></td><td>~150</td><td>Layer Normalization и RMS Normalization</td></tr>
+<tr><td><code>vulkan-shaders/dequant_*.comp</code></td><td>~400</td><td>Деквантизация: Q4_0, Q4_1, Q5_0, Q5_1, Q8_0 → float16/float32</td></tr>
+<tr><td><code>vulkan-shaders/types.comp / types.glsl</code></td><td>~300</td><td>Определения типов данных и функции деквантизации для K-квантов (Q2_K...Q6_K)</td></tr>
+<tr><td><code>vulkan-shaders/dequant_funcs.glsl</code></td><td>~200</td><td>Функции деквантизации для use в mul_mat_vec: dequantize4() для SIMD-эффективных операций</td></tr>
+<tr><td><code>vulkan-shaders/get_rows*.comp</code></td><td>~100</td><td>Embedding lookup: преобразование token_id → вектор</td></tr>
+<tr><td><code>vulkan-shaders/copy_*.comp</code></td><td>~100</td><td>Копирование/конвертация данных между форматами (F32↔F16, transpose)</td></tr>
+<tr><td><code>vulkan-shaders/mul_mmq.comp</code></td><td>~300</td><td>DP4A (integer dot product) матричное умножение — int8 ускорение для старых GPU без CoopMat</td></tr>
+<tr><td><code>vulkan-shaders/vulkan-shaders-gen.cpp</code></td><td>~700</td><td>Генератор: компилирует все GLSL шейдеры в SPIR-V при сборке проекта, создаёт все варианты</td></tr>
+</table>
+
+<div class="box box-accent">
+<strong>~15,000 строк кода + ~30 шейдерных файлов</strong> — всё это уже написано, протестировано и работает на NVIDIA, AMD, Intel, Mali, Adreno. Prima.cpp получает это <strong>бесплатно</strong>, потому что наследует ggml.
+</div>
+
+<h3>Какие GPU поддерживает Vulkan бэкенд</h3>
+<table>
+<tr><th>Вендор</th><th>GPU</th><th>Vulkan версия</th><th>Особенности</th><th>Статус</th></tr>
+<tr><td>NVIDIA</td><td>GTX 1000+ / RTX 2000+</td><td>1.2–1.3</td><td>CoopMat1/2, DP4A, FP16, BF16 (RTX 40+)</td><td><span class="tag tag-green">Отлично</span></td></tr>
+<tr><td>AMD</td><td>RX 5000+ / RX 6000+ / RX 7000+</td><td>1.2–1.3</td><td>CoopMat1 (RDNA3+), DP4A (Vega+), FP16</td><td><span class="tag tag-green">Отлично</span></td></tr>
+<tr><td>Intel</td><td>Arc A-series, Xe iGPU</td><td>1.2–1.3</td><td>DP4A, FP16. UMA для iGPU</td><td><span class="tag tag-green">Хорошо</span></td></tr>
+<tr><td>ARM</td><td>Mali G710, G610, Immortalis</td><td>1.1–1.2</td><td>FP16, subgroup_size=16, UMA</td><td><span class="tag tag-yellow">В разработке</span></td></tr>
+<tr><td>Qualcomm</td><td>Adreno 640+, 730+</td><td>1.1–1.2</td><td>FP16, UMA</td><td><span class="tag tag-yellow">В разработке</span></td></tr>
+<tr><td>Samsung</td><td>Xclipse (RDNA2-based)</td><td>1.1</td><td>FP16, UMA</td><td><span class="tag tag-blue">Экспериментально</span></td></tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 04. СЛОВАРЬ ПЕРЕВОДА -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s04">
+<h2><span class="num">04</span> Словарь перевода CUDA → Vulkan</h2>
+<p class="desc">Полное соответствие концепций между CUDA и Vulkan/GLSL</p>
+
+<h3>Концепции GPU-вычислений</h3>
+<table>
+<tr><th>Концепция</th><th>CUDA</th><th>Vulkan / GLSL</th><th>Пояснение</th></tr>
+<tr><td>Файл GPU-кода</td><td><code>.cu</code> (CUDA C++)</td><td><code>.comp</code> (GLSL compute shader)</td><td>Исходный код программы для GPU</td></tr>
+<tr><td>Промежуточный код</td><td>PTX</td><td><strong>SPIR-V</strong></td><td>Промежуточное представление, portable</td></tr>
+<tr><td>Машинный код GPU</td><td>SASS (NVIDIA)</td><td>Зависит от драйвера (JIT-компиляция)</td><td>Финальный исполняемый код</td></tr>
+<tr><td>Компилятор</td><td><code>nvcc</code></td><td><code>glslc</code> (из Vulkan SDK)</td><td>GLSL → SPIR-V при сборке проекта</td></tr>
+<tr><td>Группа потоков</td><td>Block (до 1024)</td><td>WorkGroup (до 1024)</td><td>Потоки, делящие shared memory</td></tr>
+<tr><td>Минимальная SIMD-единица</td><td>Warp (32)</td><td>Subgroup (32 NV, 64 AMD, 16 Mali)</td><td>Все выполняют одну инструкцию</td></tr>
+<tr><td>ID потока в блоке</td><td><code>threadIdx.x</code></td><td><code>gl_LocalInvocationID.x</code></td><td>0 до WorkGroupSize-1</td></tr>
+<tr><td>ID блока</td><td><code>blockIdx.x</code></td><td><code>gl_WorkGroupID.x</code></td><td>Какой блок данных обрабатываем</td></tr>
+<tr><td>Глобальный ID потока</td><td><code>blockIdx.x * blockDim.x + threadIdx.x</code></td><td><code>gl_GlobalInvocationID.x</code></td><td>Уникальный ID среди всех потоков</td></tr>
+<tr><td>Размер блока</td><td><code>blockDim.x</code></td><td><code>gl_WorkGroupSize.x</code></td><td>Число потоков в одной группе</td></tr>
+<tr><td>Shared memory</td><td><code>__shared__ float s[256];</code></td><td><code>shared float s[256];</code></td><td>Быстрая память внутри группы (~48KB)</td></tr>
+<tr><td>Глобальная память</td><td><code>float* data</code> (указатель)</td><td><code>layout(binding=0) buffer { float data[]; };</code></td><td>Основная GPU-память (VRAM)</td></tr>
+<tr><td>Аргументы ядра</td><td>Параметры функции</td><td><code>layout(push_constant) uniform { uint ncols; };</code></td><td>Маленькие константы CPU→GPU (до 128 байт)</td></tr>
+<tr><td>Запуск вычисления</td><td><code>kernel&lt;&lt;&lt;grid,block&gt;&gt;&gt;(args);</code></td><td><code>vkCmdDispatch(cmd, gx, gy, gz);</code></td><td>Отправить работу на GPU</td></tr>
+<tr><td>Барьер в блоке</td><td><code>__syncthreads();</code></td><td><code>barrier();</code></td><td>Подождать все потоки в группе</td></tr>
+<tr><td>Warp shuffle</td><td><code>__shfl_xor_sync(mask, val, lane);</code></td><td><code>subgroupAdd(val);</code> или <code>subgroupShuffle()</code></td><td>Обмен данными внутри subgroup</td></tr>
+<tr><td>Атомарная операция</td><td><code>atomicAdd(&dst, val);</code></td><td><code>atomicAdd(dst, val);</code></td><td>Потокобезопасная запись (почти идентично!)</td></tr>
+<tr><td>Тензорные ядра</td><td><code>wmma::mma_sync()</code></td><td><code>coopMatMulAdd()</code> (KHR_cooperative_matrix)</td><td>Аппаратное матричное умножение 16×16</td></tr>
+</table>
+
+<h3>API управления (C++ сторона)</h3>
+<table>
+<tr><th>Операция</th><th>CUDA API</th><th>Vulkan API</th></tr>
+<tr><td>Найти GPU</td><td><code>cudaGetDeviceCount(&count);</code></td><td><code>vkEnumeratePhysicalDevices(instance, &count, devices);</code></td></tr>
+<tr><td>Свойства GPU</td><td><code>cudaGetDeviceProperties(&props, id);</code></td><td><code>vkGetPhysicalDeviceProperties(device, &props);</code></td></tr>
+<tr><td>Доступная VRAM</td><td><code>cudaMemGetInfo(&free, &total);</code></td><td><code>vkGetPhysicalDeviceMemoryProperties(device, &mem);</code> + перебор heap'ов</td></tr>
+<tr><td>Выделение памяти GPU</td><td><code>cudaMalloc(&ptr, size);</code></td><td><code>vkAllocateMemory(device, &info, nullptr, &mem);</code></td></tr>
+<tr><td>Освобождение памяти</td><td><code>cudaFree(ptr);</code></td><td><code>vkFreeMemory(device, mem, nullptr);</code></td></tr>
+<tr><td>Копирование CPU→GPU</td><td><code>cudaMemcpy(dst, src, size, cudaMemcpyHostToDevice);</code></td><td>Staging buffer → <code>vkCmdCopyBuffer(cmd, staging, device, ...)</code></td></tr>
+<tr><td>Копирование GPU→CPU</td><td><code>cudaMemcpy(dst, src, size, cudaMemcpyDeviceToHost);</code></td><td><code>vkMapMemory(device, mem, 0, size, 0, &ptr);</code> + <code>memcpy()</code></td></tr>
+<tr><td>Ожидание GPU</td><td><code>cudaDeviceSynchronize();</code></td><td><code>vkWaitForFences(device, 1, &fence, VK_TRUE, timeout);</code></td></tr>
+<tr><td>Создание «программы»</td><td>nvcc компилирует .cu → .o</td><td><code>vkCreateShaderModule(device, &createInfo, nullptr, &shader);</code></td></tr>
+<tr><td>Создание пайплайна</td><td>Неявно при запуске ядра</td><td><code>vkCreateComputePipelines(device, cache, 1, &info, nullptr, &pipeline);</code></td></tr>
+</table>
+
+<div class="box box-blue">
+<strong>Важно:</strong> В контексте prima.cpp вам НЕ нужно вызывать Vulkan API напрямую. Библиотека ggml предоставляет абстракцию: <code>ggml_backend_vk_init()</code>, <code>ggml_backend_buft_get_max_size()</code>, <code>ggml_backend_dev_memory()</code>. Таблица выше — для понимания, что происходит «под капотом».
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 05. ИНВЕНТАРИЗАЦИЯ ШЕЙДЕРОВ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s05">
+<h2><span class="num">05</span> Инвентаризация шейдеров (уже написанных)</h2>
+<p class="desc">Все GPU-программы, которые prima.cpp получает бесплатно</p>
+
+<h3>Полный список вычислительных шейдеров</h3>
+<table>
+<tr><th>Шейдер</th><th>Операция</th><th>Используется для</th><th>% от вычислений</th></tr>
+<tr><td><code>mul_mm.comp</code></td><td>Матрица × Матрица (GEMM)</td><td>Обработка промпта (prompt processing). Каждый attention head и FFN-слой при batch &gt; 1</td><td><strong>~60–80%</strong> (pp)</td></tr>
+<tr><td><code>mul_mat_vec.comp</code></td><td>Матрица × Вектор (GEMV)</td><td>Генерация токенов (token generation). Каждый слой при batch = 1</td><td><strong>~90%</strong> (tg)</td></tr>
+<tr><td><code>mul_mm_cm2.comp</code></td><td>GEMM через CoopMat2</td><td>То же что mul_mm, но через тензорные ядра NVIDIA RTX. До 3× быстрее</td><td>~60–80% (pp, только NV)</td></tr>
+<tr><td><code>flash_attn.comp</code></td><td>Flash Attention (scalar)</td><td>Механизм внимания без квадратичного расхода памяти. Критичен для длинных контекстов</td><td>~15–30%</td></tr>
+<tr><td><code>flash_attn_cm1.comp</code></td><td>Flash Attention + CoopMat1</td><td>Flash Attention с тензорными ядрами (AMD RDNA3, NVIDIA)</td><td>~15–30% (на поддерживаемых GPU)</td></tr>
+<tr><td><code>flash_attn_cm2.comp</code></td><td>Flash Attention + CoopMat2</td><td>Flash Attention с NV CoopMat2 (только NVIDIA RTX)</td><td>~15–30% (только NV)</td></tr>
+<tr><td><code>soft_max.comp</code></td><td>Softmax</td><td>Нормализация в attention: scores → probabilities</td><td>~2–3%</td></tr>
+<tr><td><code>rope_norm.comp</code></td><td>RoPE (normal)</td><td>Rotary Position Embedding — кодирование позиций</td><td>~1%</td></tr>
+<tr><td><code>rope_neox.comp</code></td><td>RoPE (NeoX variant)</td><td>Альтернативное кодирование позиций (GPT-NeoX, Llama)</td><td>~1%</td></tr>
+<tr><td><code>norm.comp</code></td><td>Layer Normalization</td><td>Нормализация после каждого слоя</td><td>&lt;1%</td></tr>
+<tr><td><code>rms_norm.comp</code></td><td>RMS Normalization</td><td>Нормализация для Llama-family моделей</td><td>&lt;1%</td></tr>
+<tr><td><code>group_norm.comp</code></td><td>Group Normalization</td><td>Нормализация для некоторых архитектур</td><td>&lt;1%</td></tr>
+<tr><td><code>add.comp</code></td><td>Поэлементное сложение</td><td>Residual connections: output += input</td><td>&lt;1%</td></tr>
+<tr><td><code>mul.comp</code></td><td>Поэлементное умножение</td><td>Gating в SwiGLU/GeGLU FFN-слоях</td><td>&lt;1%</td></tr>
+<tr><td><code>scale.comp</code></td><td>Масштабирование тензора</td><td>Scaling attention scores by 1/√d_k</td><td>&lt;0.5%</td></tr>
+<tr><td><code>clamp.comp</code></td><td>Ограничение значений</td><td>Clamp к min/max (для некоторых активаций)</td><td>&lt;0.1%</td></tr>
+<tr><td><code>gelu.comp</code></td><td>GELU активация</td><td>Активация в FFN-слоях (GPT-family)</td><td>&lt;1%</td></tr>
+<tr><td><code>silu.comp</code></td><td>SiLU (Swish) активация</td><td>Активация в FFN-слоях (Llama-family)</td><td>&lt;1%</td></tr>
+<tr><td><code>relu.comp</code></td><td>ReLU активация</td><td>Классическая активация</td><td>&lt;0.5%</td></tr>
+<tr><td><code>diag_mask_inf.comp</code></td><td>Диагональная маска</td><td>Causal attention mask: будущие позиции → -∞</td><td>&lt;0.5%</td></tr>
+<tr><td><code>get_rows.comp</code></td><td>Embedding lookup</td><td>token_id → вектор (первый слой модели)</td><td>&lt;0.5%</td></tr>
+<tr><td><code>cpy_*.comp</code></td><td>Копирование/конвертация</td><td>F32→F16, F16→F32, transpose для KV-кэша</td><td>&lt;1%</td></tr>
+<tr><td><code>concat.comp</code></td><td>Конкатенация тензоров</td><td>Объединение head'ов после multi-head attention</td><td>&lt;0.5%</td></tr>
+<tr><td><code>pad.comp</code></td><td>Padding тензоров</td><td>Выравнивание до кратных размеров для оптимальной загрузки</td><td>&lt;0.1%</td></tr>
+<tr><td><code>upscale.comp</code></td><td>Upsampling</td><td>Для vision-моделей (не используется в LLM text-only)</td><td>0%</td></tr>
+<tr><td><code>timestep_embedding.comp</code></td><td>Temporal embedding</td><td>Для diffusion моделей</td><td>0%</td></tr>
+<tr><td><code>dequant_*.comp</code></td><td>Деквантизация (каждый тип отдельно)</td><td>Конвертация квантизованных весов → float для вычислений</td><td>Входит в mul_mat</td></tr>
+<tr><td><code>mul_mmq.comp</code></td><td>DP4A integer matmul</td><td>Int8 ускоренное матричное умножение для GPU с DP4A</td><td>Альтернатива mul_mm</td></tr>
+<tr><td><code>mul_mat_vec_p021.comp</code></td><td>Перемутированный GEMV</td><td>Для тензоров с нестандартным порядком осей</td><td>Редко</td></tr>
+<tr><td><code>mul_mat_vec_nc.comp</code></td><td>Non-contiguous GEMV</td><td>Для тензоров с нестандартными стrides</td><td>Редко</td></tr>
+</table>
+
+<div class="box box-green">
+<strong>Ни один из этих шейдеров НЕ нужно писать.</strong> Они уже в llama.cpp, протестированы на десятках моделей GPU. Prima.cpp наследует их через ggml.
+</div>
+
+<h3>Количество скомпилированных вариантов</h3>
+<p>Каждый шейдер компилируется в множество вариантов через комбинации #define:</p>
+<table>
+<tr><th>Ось вариации</th><th>Варианты</th><th>Пример</th></tr>
+<tr><td>Тип данных A (матрица)</td><td>F32, F16, BF16, Q4_0, Q4_1, Q5_0, Q5_1, Q8_0, Q2_K, Q3_K, Q4_K, Q5_K, Q6_K, IQ1_S, IQ2_XXS, IQ3_S, IQ4_NL</td><td><code>-DDATA_A_Q4_0=1</code></td></tr>
+<tr><td>Тип данных B (вектор)</td><td>float, float16_t</td><td><code>-DB_TYPE=float16_t</code></td></tr>
+<tr><td>Тип результата D</td><td>float, float16_t</td><td><code>-DD_TYPE=float</code></td></tr>
+<tr><td>Выравнивание</td><td>aligned (vec4 загрузка), unaligned</td><td><code>-DALIGNED=1</code></td></tr>
+<tr><td>Размер тайла</td><td>s (16×16), m (32×32), l (64×64)</td><td>Определяется workgroup size</td></tr>
+<tr><td>CoopMat режим</td><td>off, CoopMat1 (KHR), CoopMat2 (NV)</td><td><code>-DCOOPMAT=1</code></td></tr>
+<tr><td>Аккумулятор</td><td>float32, float16</td><td><code>-DACC_TYPE=float</code></td></tr>
+<tr><td>MulMatID (MoE)</td><td>off, on</td><td><code>-DMUL_MAT_ID=1</code></td></tr>
+</table>
+
+<p><strong>Итого:</strong> ~17 типов × 2 B × 2 align × 3 размера × 3 CoopMat × 2 acc × 2 MoE = теоретически тысячи, на практике генерируется <strong>~300–500 реальных .spv файлов</strong>.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 06. КОНВЕЙЕР КОМПИЛЯЦИИ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s06">
+<h2><span class="num">06</span> Конвейер компиляции шейдеров</h2>
+<p class="desc">Полная цепочка от исходного кода до исполнения на GPU</p>
+
+<div class="diagram">
+<strong>ЭТАП 1: Сборка проекта (cmake/make)</strong><br>
+<br>
+mul_mm.comp + defines → <em>glslc</em> → matmul_q4_0_f16_aligned.spv<br>
+mul_mat_vec.comp + defines → <em>glslc</em> → mul_mat_vec_q4_0_f32_f32.spv<br>
+soft_max.comp + defines → <em>glslc</em> → soft_max_f32.spv<br>
+... (~300 комбинаций) ...<br>
+<br>
+<strong>ЭТАП 2: Встраивание в бинарник</strong><br>
+<br>
+~300 .spv файлов → <em>vulkan-shaders-gen</em> → ggml-vulkan-shaders.cpp<br>
+(SPIR-V байткод хранится как uint32_t массивы в C++ файле)<br>
+<br>
+<strong>ЭТАП 3: Запуск программы (runtime)</strong><br>
+<br>
+uint32_t matmul_q4_0_data[] → <em>vkCreateShaderModule()</em> → VkShaderModule<br>
+VkShaderModule → <em>vkCreateComputePipelines()</em> → VkPipeline<br>
+(«ggml_vulkan: Compiling shaders....Done!» — это этот этап, 5–30 сек)<br>
+<br>
+<strong>ЭТАП 4: Исполнение на GPU (JIT)</strong><br>
+<br>
+VkPipeline (SPIR-V) → <em>Драйвер GPU</em> → Нативный машинный код<br>
+(NVIDIA: SASS, AMD: ISA, Intel: EU code, Mali: bifrost code)
+</div>
+
+<h3>Что нужно для сборки с Vulkan</h3>
+<table>
+<tr><th>Зависимость</th><th>Установка (Ubuntu/Debian)</th><th>Зачем</th></tr>
+<tr><td>Vulkan SDK (headers)</td><td><code>sudo apt install libvulkan-dev</code></td><td>Заголовочные файлы Vulkan API</td></tr>
+<tr><td>glslc (shader compiler)</td><td><code>sudo apt install glslc</code> или из Vulkan SDK</td><td>Компиляция GLSL → SPIR-V</td></tr>
+<tr><td>Vulkan Validation Layers</td><td><code>sudo apt install vulkan-validationlayers</code></td><td>Отладка (опционально, но полезно)</td></tr>
+<tr><td>vulkaninfo</td><td><code>sudo apt install vulkan-tools</code></td><td>Проверить что GPU виден через Vulkan</td></tr>
+<tr><td>Драйвер GPU</td><td>Зависит от вендора</td><td>NVIDIA: nvidia-driver-5xx, AMD: mesa-vulkan-drivers, Intel: intel-media-va-driver</td></tr>
+</table>
+
+<pre><code><span class="cm"># Проверка что Vulkan работает на вашей системе:</span>
+$ vulkaninfo --summary
+
+<span class="cm"># Ожидаемый вывод:</span>
+GPU id = 0 (NVIDIA GeForce RTX 3070)
+   apiVersion     = 1.3.277
+   driverVersion  = 560.35.03
+   vendorID       = 0x10de
+   deviceType     = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+   deviceName     = NVIDIA GeForce RTX 3070
+
+<span class="cm"># Или для AMD:</span>
+GPU id = 0 (AMD Radeon RX 7900 XT (RADV NAVI31))
+   apiVersion     = 1.3.290
+   vendorID       = 0x1002
+   deviceType     = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU</code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 07. КОД БОК О БОК -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s07">
+<h2><span class="num">07</span> Код бок о бок: CUDA vs Vulkan</h2>
+<p class="desc">Одна операция в двух представлениях — чтобы увидеть что математика идентична</p>
+
+<h3>Операция: матрица × вектор с деквантизацией Q4_0</h3>
+<p>Это ключевая операция при генерации каждого токена. Матрица весов (квантизованная в Q4_0) умножается на входной вектор.</p>
+
+<div class="compare">
+<div>
+<h4 style="color: var(--orange);">🟠 CUDA (ggml-cuda/mmv.cu)</h4>
+<pre><code><span class="cm">// CUDA ядро для mul_mat_vec Q4_0</span>
+<span class="kw">__global__</span> <span class="kw">void</span> <span class="fn">mul_mat_vec_q4_0_f32</span>(
+    <span class="kw">const</span> <span class="type">void</span> * __restrict__ src0,
+    <span class="kw">const</span> <span class="type">float</span> * __restrict__ src1,
+    <span class="type">float</span> * dst,
+    <span class="type">int</span> ncols, <span class="type">int</span> nrows)
+{
+    <span class="type">int</span> row = <span class="fn">blockIdx</span>.x;
+    <span class="type">int</span> tid = <span class="fn">threadIdx</span>.x;
+    
+    <span class="cm">// Q4_0: 32 значения в блоке, 4 бита каждое</span>
+    <span class="type">float</span> sum = <span class="num">0.0f</span>;
+    <span class="kw">for</span> (<span class="type">int</span> col = tid; col < ncols;
+         col += <span class="fn">blockDim</span>.x) {
+        <span class="cm">// Деквантизация</span>
+        <span class="type">float</span> val = <span class="fn">dequantize_q4_0</span>(
+            src0, row, col);
+        sum += val * src1[col];
+    }
+    
+    <span class="cm">// Warp-level reduction</span>
+    sum = <span class="fn">warpReduceSum</span>(sum);
+    
+    <span class="kw">if</span> (tid == <span class="num">0</span>) dst[row] = sum;
+}</code></pre>
+<p style="font-size:0.85em; color:var(--text2);">
+<strong>Запуск:</strong><br>
+<code>mul_mat_vec_q4_0_f32&lt;&lt;&lt;nrows, 256&gt;&gt;&gt;(...);</code><br>
+<strong>Работает:</strong> ❌ Только NVIDIA
+</p>
+</div>
+<div>
+<h4 style="color: var(--accent);">🟢 Vulkan GLSL (vulkan-shaders/mul_mat_vec.comp)</h4>
+<pre><code><span class="cm">// Vulkan compute shader для mul_mat_vec</span>
+<span class="kw">#version</span> <span class="num">450</span>
+<span class="kw">#extension</span> GL_EXT_shader_16bit_storage
+<span class="kw">layout</span>(local_size_x = <span class="num">32</span>) <span class="kw">in</span>;
+
+<span class="kw">layout</span>(binding = <span class="num">0</span>) <span class="kw">readonly</span> <span class="kw">buffer</span> A {
+    <span class="type">uint8_t</span> data_a[]; <span class="cm">// Q4_0 данные</span>
+};
+<span class="kw">layout</span>(binding = <span class="num">1</span>) <span class="kw">readonly</span> <span class="kw">buffer</span> B {
+    <span class="type">B_TYPE</span> data_b[];  <span class="cm">// входной вектор</span>
+};
+<span class="kw">layout</span>(binding = <span class="num">2</span>) <span class="kw">writeonly</span> <span class="kw">buffer</span> D {
+    <span class="type">D_TYPE</span> data_d[];  <span class="cm">// результат</span>
+};
+<span class="kw">layout</span>(push_constant) <span class="kw">uniform</span> Params {
+    <span class="type">uint</span> ncols; <span class="type">uint</span> nrows;
+};
+
+<span class="kw">void</span> <span class="fn">main</span>() {
+    <span class="type">uint</span> row = <span class="fn">gl_WorkGroupID</span>.x;
+    <span class="type">uint</span> tid = <span class="fn">gl_LocalInvocationID</span>.x;
+    
+    <span class="type">float</span> sum = <span class="num">0.0</span>;
+    <span class="kw">for</span> (<span class="type">uint</span> col = tid; col < ncols;
+         col += <span class="fn">gl_WorkGroupSize</span>.x) {
+        <span class="type">float</span> val = <span class="fn">dequantize_q4_0</span>(
+            data_a, row, col);
+        sum += val * <span class="type">float</span>(data_b[col]);
+    }
+    
+    <span class="cm">// Subgroup reduction</span>
+    sum = <span class="fn">subgroupAdd</span>(sum);
+    
+    <span class="kw">if</span> (tid == <span class="num">0</span>) data_d[row] = <span class="type">D_TYPE</span>(sum);
+}</code></pre>
+<p style="font-size:0.85em; color:var(--text2);">
+<strong>Запуск:</strong><br>
+<code>vkCmdDispatch(cmd, nrows, 1, 1);</code><br>
+<strong>Работает:</strong> ✅ NVIDIA, AMD, Intel, Mali, Adreno
+</p>
+</div>
+</div>
+
+<div class="box box-accent">
+<strong>Видите?</strong> Математика <code>sum += val * vec[col]</code> — <strong>абсолютно идентична</strong>. Только синтаксис обёртки различается. Это объясняет почему Vulkan достигает 70–90% от скорости CUDA: алгоритм тот же, overhead от абстракции минимален.
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 08. ФАЗА 0: РАЗВЕДКА -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s08">
+<h2><span class="num">08</span> Фаза 0: Разведка — анализ кодовой базы</h2>
+<p class="desc">Время: 1–2 часа. Определить текущее состояние prima.cpp относительно Vulkan.</p>
+
+<div class="step">
+<div class="step-num">0.1</div>
+<div class="step-content">
+<h4>Клонировать и изучить структуру</h4>
+<pre><code><span class="cm"># Клонирование</span>
+git clone https://github.com/Lizonghang/prima.cpp
+cd prima.cpp
+
+<span class="cm"># Проверить наличие Vulkan файлов</span>
+ls -la ggml/src/ggml-vulkan/ 2>/dev/null || echo "НЕТ VULKAN ДИРЕКТОРИИ"
+ls -la ggml/src/ggml-vulkan/vulkan-shaders/ 2>/dev/null || echo "НЕТ ШЕЙДЕРОВ"
+
+<span class="cm"># Проверить версию ggml (сравнить с upstream llama.cpp)</span>
+git log --oneline -5 ggml/
+
+<span class="cm"># Посмотреть что именно prima.cpp поменяла</span>
+git diff HEAD~1 --stat | head -30</code></pre>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">0.2</div>
+<div class="step-content">
+<h4>Найти все CUDA-зависимости в prima.cpp коде</h4>
+<pre><code><span class="cm"># Прямые CUDA API вызовы вне ggml</span>
+grep -rn "cuda\|CUDA\|cudaMalloc\|cudaMemcpy\|cudaGetDevice\|cudaMemGetInfo" \
+  --include="*.cpp" --include="*.h" \
+  src/ examples/ | grep -v "ggml/"
+
+<span class="cm"># CUDA-специфичные #ifdef</span>
+grep -rn "GGML_USE_CUDA\|GGML_CUDA\|__CUDA" \
+  --include="*.cpp" --include="*.h" \
+  src/ examples/ | grep -v "ggml/"
+
+<span class="cm"># Makefile флаги</span>
+grep -n "CUDA\|cuda\|nvcc\|GGML_CUDA" Makefile CMakeLists.txt</code></pre>
+<div class="box box-yellow">
+<strong>Критический вопрос:</strong> Если grep находит CUDA-вызовы <em>вне</em> директории ggml/ — значит prima.cpp вызывает CUDA напрямую и нужна замена. Если все CUDA-вызовы только внутри ggml/ — значит prima.cpp использует абстракцию и портирование проще.
+</div>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">0.3</div>
+<div class="step-content">
+<h4>Определить сценарий</h4>
+<table>
+<tr><th>Результат проверки</th><th>Сценарий</th><th>Сложность</th></tr>
+<tr><td>✅ <code>ggml/src/ggml-vulkan/</code> существует и актуален</td><td><strong>A: Лёгкий путь</strong> — включить Vulkan в сборке, модифицировать Halda</td><td>🟢 8–16 часов</td></tr>
+<tr><td>⚠️ <code>ggml-vulkan/</code> существует, но устаревший</td><td><strong>B: Обновление</strong> — скопировать свежие файлы из upstream llama.cpp</td><td>🟡 14–24 часа</td></tr>
+<tr><td>❌ <code>ggml-vulkan/</code> отсутствует</td><td><strong>C: Полная интеграция</strong> — скопировать весь Vulkan бэкенд из upstream</td><td>🟡 16–28 часов</td></tr>
+<tr><td>💀 Prima.cpp вызывает CUDA напрямую (много мест)</td><td><strong>D: Рефакторинг</strong> — заменить прямые CUDA вызовы на ggml абстракцию</td><td>🔴 24–40 часов</td></tr>
+</table>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">0.4</div>
+<div class="step-content">
+<h4>Сравнить версии ggml</h4>
+<pre><code><span class="cm"># В prima.cpp:</span>
+cat ggml/CMakeLists.txt | grep "project\|version" | head -3
+
+<span class="cm"># Сравнить с актуальным llama.cpp:</span>
+git clone --depth 1 https://github.com/ggml-org/llama.cpp /tmp/llama-upstream
+diff -rq prima.cpp/ggml/src/ggml-vulkan/ /tmp/llama-upstream/ggml/src/ggml-vulkan/ 2>/dev/null
+
+<span class="cm"># Если Vulkan файлов нет — копировать:</span>
+cp -r /tmp/llama-upstream/ggml/src/ggml-vulkan/ ggml/src/ggml-vulkan/</code></pre>
+</div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 09. ФАЗА 1: СБОРКА -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s09">
+<h2><span class="num">09</span> Фаза 1: Интеграция сборки (Makefile/CMake)</h2>
+<p class="desc">Время: 2–4 часа. Заставить проект компилироваться с <code>GGML_VULKAN=1</code>.</p>
+
+<h3>Для Makefile-based сборки (prima.cpp использует Makefile)</h3>
+<pre><code><span class="cm"># Текущая сборка prima.cpp с CUDA:</span>
+make GGML_CUDA=1 USE_HIGHS=1 -j$(nproc)
+
+<span class="cm"># ЦЕЛЬ: собрать с Vulkan:</span>
+make GGML_VULKAN=1 USE_HIGHS=1 -j$(nproc)
+
+<span class="cm"># Или с обоими бэкендами одновременно:</span>
+make GGML_CUDA=1 GGML_VULKAN=1 USE_HIGHS=1 -j$(nproc)</code></pre>
+
+<h3>Что нужно добавить/изменить в Makefile</h3>
+<pre><code><span class="cm"># ═══════════════════════════════════════════════</span>
+<span class="cm"># БЛОК VULKAN (добавить рядом с блоком CUDA)</span>
+<span class="cm"># ═══════════════════════════════════════════════</span>
+
+<span class="kw">ifdef</span> GGML_VULKAN
+  <span class="cm"># Флаги компиляции</span>
+  MK_CFLAGS   += -DGGML_USE_VULKAN
+  MK_CXXFLAGS += -DGGML_USE_VULKAN
+  MK_LDFLAGS  += -lvulkan
+  
+  <span class="cm"># Объектные файлы Vulkan бэкенда</span>
+  OBJS += ggml/src/ggml-vulkan/ggml-vulkan.o
+  
+  <span class="cm"># Генерация шейдеров при сборке</span>
+  <span class="cm"># 1. Собрать генератор шейдеров</span>
+  ggml/src/ggml-vulkan/vulkan-shaders/vulkan-shaders-gen: \
+    ggml/src/ggml-vulkan/vulkan-shaders/vulkan-shaders-gen.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< -lvulkan
+  
+  <span class="cm"># 2. Запустить генератор → .spv файлы → .cpp с массивами</span>
+  ggml/src/ggml-vulkan/ggml-vulkan-shaders.cpp: \
+    ggml/src/ggml-vulkan/vulkan-shaders/vulkan-shaders-gen
+	cd ggml/src/ggml-vulkan && ./vulkan-shaders/vulkan-shaders-gen
+  
+  <span class="cm"># 3. Скомпилировать сгенерированный файл</span>
+  OBJS += ggml/src/ggml-vulkan/ggml-vulkan-shaders.o
+  
+<span class="kw">endif</span></code></pre>
+
+<h3>Для CMake-based сборки (рекомендуется)</h3>
+<pre><code><span class="cm"># CMakeLists.txt — добавить секцию Vulkan</span>
+
+<span class="kw">option</span>(GGML_VULKAN <span class="str">"ggml: use Vulkan"</span> OFF)
+
+<span class="kw">if</span> (GGML_VULKAN)
+    <span class="fn">find_package</span>(Vulkan REQUIRED)
+    <span class="fn">message</span>(STATUS <span class="str">"Vulkan found"</span>)
+    
+    <span class="cm"># Найти компилятор шейдеров</span>
+    <span class="fn">find_program</span>(Vulkan_GLSLC_EXECUTABLE glslc
+        HINTS ${Vulkan_SDK}/bin)
+    
+    <span class="cm"># Шейдеры компилируются через отдельный таргет</span>
+    <span class="fn">add_subdirectory</span>(ggml/src/ggml-vulkan/vulkan-shaders)
+    
+    <span class="cm"># Основной бэкенд</span>
+    <span class="fn">target_sources</span>(ggml PRIVATE
+        ggml/src/ggml-vulkan/ggml-vulkan.cpp)
+    <span class="fn">target_link_libraries</span>(ggml PRIVATE Vulkan::Vulkan)
+    <span class="fn">target_compile_definitions</span>(ggml PUBLIC GGML_USE_VULKAN)
+<span class="kw">endif</span>()</code></pre>
+
+<h3>Критерий завершения фазы 1</h3>
+<pre><code><span class="cm"># Успешная сборка:</span>
+$ make GGML_VULKAN=1 USE_HIGHS=1 -j$(nproc)
+<span class="cm"># ... компиляция без ошибок ...</span>
+<span class="cm"># ggml_vulkan: Generating and compiling shaders to SPIR-V</span>
+<span class="cm"># ... Done!</span>
+
+<span class="cm"># Проверка что Vulkan виден:</span>
+$ ./llama-cli --list-devices
+<span class="cm"># ggml_vulkan: Found 1 Vulkan devices:</span>
+<span class="cm"># ggml_vulkan: 0 = AMD Radeon RX 7900 XT | uma: 0 | fp16: 1 | warp size: 64</span></code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 10. ФАЗА 2: HALDA + VULKAN -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s10">
+<h2><span class="num">10</span> Фаза 2: Halda + Vulkan (ядро портирования)</h2>
+<p class="desc">Время: 4–8 часов. Самая критическая фаза — научить планировщик Halda работать с Vulkan GPU.</p>
+
+<h3>Что такое Halda и что он делает</h3>
+<p>Halda (Heterogeneity-Aware Layer-to-Device Allocation) — алгоритм, решающий NP-трудную задачу: распределить L слоёв модели между N устройствами, минимизируя время генерации одного токена (TPOT). На каждом устройстве слои могут считаться на CPU или GPU.</p>
+
+<div class="diagram">
+<strong>Входные данные Halda:</strong><br>
+┌─────────────────────────┐  ┌─────────────────────────┐<br>
+│ <em>Устройство 1 (Desktop)</em>  │  │ <em>Устройство 2 (Laptop)</em>   │<br>
+│ CPU: 8.5 GFLOPS (F32)   │  │ CPU: 4.2 GFLOPS (F32)   │<br>
+│ GPU: 45.3 TFLOPS (CUDA) │  │ GPU: 12.1 TFLOPS (???)  │<br>
+│ VRAM: 8 GB (RTX 3070)   │  │ VRAM: 16 GB (Arc A770)  │<br>
+│ RAM: 32 GB, SSD 3GB/s   │  │ RAM: 16 GB, SSD 1GB/s   │<br>
+│ Сеть: 1 Gbps Ethernet   │  │ Сеть: 300 Mbps Wi-Fi    │<br>
+└─────────────────────────┘  └─────────────────────────┘<br>
+<br>
+<strong>Halda решает:</strong><br>
+Устройство 1: 25 слоёв на GPU + 5 слоёв на CPU<br>
+Устройство 2: 20 слоёв на GPU + 10 слоёв на CPU<br>
+Раунды PRP: k=2 (каждый проходит через кольцо 2 раза)<br>
+<br>
+<strong>→ Минимальный TPOT = 674 мс/токен для 70B модели</strong>
+</div>
+
+<h3>Текущая проблема: GPU = CUDA only</h3>
+<p>В текущей реализации Halda <strong>«GPU» означает «CUDA GPU»</strong>. Если устройство 2 имеет Intel Arc A770, Halda скажет «GPU нет» и назначит все слои на CPU — теряя 5–10× производительности.</p>
+
+<h3>7 конкретных изменений в профилировщике</h3>
+
+<h4>Изменение 1: Обнаружение GPU</h4>
+<div class="compare">
+<div>
+<h4 style="color: var(--orange);">Сейчас (CUDA only)</h4>
+<pre><code><span class="kw">bool</span> has_gpu = <span class="kw">false</span>;
+<span class="kw">#ifdef</span> GGML_USE_CUDA
+  <span class="type">int</span> device_count = <span class="num">0</span>;
+  <span class="fn">cudaGetDeviceCount</span>(&device_count);
+  has_gpu = (device_count > <span class="num">0</span>);
+<span class="kw">#endif</span></code></pre>
+</div>
+<div>
+<h4 style="color: var(--accent);">Нужно (все бэкенды)</h4>
+<pre><code><span class="kw">bool</span> has_gpu = <span class="kw">false</span>;
+<span class="type">ggml_backend_t</span> gpu_backend = <span class="kw">nullptr</span>;
+<span class="cm">// Попробовать все GPU бэкенды</span>
+<span class="kw">for</span> (<span class="type">size_t</span> i = <span class="num">0</span>;
+     i < <span class="fn">ggml_backend_reg_count</span>(); i++) {
+  <span class="kw">auto</span> reg = <span class="fn">ggml_backend_reg_get</span>(i);
+  <span class="kw">auto</span> dev = <span class="fn">ggml_backend_reg_dev_get</span>(reg,<span class="num">0</span>);
+  <span class="kw">auto</span> props = <span class="fn">ggml_backend_dev_props</span>(dev);
+  <span class="kw">if</span> (props.type == GGML_BACKEND_DEVICE_GPU){
+    has_gpu = <span class="kw">true</span>;
+    gpu_backend = <span class="fn">ggml_backend_dev_init</span>(dev);
+    <span class="kw">break</span>;
+  }
+}</code></pre>
+</div>
+</div>
+
+<h4>Изменение 2: Определение VRAM</h4>
+<div class="compare">
+<div>
+<h4 style="color: var(--orange);">Сейчас</h4>
+<pre><code><span class="type">size_t</span> free_vram, total_vram;
+<span class="fn">cudaMemGetInfo</span>(&free_vram, &total_vram);
+device_info.vram_total = total_vram;
+device_info.vram_free  = free_vram;</code></pre>
+</div>
+<div>
+<h4 style="color: var(--accent);">Нужно</h4>
+<pre><code><span class="type">size_t</span> free_vram, total_vram;
+<span class="kw">auto</span> buft = <span class="fn">ggml_backend_dev_buffer_type</span>(dev);
+total_vram = <span class="fn">ggml_backend_buft_get_max_size</span>(buft);
+
+<span class="cm">// Или через ggml_backend_dev_memory():</span>
+<span class="type">ggml_backend_dev_memory</span> mem;
+<span class="fn">ggml_backend_dev_get_memory</span>(dev, &mem);
+free_vram = mem.free;
+total_vram = mem.total;</code></pre>
+</div>
+</div>
+
+<h4>Изменение 3: Бенчмарк GPU TFLOPS</h4>
+<div class="compare">
+<div>
+<h4 style="color: var(--orange);">Сейчас</h4>
+<pre><code><span class="cm">// Замер через CUDA matmul</span>
+<span class="type">float</span> gpu_tflops = <span class="fn">benchmark_cuda_matmul</span>(
+    <span class="num">4096</span>, <span class="num">4096</span>, <span class="num">4096</span>,
+    iterations=<span class="num">10</span>
+);</code></pre>
+</div>
+<div>
+<h4 style="color: var(--accent);">Нужно</h4>
+<pre><code><span class="cm">// Замер через ggml абстракцию</span>
+<span class="cm">// (работает с любым бэкендом)</span>
+<span class="type">float</span> gpu_tflops = <span class="fn">benchmark_ggml_matmul</span>(
+    gpu_backend,  <span class="cm">// CUDA, Vulkan, Metal...</span>
+    <span class="num">4096</span>, <span class="num">4096</span>, <span class="num">4096</span>,
+    iterations=<span class="num">10</span>
+);</code></pre>
+</div>
+</div>
+
+<h4>Изменение 4: Имя GPU (для логирования)</h4>
+<div class="compare">
+<div>
+<h4 style="color: var(--orange);">Сейчас</h4>
+<pre><code><span class="type">cudaDeviceProp</span> props;
+<span class="fn">cudaGetDeviceProperties</span>(&props, <span class="num">0</span>);
+printf(<span class="str">"GPU: %s\n"</span>, props.name);</code></pre>
+</div>
+<div>
+<h4 style="color: var(--accent);">Нужно</h4>
+<pre><code><span class="kw">auto</span> desc = <span class="fn">ggml_backend_dev_description</span>(dev);
+printf(<span class="str">"GPU: %s\n"</span>, desc);
+<span class="cm">// Выведет: "Vulkan0: AMD Radeon RX 7900 XT"</span>
+<span class="cm">// Или:     "CUDA0: NVIDIA RTX 3070"</span></code></pre>
+</div>
+</div>
+
+<h4>Изменение 5: UMA-устройства (iGPU)</h4>
+<pre><code><span class="cm">// Halda должен знать: на iGPU VRAM = часть RAM</span>
+<span class="cm">// Нельзя суммировать RAM + VRAM — это одна память!</span>
+<span class="kw">bool</span> is_uma = <span class="kw">false</span>;
+<span class="cm">// Через ggml:</span>
+<span class="kw">auto</span> props = <span class="fn">ggml_backend_dev_props</span>(dev);
+is_uma = props.uma;  <span class="cm">// true для iGPU (Intel Iris, AMD 680M, Mali)</span>
+
+<span class="kw">if</span> (is_uma) {
+    <span class="cm">// Не суммировать: VRAM + RAM</span>
+    <span class="cm">// Вместо этого: общая память = RAM, из которой GPU может использовать часть</span>
+    device_info.total_memory = ram_total;
+    device_info.gpu_memory_share = vram_budget;  <span class="cm">// сколько GPU реально использует</span>
+}</code></pre>
+
+<h4>Изменение 6: Выбор параметра -ngl (layers on GPU)</h4>
+<pre><code><span class="cm">// -ngl уже абстрагирован в ggml.</span>
+<span class="cm">// llama.cpp при -ngl 99 автоматически выгружает слои на</span>
+<span class="cm">// доступный GPU бэкенд (CUDA или Vulkan — не важно).</span>
+<span class="cm">// Halda должен просто передать правильное число.</span>
+
+<span class="type">int</span> ngl = halda_compute_optimal_gpu_layers(
+    device_info.gpu_tflops,
+    device_info.vram_free,
+    model_info.layer_size,
+    model_info.total_layers
+);
+<span class="cm">// Этот ngl передаётся в llama_model_params.n_gpu_layers</span>
+<span class="cm">// ggml сам выберет Vulkan или CUDA бэкенд</span></code></pre>
+
+<h4>Изменение 7: Гетерогенное кольцо PRP</h4>
+<pre><code><span class="cm">// PRP-кольцо: Node1(CUDA) → Node2(Vulkan) → Node3(CPU-only)</span>
+<span class="cm">// Halda должен корректно моделировать:</span>
+
+<span class="kw">struct</span> <span class="type">DeviceProfile</span> {
+    <span class="type">std::string</span> name;
+    <span class="type">float</span> cpu_gflops;
+    <span class="type">float</span> gpu_tflops;       <span class="cm">// 0 если нет GPU</span>
+    <span class="type">std::string</span> gpu_backend; <span class="cm">// "CUDA", "Vulkan", "Metal", "none"</span>
+    <span class="type">size_t</span> ram_bytes;
+    <span class="type">size_t</span> vram_bytes;       <span class="cm">// 0 если нет GPU</span>
+    <span class="type">bool</span> is_uma;
+    <span class="type">float</span> disk_bandwidth;    <span class="cm">// MB/s</span>
+    <span class="type">float</span> net_latency_ms;    <span class="cm">// к следующему узлу в кольце</span>
+    <span class="type">float</span> net_bandwidth;     <span class="cm">// MB/s</span>
+    <span class="type">std::string</span> os;          <span class="cm">// "Linux", "macOS", "Android", "Windows"</span>
+};
+
+<span class="cm">// LP-солвер HiGHS не заботится откуда пришли числа.</span>
+<span class="cm">// Для него T_gpu[i] = 0.5 мс — это просто число.</span>
+<span class="cm">// Неважно, замерено через CUDA или Vulkan.</span></code></pre>
+
+<div class="box box-accent">
+<strong>Главный принцип:</strong> Все изменения сводятся к замене прямых CUDA API вызовов на ggml абстракцию. Сам алгоритм Halda (HiGHS LP-солвер, целевая функция, ограничения) — <strong>не меняется вообще</strong>. Меняется только источник данных: вместо <code>cudaMemGetInfo()</code> → <code>ggml_backend_dev_get_memory()</code>.
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 11. ФАЗА 3: PRP-КОЛЬЦО -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s11">
+<h2><span class="num">11</span> Фаза 3: PRP-кольцо и сетевой слой</h2>
+<p class="desc">Время: 2–4 часа. Проверить что PRP работает с Vulkan без изменений.</p>
+
+<h3>Как работает PRP (Piped-Ring Parallelism)</h3>
+<div class="diagram">
+<strong>PRP кольцо для 70B модели (80 слоёв), 4 устройства, k=2:</strong><br>
+<br>
+Раунд 1:                                  Раунд 2:<br>
+┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐   ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐<br>
+│ Dev1 │→│ Dev2 │→│ Dev3 │→│ Dev4 │→ │ Dev1 │→│ Dev2 │→│ Dev3 │→│ Dev4 │<br>
+│ L0-9 │  │L10-19│  │L20-29│  │L30-39│   │L40-49│  │L50-59│  │L60-69│  │L70-79│<br>
+└──────┘  └──────┘  └──────┘  └──────┘   └──────┘  └──────┘  └──────┘  └──────┘<br>
+<br>
+Передача между узлами: <em>hidden state tensor</em> (~16 KB для batch=1)<br>
+Протокол: <strong>ZMQ TCP</strong> (через RAM, не через GPU)<br>
+<br>
+GPU→RAM: <em>vkMapMemory / cudaMemcpy D2H</em> (уже в ggml)<br>
+RAM→ZMQ→RAM: <em>zmq_send / zmq_recv</em> (бэкенд-агностично)<br>
+RAM→GPU: <em>staging buffer / cudaMemcpy H2D</em> (уже в ggml)
+</div>
+
+<h3>Почему PRP НЕ нужно менять</h3>
+<table>
+<tr><th>Этап передачи</th><th>Что происходит</th><th>Зависит от GPU бэкенда?</th></tr>
+<tr><td>1. GPU → RAM</td><td>Результат вычисления слоя копируется из VRAM в RAM</td><td>⚠️ Абстрагировано в ggml: <code>ggml_backend_tensor_get()</code> — работает для CUDA, Vulkan, Metal</td></tr>
+<tr><td>2. RAM → Сеть</td><td>Тензор отправляется через ZMQ по TCP/Wi-Fi</td><td>❌ Нет — ZMQ работает с RAM-буферами</td></tr>
+<tr><td>3. Сеть → RAM</td><td>Тензор получен на следующем устройстве</td><td>❌ Нет — ZMQ кладёт в RAM</td></tr>
+<tr><td>4. RAM → GPU</td><td>Тензор загружается в VRAM для следующего слоя</td><td>⚠️ Абстрагировано в ggml: <code>ggml_backend_tensor_set()</code> — работает для всех</td></tr>
+</table>
+
+<div class="box box-green">
+<strong>Вывод:</strong> PRP работает через RAM-буферы. ZMQ не знает и не должен знать откуда пришли данные — из CUDA VRAM или Vulkan VRAM. Функции <code>ggml_backend_tensor_get()</code> и <code>ggml_backend_tensor_set()</code> обрабатывают все бэкенды единообразно.
+</div>
+
+<h3>Что проверить</h3>
+<pre><code><span class="cm"># Проверить что промежуточные тензоры одинаковы</span>
+<span class="cm"># независимо от бэкенда:</span>
+
+<span class="cm"># Узел 1 (CUDA): считает слои 0-19, отправляет тензор</span>
+<span class="cm"># Узел 2 (Vulkan): получает тензор, считает слои 20-39</span>
+
+<span class="cm"># Тензор = float16 массив размером [1, hidden_dim]</span>
+<span class="cm"># Для Llama 70B: hidden_dim = 8192 → 16 KB</span>
+<span class="cm"># Формат данных GGML-стандартный, не зависит от бэкенда</span>
+
+<span class="cm"># Тест: сравнить output тензор после одного слоя</span>
+<span class="cm"># на CUDA и Vulkan — должны совпадать до ±0.001</span></code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 12. ФАЗА 4: PREFETCH И MMAP -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s12">
+<h2><span class="num">12</span> Фаза 4: Prefetch, mmap и дисковый I/O</h2>
+<p class="desc">Время: 1–2 часа. Проверить совместимость disk offloading с Vulkan.</p>
+
+<h3>Как работает mmap + prefetch в prima.cpp</h3>
+<table>
+<tr><th>Этап</th><th>Что происходит</th><th>API</th><th>Зависит от GPU?</th></tr>
+<tr><td>1. mmap модели</td><td>Файл GGUF маппится в виртуальную память. Данные подгружаются с диска только при обращении</td><td><code>mmap(fd, size, PROT_READ, MAP_PRIVATE)</code></td><td>❌ Нет — это ОС</td></tr>
+<tr><td>2. Prefetch</td><td>Пока текущие слои вычисляются, следующие предзагружаются с диска</td><td><code>madvise(addr, size, MADV_WILLNEED)</code></td><td>❌ Нет — это ОС</td></tr>
+<tr><td>3. RAM → VRAM</td><td>Загруженные из mmap веса копируются в GPU-память</td><td>CUDA: <code>cudaMemcpyAsync()</code><br>Vulkan: staging buffer → <code>vkCmdCopyBuffer()</code></td><td>⚠️ <strong>Да</strong></td></tr>
+<tr><td>4. Освобождение VRAM</td><td>После вычисления слоя его веса можно освободить из VRAM (если VRAM мало)</td><td>CUDA: <code>cudaFree()</code><br>Vulkan: <code>vkFreeMemory()</code></td><td>⚠️ <strong>Да</strong></td></tr>
+</table>
+
+<h3>Два сценария</h3>
+
+<div class="box box-green">
+<strong>Сценарий A (вероятный): Prefetch через ggml</strong><br>
+Если prima.cpp использует <code>ggml_backend_tensor_set()</code> для загрузки весов в VRAM — всё работает автоматически. ggml сам выберет правильный метод копирования для Vulkan (staging buffer).
+<br><br>
+<strong>Действие:</strong> Проверить и ничего не менять.
+</div>
+
+<div class="box box-yellow">
+<strong>Сценарий B (возможный): Prefetch вызывает CUDA напрямую</strong><br>
+Если prima.cpp использует <code>cudaMemcpyAsync()</code> или <code>cudaHostRegister()</code> для быстрого копирования pinned memory — нужна замена.
+<br><br>
+<strong>Действие:</strong> Заменить на ggml абстракцию или добавить Vulkan-путь:
+</div>
+
+<pre><code><span class="cm">// Если нашли прямые CUDA вызовы в prefetch:</span>
+
+<span class="cm">// БЫЛО:</span>
+<span class="fn">cudaMemcpyAsync</span>(vram_dst, ram_src, size, cudaMemcpyHostToDevice, stream);
+
+<span class="cm">// СТАЛО (через ggml):</span>
+<span class="fn">ggml_backend_tensor_set</span>(tensor, ram_src, offset, size);
+
+<span class="cm">// СТАЛО (если нужен async через Vulkan напрямую):</span>
+<span class="cm">// 1. Скопировать в staging buffer (host-visible)</span>
+memcpy(staging_mapped_ptr, ram_src, size);
+<span class="cm">// 2. Запланировать GPU-копирование</span>
+vkCmdCopyBuffer(cmd, staging_buf, device_buf, 1, &region);
+<span class="cm">// 3. Отправить на выполнение</span>
+vkQueueSubmit(queue, 1, &submit_info, fence);</code></pre>
+
+<h3>Поиск проблемных мест</h3>
+<pre><code><span class="cm"># Найти все cudaMemcpy вызовы в prima.cpp (вне ggml):</span>
+grep -rn "cudaMemcpy\|cudaMemcpyAsync\|cudaHostRegister\|cudaHostAlloc" \
+  --include="*.cpp" --include="*.h" \
+  src/ examples/ | grep -v "ggml/"
+
+<span class="cm"># Если результатов 0 — сценарий A, всё работает</span>
+<span class="cm"># Если результатов > 0 — сценарий B, нужна замена</span></code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 13. ФАЗА 5: ТЕСТИРОВАНИЕ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s13">
+<h2><span class="num">13</span> Фаза 5: Тестирование и валидация</h2>
+<p class="desc">Время: 4–8 часов. Убедиться что всё работает корректно.</p>
+
+<h3>Тестовые сценарии (в порядке возрастающей сложности)</h3>
+
+<div class="step">
+<div class="step-num">T1</div>
+<div class="step-content">
+<h4>Один узел, Vulkan, маленькая модель</h4>
+<pre><code>./llama-cli -m qwen2.5-0.5b-q4_0.gguf -ngl 99 -p "Hello world" -n 50</code></pre>
+<p><strong>Ожидание:</strong> Видит Vulkan device, генерирует текст, нет segfault</p>
+<p><strong>Проверить:</strong> <code>ggml_vulkan: Found 1 Vulkan devices</code> в логах</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T2</div>
+<div class="step-content">
+<h4>Один узел, Vulkan, средняя модель (7B)</h4>
+<pre><code>./llama-cli -m llama-3.2-3b-q4_k.gguf -ngl 99 -p "Explain quantum computing" -n 100</code></pre>
+<p><strong>Ожидание:</strong> Корректный текст, скорость &gt; 10 t/s на дискретном GPU</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T3</div>
+<div class="step-content">
+<h4>Один узел, Vulkan vs CUDA — сравнение корректности</h4>
+<pre><code><span class="cm"># Одна и та же модель, один промпт, оба бэкенда:</span>
+./llama-cli -m model.gguf -ngl 99 --backend cuda -p "test" -n 20 --seed 42 > out_cuda.txt
+./llama-cli -m model.gguf -ngl 99 --backend vulkan -p "test" -n 20 --seed 42 > out_vulkan.txt
+diff out_cuda.txt out_vulkan.txt</code></pre>
+<p><strong>Ожидание:</strong> Выходы должны совпадать (допускается разница в последних токенах из-за floating-point order)</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T4</div>
+<div class="step-content">
+<h4>Два узла, оба Vulkan, PRP-кольцо</h4>
+<pre><code><span class="cm"># Узел 1 (master):</span>
+./prima-cli -m qwq-32b-q4_k.gguf -ngl 20 \
+  --ring-addr tcp://192.168.1.100:5555 --ring-size 2 --ring-rank 0
+
+<span class="cm"># Узел 2 (worker):</span>
+./prima-cli -m qwq-32b-q4_k.gguf -ngl 20 \
+  --ring-addr tcp://192.168.1.100:5555 --ring-size 2 --ring-rank 1</code></pre>
+<p><strong>Ожидание:</strong> Оба узла используют Vulkan, генерация работает</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T5</div>
+<div class="step-content">
+<h4>Гетерогенное кольцо: CUDA + Vulkan</h4>
+<pre><code><span class="cm"># Узел 1 (NVIDIA, CUDA):</span>
+./prima-cli -m llama-70b-q4_k.gguf -ngl 30 --backend cuda \
+  --ring-addr ... --ring-size 2 --ring-rank 0
+
+<span class="cm"># Узел 2 (AMD, Vulkan):</span>
+./prima-cli -m llama-70b-q4_k.gguf -ngl 25 --backend vulkan \
+  --ring-addr ... --ring-size 2 --ring-rank 1</code></pre>
+<p><strong>Ожидание:</strong> Каждый узел использует свой GPU бэкенд, PRP-кольцо функционирует, выходной текст корректен</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T6</div>
+<div class="step-content">
+<h4>Halda автоматическое распределение</h4>
+<pre><code><span class="cm"># Halda должен сам определить оптимальное -ngl для каждого узла:</span>
+./prima-cli -m llama-70b-q4_k.gguf --halda-auto \
+  --ring-addr ... --ring-size 4</code></pre>
+<p><strong>Проверить:</strong> В логах Halda показывает Vulkan GPU с правильным именем, TFLOPS, VRAM. Распределение слоёв учитывает реальную производительность Vulkan GPU.</p>
+</div>
+</div>
+
+<div class="step">
+<div class="step-num">T7</div>
+<div class="step-content">
+<h4>Стресс-тест: 70B модель на полном кластере</h4>
+<pre><code><span class="cm"># 4 узла: Desktop(CUDA) + Laptop(Vulkan) + Phone(Vulkan) + Server(CPU)</span>
+<span class="cm"># Модель: Llama 3.1 70B Q4_K_M</span>
+<span class="cm"># Проверить: стабильность на 100+ токенов, нет memory leak, нет drift</span></code></pre>
+</div>
+</div>
+
+<h3>Метрики валидации</h3>
+<table>
+<tr><th>Метрика</th><th>Допустимое значение</th><th>Как проверить</th></tr>
+<tr><td>Корректность output</td><td>Совпадение с CUDA ±3 токена на 100</td><td>Одинаковый seed, сравнение текстов</td></tr>
+<tr><td>Perplexity</td><td>Отклонение &lt; 0.5% от CUDA</td><td><code>llama-perplexity</code> на одном датасете</td></tr>
+<tr><td>Скорость (t/s)</td><td>&gt;70% от CUDA на NVIDIA</td><td><code>llama-bench</code></td></tr>
+<tr><td>Memory leak</td><td>VRAM стабильна после 1000 токенов</td><td>Мониторинг <code>nvidia-smi</code> / <code>vulkaninfo</code></td></tr>
+<tr><td>Стабильность</td><td>Нет segfault / hang за 1 час</td><td>Длинная генерация</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 14. БЕНЧМАРКИ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s14">
+<h2><span class="num">14</span> Бенчмарки: Vulkan vs CUDA vs CPU</h2>
+<p class="desc">Реальные данные из бенчмарк-тредов llama.cpp</p>
+
+<h3>Llama 2 7B Q4_0 — Token Generation (tok/s)</h3>
+<table>
+<tr><th>GPU</th><th>CUDA</th><th>Vulkan</th><th>Vulkan/CUDA</th><th>CPU-only</th><th>Vulkan/CPU</th></tr>
+<tr><td>RTX 4090</td><td>~140</td><td>~105</td><td>75%</td><td>~18</td><td><strong>5.8×</strong></td></tr>
+<tr><td>RTX 3090</td><td>~95</td><td>~72</td><td>76%</td><td>~15</td><td><strong>4.8×</strong></td></tr>
+<tr><td>RTX 3070</td><td>~65</td><td>~48</td><td>74%</td><td>~12</td><td><strong>4.0×</strong></td></tr>
+<tr><td>AMD RX 7900 XT</td><td>—</td><td><strong>~90</strong></td><td>—</td><td>~15</td><td><strong>6.0×</strong></td></tr>
+<tr><td>AMD RX 7900 XTX (×4)</td><td>—</td><td><strong>~95</strong></td><td>—</td><td>~15</td><td><strong>6.3×</strong></td></tr>
+<tr><td>Intel Arc A770</td><td>—</td><td><strong>~35</strong></td><td>—</td><td>~12</td><td><strong>2.9×</strong></td></tr>
+<tr><td>Intel Iris Xe iGPU</td><td>—</td><td><strong>~8</strong></td><td>—</td><td>~5</td><td><strong>1.6×</strong></td></tr>
+<tr><td>AMD 680M iGPU</td><td>—</td><td><strong>~12</strong></td><td>—</td><td>~6</td><td><strong>2.0×</strong></td></tr>
+</table>
+
+<h3>Prompt Processing (pp512, tok/s)</h3>
+<table>
+<tr><th>GPU</th><th>CUDA</th><th>Vulkan</th><th>Vulkan/CUDA</th></tr>
+<tr><td>RTX 4090</td><td>~3000</td><td>~1200</td><td>40%</td></tr>
+<tr><td>RTX 3090</td><td>~2000</td><td>~900</td><td>45%</td></tr>
+<tr><td>AMD RX 7900 XT</td><td>—</td><td><strong>~880</strong> (с FA)</td><td>—</td></tr>
+<tr><td>AMD RX 7900 XT</td><td>—</td><td>~165 (без FA)</td><td>—</td></tr>
+</table>
+
+<div class="box box-blue">
+<strong>Для prima.cpp context:</strong> Prima.cpp оптимизирован для генерации (не prompt processing). В режиме генерации Vulkan теряет ~25% от CUDA (а не 60%). И для AMD/Intel/Mali Vulkan — это <strong>единственный путь к GPU</strong>, так что даже 50% от теоретического CUDA — это бесконечное улучшение по сравнению с CPU-only.
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 15. ПОДВОДНЫЕ КАМНИ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s15">
+<h2><span class="num">15</span> Подводные камни и edge cases</h2>
+<p class="desc">Потенциальные проблемы и их решения</p>
+
+<table>
+<tr><th style="width:18%">Проблема</th><th style="width:32%">Описание</th><th style="width:25%">Как обнаружить</th><th style="width:25%">Решение</th></tr>
+<tr>
+<td><strong>Subgroup size</strong></td>
+<td>NVIDIA: 32, AMD: 64, Intel: 32, Mali: <strong>16</strong>. Шейдеры, жёстко привязанные к warp=32, могут давать неправильные результаты на Mali</td>
+<td>Тест на Mali GPU + проверка <code>device->subgroup_size</code></td>
+<td>✅ Уже решено в llama.cpp: шейдеры параметризованы через <code>gl_SubgroupSize</code></td>
+</tr>
+<tr>
+<td><strong>CoopMat недоступен</strong></td>
+<td>Тензорные ядра через Vulkan (KHR_cooperative_matrix) есть только на NVIDIA RTX, AMD RDNA3+</td>
+<td><code>device->coopmat_support</code> при инициализации</td>
+<td>✅ llama.cpp компилирует и CoopMat, и scalar варианты. При запуске выбирает по возможностям</td>
+</tr>
+<tr>
+<td><strong>UMA память</strong></td>
+<td>iGPU делят RAM с CPU. Halda не должен суммировать RAM + VRAM</td>
+<td><code>device->uma == true</code></td>
+<td>В Halda: если UMA → <code>total_memory = RAM</code>, GPU использует часть</td>
+</tr>
+<tr>
+<td><strong>Vulkan SDK версия</strong></td>
+<td>Минимум Vulkan 1.2. CoopMat2 требует 1.3. Старые драйверы не поддерживают</td>
+<td><code>vulkaninfo --summary</code></td>
+<td>llama.cpp компилирует шейдеры для 1.2 и 1.3, выбирает по драйверу</td>
+</tr>
+<tr>
+<td><strong>Android Mali segfault</strong></td>
+<td>Некоторые модели/GPU комбинации на Android вызывают segfault</td>
+<td>Тестирование на конкретных устройствах</td>
+<td>WIP в llama.cpp. Обходной путь: уменьшить -ngl, использовать CPU-fallback</td>
+</tr>
+<tr>
+<td><strong>BF16 несовместимость</strong></td>
+<td>BFloat16 есть только на новых GPU (RTX 40+, некоторые AMD)</td>
+<td><code>GL_EXT_bfloat16</code> проверяется при сборке</td>
+<td>Шейдеры с BF16 компилируются только если поддержка есть</td>
+</tr>
+<tr>
+<td><strong>Halda не видит Vulkan</strong></td>
+<td>Если Halda ищет GPU только через cudaGetDeviceCount()</td>
+<td>grep CUDA в профилировщике Halda</td>
+<td>Фаза 2: заменить на ggml_backend абстракцию</td>
+</tr>
+<tr>
+<td><strong>Shader compilation timeout</strong></td>
+<td>Первый запуск: 300–500 шейдеров компилируются → 5–30 секунд задержки</td>
+<td>«Compiling shaders.....Done!» в логах</td>
+<td>Нормальное поведение. Pipeline cache ускоряет последующие запуски</td>
+</tr>
+<tr>
+<td><strong>Multi-GPU Vulkan</strong></td>
+<td>Несколько GPU на одной машине через Vulkan (не через PRP)</td>
+<td><code>GGML_VK_VISIBLE_DEVICES=0,1</code></td>
+<td>llama.cpp поддерживает multi-GPU Vulkan с pipeline parallelism</td>
+</tr>
+<tr>
+<td><strong>Floating-point precision</strong></td>
+<td>Vulkan и CUDA могут давать слегка разные результаты (порядок операций, rounding)</td>
+<td>Сравнение output при одинаковом seed</td>
+<td>Допустимо: разница в последних токенах. Perplexity должна быть ±0.5%</td>
+</tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 16. ПЛАТФОРМЫ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s16">
+<h2><span class="num">16</span> Поддержка конкретных платформ</h2>
+<p class="desc">Специфика сборки и запуска для каждой платформы</p>
+
+<h3>Linux (x86_64) — AMD Radeon</h3>
+<pre><code><span class="cm"># Установка драйвера Mesa (open-source, рекомендуется)</span>
+sudo apt install mesa-vulkan-drivers libvulkan-dev glslc vulkan-tools
+
+<span class="cm"># Проверка</span>
+vulkaninfo --summary  <span class="cm"># Должен показать RADV NAVI31 (или ваш чип)</span>
+
+<span class="cm"># Сборка prima.cpp</span>
+make GGML_VULKAN=1 USE_HIGHS=1 -j$(nproc)
+
+<span class="cm"># Запуск (AMD Radeon RX 7900 XT, 20GB VRAM)</span>
+./prima-cli -m qwq-32b-q4_k.gguf -ngl 99</code></pre>
+
+<h3>Linux (x86_64) — Intel Arc</h3>
+<pre><code><span class="cm"># Установка Intel Vulkan драйвера</span>
+sudo apt install intel-media-va-driver-non-free libvulkan-dev glslc
+
+<span class="cm"># Для iGPU (Intel Iris Xe):</span>
+sudo apt install intel-opencl-icd intel-level-zero-gpu
+
+<span class="cm"># Проверка</span>
+vulkaninfo --summary  <span class="cm"># Intel(R) Arc(TM) A770</span>
+
+<span class="cm"># Сборка и запуск — те же команды</span></code></pre>
+
+<h3>Windows</h3>
+<pre><code><span class="cm"># Установить Vulkan SDK</span>
+<span class="cm"># https://vulkan.lunarg.com/sdk/home</span>
+
+<span class="cm"># CMake сборка (рекомендуется для Windows)</span>
+cmake -B build -DGGML_VULKAN=ON
+cmake --build build --config Release
+
+<span class="cm"># Запуск</span>
+build\Release\prima-cli.exe -m model.gguf -ngl 99</code></pre>
+
+<h3>Android (ARM Mali / Qualcomm Adreno)</h3>
+<pre><code><span class="cm"># Требуется Android NDK</span>
+export NDK=/path/to/android-ndk-r26b
+
+<span class="cm"># Cross-compilation с Vulkan</span>
+cmake -B build-android \
+  -DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake \
+  -DANDROID_ABI=arm64-v8a \
+  -DANDROID_PLATFORM=android-30 \
+  -DGGML_VULKAN=ON \
+  -DVK_USE_PLATFORM_ANDROID_KHR=ON
+
+cmake --build build-android
+
+<span class="cm"># Деплой на устройство</span>
+adb push build-android/prima-cli /data/local/tmp/
+adb push model.gguf /data/local/tmp/
+adb shell "cd /data/local/tmp && ./prima-cli -m model.gguf -ngl 10"</code></pre>
+
+<h3>macOS (через MoltenVK)</h3>
+<pre><code><span class="cm"># MoltenVK — Vulkan-обёртка поверх Metal</span>
+<span class="cm"># Работает, но Metal бэкенд быстрее!</span>
+brew install vulkan-tools molten-vk
+
+<span class="cm"># Сборка</span>
+make GGML_VULKAN=1 USE_HIGHS=1 -j$(sysctl -n hw.ncpu)
+
+<span class="cm"># Примечание: для macOS лучше Metal бэкенд (нативный)</span>
+<span class="cm"># Vulkan через MoltenVK добавляет overhead</span></code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 17. ЧЕКЛИСТ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s17">
+<h2><span class="num">17</span> Чеклист для хакатона (по часам)</h2>
+<p class="desc">Конкретный план на 14–16 часов работы</p>
+
+<table>
+<tr><th>✓</th><th>Час</th><th>Задача</th><th>Команда / Файл</th><th>Критерий ✅</th></tr>
+<tr><td class="check-icon">☐</td><td>0–1</td><td>Клонировать, проверить ggml-vulkan</td><td><code>git clone ... && ls ggml/src/ggml-vulkan/</code></td><td>Определён сценарий A/B/C/D</td></tr>
+<tr><td class="check-icon">☐</td><td>1–2</td><td>Установить Vulkan SDK</td><td><code>sudo apt install libvulkan-dev glslc && vulkaninfo</code></td><td>vulkaninfo показывает GPU</td></tr>
+<tr><td class="check-icon">☐</td><td>2–3</td><td>Добавить GGML_VULKAN в Makefile</td><td>Редактирование Makefile</td><td>Компиляция запускается</td></tr>
+<tr><td class="check-icon">☐</td><td>3–4</td><td>Исправить ошибки линковки</td><td><code>-lvulkan</code>, пути к headers</td><td><code>make GGML_VULKAN=1</code> — OK</td></tr>
+<tr><td class="check-icon">☐</td><td>4–5</td><td>Тест: 1 узел, Vulkan, маленькая модель</td><td><code>./llama-cli -m small.gguf -ngl 99</code></td><td>Генерация работает</td></tr>
+<tr><td class="check-icon">☐</td><td>5–6</td><td>Найти CUDA вызовы в Halda</td><td><code>grep -rn cuda src/ | grep -v ggml</code></td><td>Список конкретных строк</td></tr>
+<tr><td class="check-icon">☐</td><td>6–8</td><td>Заменить CUDA → ggml в профилировщике</td><td>Изменения 1–4 из Фазы 2</td><td>Halda видит Vulkan GPU</td></tr>
+<tr><td class="check-icon">☐</td><td>8–9</td><td>VRAM detection через ggml</td><td>Изменение 5 из Фазы 2</td><td>Правильный объём VRAM</td></tr>
+<tr><td class="check-icon">☐</td><td>9–10</td><td>UMA-устройства</td><td>Изменение 6 из Фазы 2</td><td>iGPU не ломают Halda</td></tr>
+<tr><td class="check-icon">☐</td><td>10–11</td><td>Тест: 1 узел, Halda + Vulkan</td><td>Тест T3 из Фазы 5</td><td>Автоматическое -ngl</td></tr>
+<tr><td class="check-icon">☐</td><td>11–12</td><td>Тест: 2 узла, оба Vulkan</td><td>Тест T4 из Фазы 5</td><td>PRP-кольцо работает</td></tr>
+<tr><td class="check-icon">☐</td><td>12–13</td><td>Тест: CUDA + Vulkan гетерогенно</td><td>Тест T5 из Фазы 5</td><td>Гетерогенное кольцо OK</td></tr>
+<tr><td class="check-icon">☐</td><td>13–14</td><td>Бенчмарк</td><td><code>llama-bench</code></td><td>Таблица с результатами</td></tr>
+<tr><td class="check-icon">☐</td><td>14–16</td><td>Документация + PR / демо</td><td>README.md, видео</td><td>PR готов к review</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 18. БУДУЩЕЕ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section id="s18">
+<h2><span class="num">18</span> Будущее: WebGPU, SYCL, расширяемость</h2>
+<p class="desc">Что делать после Vulkan</p>
+
+<h3>Стратегия мультибэкендности</h3>
+<table>
+<tr><th>Приоритет</th><th>Бэкенд</th><th>Покрытие</th><th>Сложность</th><th>Статус в llama.cpp</th></tr>
+<tr><td>1</td><td><strong>Vulkan ← ВЫ ЗДЕСЬ</strong></td><td>AMD + Intel + Mali + Adreno + NVIDIA</td><td>14–28ч</td><td>✅ Стабилен</td></tr>
+<tr><td>2</td><td>Metal</td><td>Apple macOS + iOS</td><td>~20ч</td><td>✅ Стабилен</td></tr>
+<tr><td>3</td><td>SYCL</td><td>Intel GPU (Arc, Xe) — максимальная скорость</td><td>~15ч</td><td>✅ Стабилен</td></tr>
+<tr><td>4</td><td>WebGPU</td><td>Браузеры (Chrome, Firefox, Safari)</td><td>~30ч</td><td>🧪 Экспериментален</td></tr>
+<tr><td>5</td><td>ROCm (HIP)</td><td>AMD GPU — максимальная скорость</td><td>~15ч</td><td>✅ Стабилен</td></tr>
+</table>
+
+<div class="box box-purple">
+<strong>Архитектурный принцип:</strong> Если при добавлении Vulkan вы замените прямые CUDA вызовы в Halda на ggml абстракцию — то Metal, SYCL, WebGPU получатся <strong>автоматически</strong> без дополнительного кода в Halda. Они просто появятся как новые <code>ggml_backend_dev</code> и Halda увидит их через единый API.
+</div>
+
+<h3>Ключевой refactoring</h3>
+<pre><code><span class="cm">// ВМЕСТО отдельных путей для каждого бэкенда:</span>
+<span class="kw">#ifdef</span> GGML_USE_CUDA
+  ... cuda-specific code ...
+<span class="kw">#elif</span> GGML_USE_VULKAN
+  ... vulkan-specific code ...
+<span class="kw">#elif</span> GGML_USE_METAL
+  ... metal-specific code ...
+<span class="kw">#endif</span>
+
+<span class="cm">// ИСПОЛЬЗУЙТЕ ggml абстракцию (один код для всех):</span>
+<span class="kw">for</span> (<span class="type">size_t</span> i = <span class="num">0</span>; i < <span class="fn">ggml_backend_reg_count</span>(); i++) {
+    <span class="kw">auto</span> reg = <span class="fn">ggml_backend_reg_get</span>(i);
+    <span class="cm">// Работает с CUDA, Vulkan, Metal, SYCL, WebGPU, CANN, MUSA...</span>
+    <span class="cm">// Один и тот же код. Навсегда.</span>
+}</code></pre>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- ИТОГОВАЯ СВОДКА -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<section style="background: linear-gradient(135deg, rgba(94,234,212,0.08), rgba(96,165,250,0.08)); border-color: var(--accent);">
+<h2 style="text-align:center; justify-content:center;">📊 Итоговая сводка</h2>
+
+<table>
+<tr><th>Вопрос</th><th>Ответ</th></tr>
+<tr><td>Нужно ли писать GPU-шейдеры?</td><td><span class="tag tag-green">НЕТ</span> — все ~30 GLSL шейдеров (~15,000 строк) уже в llama.cpp</td></tr>
+<tr><td>Нужно ли менять PRP (сетевой слой)?</td><td><span class="tag tag-green">НЕТ</span> — PRP работает через RAM-буферы, не зависит от GPU</td></tr>
+<tr><td>Нужно ли менять ZMQ?</td><td><span class="tag tag-green">НЕТ</span> — ZMQ передаёт байты, не знает о GPU</td></tr>
+<tr><td>Нужно ли менять mmap/prefetch?</td><td><span class="tag tag-yellow">СКОРЕЕ НЕТ</span> — если через ggml API. Проверить grep-ом</td></tr>
+<tr><td>Нужно ли менять HiGHS LP-солвер?</td><td><span class="tag tag-green">НЕТ</span> — это чистая математика</td></tr>
+<tr><td>Что ТОЧНО нужно менять?</td><td><span class="tag tag-red">Makefile/CMake</span> + <span class="tag tag-red">Halda профилировщик</span> (GPU detection, VRAM, TFLOPS)</td></tr>
+<tr><td>Общий объём работы</td><td>14–28 часов (1 разработчик) / 8–16 часов (с Claude Code)</td></tr>
+<tr><td>Какие платформы получим?</td><td>AMD Radeon, Intel Arc, ARM Mali, Qualcomm Adreno, Samsung Xclipse, Android</td></tr>
+<tr><td>Потеря скорости vs CUDA?</td><td>~25% на генерации (NVIDIA) / 0% на AMD/Intel (нет альтернативы)</td></tr>
+<tr><td>Потеря скорости vs CPU?</td><td>Ускорение 2–6× (Vulkan GPU vs CPU-only)</td></tr>
+</table>
+
+<div class="box box-accent" style="text-align:center; font-size:1.1em; margin-top:24px;">
+<strong>Prima.cpp + Vulkan = первая в мире распределённая система инференса с поддержкой ВСЕХ GPU-платформ.</strong><br>
+Ни exo, ни dllama, ни petals этого не умеют.
+</div>
+</section>
+
+</div>
+
+<footer>
+<div class="container">
+  <p>Prima.cpp → Vulkan Porting Guide v1.0 · Февраль 2026 · Для Claude Code Hackathon</p>
+  <p style="margin-top:8px;">Источники: <a href="https://arxiv.org/abs/2504.08791" style="color:var(--accent);">arxiv:2504.08791</a> (prima.cpp paper) · <a href="https://github.com/ggml-org/llama.cpp" style="color:var(--accent);">llama.cpp</a> · <a href="https://deepwiki.com/ggml-org/llama.cpp/4.4-vulkan-backend" style="color:var(--accent);">DeepWiki Vulkan Backend</a></p>
+</div>
+</footer>
+
+</body>
+</html>
