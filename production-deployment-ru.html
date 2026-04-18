@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Продакшн-развёртывание домашнего AI-кластера</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #ff946f; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #73d0ff; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #1a0d0a 0%, #1a1505 100%); border: 1px solid #ff946f; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+  .cmd { background: #0f1419; border: 1px solid #1f2430; border-radius: 8px; padding: 14px; margin: 10px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: #bae67e; overflow-x: auto; white-space: pre-wrap; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .vs > div { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 14px; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .toc { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .toc a { display: block; padding: 3px 0; color: #607080; }
+  .toc a:hover { color: #73d0ff; }
+  .diagram { background: #0a0e14; border: 2px solid #ff946f; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; white-space: pre-wrap; }
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>Продакшн-развёртывание домашнего AI-кластера</h1>
+<p class="sub">Часть 10 серии. Февраль 2026. Мониторинг, автоматизация, API, systemd, Docker, безопасность</p>
+
+<div class="highlight">
+<strong>Цель:</strong> Превратить эксперимент в стабильный 24/7 сервис. Полные конфигурации systemd, Docker Compose, Prometheus+Grafana, OpenAI-совместимый API, безопасность и автоматизация.
+</div>
+
+<div class="toc">
+<strong>Содержание:</strong>
+<a href="#arch">1. Архитектура продакшн-системы</a>
+<a href="#llama-server">2. llama.cpp server: полная настройка</a>
+<a href="#ollama">3. Ollama: настройка и кастомизация</a>
+<a href="#prima-deploy">4. prima.cpp: распределённое развёртывание</a>
+<a href="#api">5. API Gateway: OpenAI-совместимый интерфейс</a>
+<a href="#systemd">6. Systemd: сервисы и автоматический перезапуск</a>
+<a href="#docker">7. Docker и Docker Compose</a>
+<a href="#monitoring">8. Мониторинг: Prometheus + Grafana</a>
+<a href="#cooling">9. Охлаждение, питание, электричество</a>
+<a href="#security">10. Безопасность</a>
+<a href="#ansible">11. Автоматизация с Ansible</a>
+<a href="#troubleshooting">12. Типичные проблемы 24/7 работы</a>
+<a href="#tco">13. Калькулятор TCO</a>
+<a href="#verdict">14. Итоговые рекомендации</a>
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2 id="arch">1. Архитектура продакшн-системы</h2>
+<div class="s">
+
+<div class="diagram">┌─────────────────────────────────────────────────────────┐
+│                    КЛИЕНТЫ                                │
+│  [Браузер/OpenWebUI]  [API клиент]  [Мобильное прил.]   │
+└──────────────┬──────────────┬──────────────┬────────────┘
+               │              │              │
+        ┌──────┴──────────────┴──────────────┴──────┐
+        │           NGINX REVERSE PROXY              │
+        │     SSL/TLS (Let's Encrypt)               │
+        │     Rate limiting, Auth                    │
+        │     :443 → :8080 (API)                    │
+        └──────────────────┬────────────────────────┘
+                           │
+        ┌──────────────────┴────────────────────────┐
+        │         LLM INFERENCE BACKEND              │
+        │                                            │
+        │  Вариант A: llama.cpp server (:8080)      │
+        │  Вариант B: Ollama (:11434)               │
+        │  Вариант C: prima.cpp master (:8080)      │
+        │    ├── worker-1 (:8888)                   │
+        │    ├── worker-2 (:8888)                   │
+        │    └── worker-3 (:8888)                   │
+        └───────────────────┬───────────────────────┘
+                            │
+        ┌───────────────────┴───────────────────────┐
+        │          МОНИТОРИНГ                        │
+        │                                            │
+        │  Prometheus (:9090) ─► Grafana (:3000)    │
+        │  Node Exporter (:9100) на каждом узле     │
+        │  nvidia_gpu_exporter (:9835) если GPU     │
+        │  Alertmanager (:9093) → Telegram/Email    │
+        └───────────────────────────────────────────┘</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2 id="llama-server">2. llama.cpp server: полная настройка</h2>
+<div class="s">
+
+<h3>Сборка</h3>
+<div class="cmd"># Клонировать и собрать:
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp && mkdir build && cd build
+
+# CPU only:
+cmake .. && cmake --build . --config Release -j$(nproc)
+
+# С CUDA:
+cmake .. -DGGML_CUDA=ON && cmake --build . --config Release -j$(nproc)
+
+# С Vulkan:
+cmake .. -DGGML_VULKAN=ON && cmake --build . --config Release -j$(nproc)
+
+# С Metal (macOS):
+cmake .. -DGGML_METAL=ON && cmake --build . --config Release -j$(nproc)</div>
+
+<h3>Запуск сервера</h3>
+<div class="cmd"># Базовый запуск:
+./llama-server \
+  --model /models/llama-3.3-70b-Q4_K_M.gguf \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --n-gpu-layers 99 \
+  --threads 10 \
+  --ctx-size 8192 \
+  --parallel 4 \
+  --batch-size 2048 \
+  --flash-attn \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --mlock
+
+# Ключевые параметры:
+# --parallel N    : обслуживать N одновременных запросов
+# --ctx-size N    : контекст (делится между parallel слотами!)
+#                   Реальный ctx на клиента = ctx-size / parallel
+# --cont-batching : непрерывный батчинг (по умолчанию вкл.)
+# --metrics       : экспорт Prometheus метрик на /metrics</div>
+
+<h3>OpenAI-совместимые эндпоинты</h3>
+<div class="cmd"># Chat completions (основной):
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "llama-70b",
+    "messages": [{"role": "user", "content": "Привет!"}],
+    "temperature": 0.7,
+    "max_tokens": 256
+  }'
+
+# Completions (legacy):
+curl http://localhost:8080/v1/completions \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Hello", "max_tokens": 64}'
+
+# Embeddings:
+curl http://localhost:8080/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"input": "текст для эмбеддинга"}'
+
+# Models list:
+curl http://localhost:8080/v1/models
+
+# Health check:
+curl http://localhost:8080/health
+# {"status": "ok"}</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2 id="ollama">3. Ollama: настройка и кастомизация</h2>
+<div class="s">
+
+<div class="cmd"># Установка:
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Скачать модель:
+ollama pull llama3.3:70b-instruct-q4_K_M
+
+# Запуск с кастомными параметрами:
+OLLAMA_HOST=0.0.0.0:11434 \
+OLLAMA_NUM_PARALLEL=4 \
+OLLAMA_MAX_LOADED_MODELS=2 \
+OLLAMA_FLASH_ATTENTION=1 \
+OLLAMA_KV_CACHE_TYPE=q8_0 \
+ollama serve
+
+# Ключевые переменные:
+# OLLAMA_HOST          : хост:порт (по умолчанию 127.0.0.1:11434)
+# OLLAMA_MODELS        : путь к моделям (по умолчанию ~/.ollama/models)
+# OLLAMA_NUM_PARALLEL  : параллельные запросы
+# OLLAMA_MAX_LOADED_MODELS : макс. моделей в RAM одновременно
+# OLLAMA_GPU_OVERHEAD  : зарезервировать N МБ VRAM для системы</div>
+
+<h3>Кастомный Modelfile</h3>
+<div class="cmd"># Создать файл Modelfile:
+FROM /models/llama-3.3-70b-Q4_K_M.gguf
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER num_ctx 8192
+PARAMETER num_gpu 99
+PARAMETER num_thread 10
+
+SYSTEM "Ты — полезный ассистент. Отвечай на русском языке."
+
+# Создать модель:
+ollama create my-llama70b -f Modelfile
+
+# Использовать:
+ollama run my-llama70b "Привет!"
+
+# API (OpenAI-совместимый):
+curl http://localhost:11434/v1/chat/completions \
+  -d '{"model":"my-llama70b","messages":[{"role":"user","content":"Hi"}]}'</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2 id="prima-deploy">4. prima.cpp: распределённое развёртывание</h2>
+<div class="s">
+
+<h3>Systemd для prima.cpp worker</h3>
+<div class="cmd"># /etc/systemd/system/prima-worker.service
+[Unit]
+Description=Prima.cpp Worker Node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=llm
+WorkingDirectory=/opt/prima.cpp
+ExecStart=/opt/prima.cpp/prima-server --port 8888
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+Nice=-10
+IOSchedulingClass=realtime
+
+[Install]
+WantedBy=multi-user.target</div>
+
+<h3>Systemd для prima.cpp master</h3>
+<div class="cmd"># /etc/systemd/system/prima-master.service
+[Unit]
+Description=Prima.cpp Master Node
+After=network-online.target prima-worker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=llm
+WorkingDirectory=/opt/prima.cpp
+ExecStart=/opt/prima.cpp/prima-cli \
+  --model /models/llama-3.3-70b-Q4_K_M.gguf \
+  --workers 192.168.1.101:8888,192.168.1.102:8888,192.168.1.103:8888 \
+  --server --port 8080
+Restart=on-failure
+RestartSec=10s
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target</div>
+
+<div class="cmd"># Активировать и запустить:
+sudo systemctl daemon-reload
+sudo systemctl enable prima-worker prima-master
+sudo systemctl start prima-worker
+sudo systemctl start prima-master
+
+# Проверить статус:
+sudo systemctl status prima-master
+sudo journalctl -u prima-master -f</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2 id="api">5. API Gateway: OpenAI-совместимый интерфейс</h2>
+<div class="s">
+
+<h3>OpenWebUI — веб-интерфейс для чата</h3>
+<div class="cmd"># Установка через Docker:
+docker run -d \
+  --name open-webui \
+  -p 3000:8080 \
+  -v open-webui:/app/backend/data \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  --restart always \
+  ghcr.io/open-webui/open-webui:main
+
+# Или для llama.cpp server:
+docker run -d \
+  --name open-webui \
+  -p 3000:8080 \
+  -v open-webui:/app/backend/data \
+  -e OPENAI_API_BASE_URL=http://host.docker.internal:8080/v1 \
+  -e OPENAI_API_KEY=not-needed \
+  --restart always \
+  ghcr.io/open-webui/open-webui:main
+
+# Открыть: http://localhost:3000</div>
+
+<h3>LiteLLM — прокси для множества бэкендов</h3>
+<div class="cmd"># Установка:
+pip install litellm
+
+# Конфигурация (config.yaml):
+model_list:
+  - model_name: llama-70b
+    litellm_params:
+      model: openai/llama-70b
+      api_base: http://localhost:8080/v1
+      api_key: not-needed
+  - model_name: qwq-32b
+    litellm_params:
+      model: ollama/my-qwq32b
+      api_base: http://localhost:11434
+
+# Запуск:
+litellm --config config.yaml --port 4000
+
+# Теперь http://localhost:4000 — единый OpenAI-совместимый API
+# для всех моделей. Роутинг по model_name.</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2 id="systemd">6. Systemd: сервисы и автоматический перезапуск</h2>
+<div class="s">
+
+<h3>llama.cpp server как systemd-сервис</h3>
+<div class="cmd"># /etc/systemd/system/llama-server.service
+[Unit]
+Description=llama.cpp Inference Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=llm
+Group=llm
+WorkingDirectory=/opt/llama.cpp
+
+ExecStart=/opt/llama.cpp/build/bin/llama-server \
+  --model /models/llama-3.3-70b-Q4_K_M.gguf \
+  --host 127.0.0.1 \
+  --port 8080 \
+  --n-gpu-layers 99 \
+  --threads 10 \
+  --ctx-size 8192 \
+  --parallel 4 \
+  --flash-attn \
+  --cache-type-k q8_0 \
+  --cache-type-v q8_0 \
+  --mlock \
+  --metrics
+
+# Автоматический перезапуск при падении:
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Ограничения ресурсов:
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+MemoryMax=60G
+Nice=-5
+
+# Логирование:
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llama-server
+
+[Install]
+WantedBy=multi-user.target</div>
+
+<h3>Ollama как systemd-сервис</h3>
+<div class="cmd"># /etc/systemd/system/ollama.service
+# (Обычно устанавливается автоматически, но для кастомизации:)
+[Unit]
+Description=Ollama LLM Service
+After=network-online.target
+
+[Service]
+Type=simple
+User=ollama
+ExecStart=/usr/local/bin/ollama serve
+Environment="OLLAMA_HOST=0.0.0.0:11434"
+Environment="OLLAMA_NUM_PARALLEL=4"
+Environment="OLLAMA_FLASH_ATTENTION=1"
+Environment="OLLAMA_KV_CACHE_TYPE=q8_0"
+Restart=on-failure
+RestartSec=3s
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target</div>
+
+<div class="cmd"># Управление сервисами:
+sudo systemctl daemon-reload
+sudo systemctl enable llama-server    # автозапуск при загрузке
+sudo systemctl start llama-server     # запустить
+sudo systemctl stop llama-server      # остановить
+sudo systemctl restart llama-server   # перезапустить
+sudo systemctl status llama-server    # статус
+sudo journalctl -u llama-server -f   # логи в реальном времени
+sudo journalctl -u llama-server --since "1 hour ago"  # логи за час</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2 id="docker">7. Docker и Docker Compose</h2>
+<div class="s">
+
+<h3>docker-compose.yml: полный стек</h3>
+<div class="cmd"># docker-compose.yml
+version: '3.8'
+
+services:
+  # === LLM Backend ===
+  llama-server:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    ports:
+      - "8080:8080"
+    volumes:
+      - /models:/models:ro
+    command: >
+      --model /models/llama-3.3-70b-Q4_K_M.gguf
+      --host 0.0.0.0 --port 8080
+      --threads 10 --ctx-size 8192 --parallel 4
+      --flash-attn --metrics
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # === Web UI ===
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    ports:
+      - "3000:8080"
+    environment:
+      - OPENAI_API_BASE_URL=http://llama-server:8080/v1
+      - OPENAI_API_KEY=not-needed
+    volumes:
+      - webui-data:/app/backend/data
+    depends_on:
+      - llama-server
+    restart: unless-stopped
+
+  # === Мониторинг ===
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+    restart: unless-stopped
+
+volumes:
+  webui-data:
+  prometheus-data:
+  grafana-data:</div>
+
+<div class="cmd"># Запуск:
+docker compose up -d
+
+# Проверить:
+docker compose ps
+docker compose logs llama-server -f
+
+# Остановить:
+docker compose down</div>
+
+<div class="note">
+<strong>GPU в Docker:</strong> Для NVIDIA GPU нужен <code>nvidia-container-toolkit</code>:
+<code>sudo apt install -y nvidia-container-toolkit && sudo systemctl restart docker</code>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2 id="monitoring">8. Мониторинг: Prometheus + Grafana</h2>
+<div class="s">
+
+<h3>prometheus.yml</h3>
+<div class="cmd"># prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Метрики llama.cpp server
+  - job_name: 'llama-server'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['llama-server:8080']
+
+  # Метрики Node Exporter (CPU, RAM, диск)
+  - job_name: 'node'
+    static_configs:
+      - targets:
+        - 'node-exporter:9100'           # Master
+        - '192.168.1.101:9100'           # Worker 1
+        - '192.168.1.102:9100'           # Worker 2
+        - '192.168.1.103:9100'           # Worker 3
+
+  # NVIDIA GPU метрики (если есть)
+  - job_name: 'nvidia-gpu'
+    static_configs:
+      - targets: ['localhost:9835']</div>
+
+<h3>alerts.yml — правила алертов</h3>
+<div class="cmd"># alerts.yml
+groups:
+  - name: cluster-alerts
+    rules:
+      # Узел недоступен
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Узел {{ $labels.instance }} недоступен"
+
+      # GPU температура > 85°C
+      - alert: GPUOverheat
+        expr: nvidia_gpu_temperature_celsius > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU перегревается: {{ $value }}°C"
+
+      # RAM > 90%
+      - alert: HighMemory
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAM использование > 90% на {{ $labels.instance }}"
+
+      # Диск > 85%
+      - alert: DiskFull
+        expr: (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Диск заполнен на > 85%"
+
+      # LLM server не отвечает
+      - alert: LLMServerDown
+        expr: up{job="llama-server"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "llama.cpp server недоступен!"</div>
+
+<h3>Grafana дашборд: ключевые панели</h3>
+<table>
+  <tr><th>Панель</th><th>Метрика (PromQL)</th><th>Тип</th></tr>
+  <tr><td>Tokens/sec</td><td><code>rate(llama_tokens_generated_total[1m])</code></td><td>Graph</td></tr>
+  <tr><td>Активные слоты</td><td><code>llama_slots_active</code></td><td>Gauge</td></tr>
+  <tr><td>Латентность запросов</td><td><code>histogram_quantile(0.95, llama_request_duration_seconds_bucket)</code></td><td>Graph</td></tr>
+  <tr><td>CPU на узлах</td><td><code>100 - (avg by(instance)(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)</code></td><td>Graph</td></tr>
+  <tr><td>RAM использование</td><td><code>(1 - node_memory_MemAvailable_bytes/node_memory_MemTotal_bytes) * 100</code></td><td>Gauge</td></tr>
+  <tr><td>Сетевой трафик</td><td><code>rate(node_network_receive_bytes_total[5m])</code></td><td>Graph</td></tr>
+  <tr><td>GPU температура</td><td><code>nvidia_gpu_temperature_celsius</code></td><td>Gauge</td></tr>
+  <tr><td>GPU VRAM</td><td><code>nvidia_gpu_memory_used_bytes / nvidia_gpu_memory_total_bytes</code></td><td>Gauge</td></tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 9 ==================== -->
+<h2 id="cooling">9. Охлаждение, питание, электричество</h2>
+<div class="s">
+
+<h3>Потребление электроэнергии</h3>
+<table>
+  <tr>
+    <th>Устройство</th>
+    <th>Idle (Вт)</th>
+    <th>Нагрузка (Вт)</th>
+    <th>Месяц 24/7 (кВт·ч)</th>
+    <th>$/мес ($0.15/кВт·ч)</th>
+  </tr>
+  <tr><td>Raspberry Pi 5</td><td>3</td><td>8–10</td><td>7.2</td><td class="price">$1.08</td></tr>
+  <tr><td>Orange Pi 5 Plus</td><td>5</td><td>12–15</td><td>10.8</td><td class="price">$1.62</td></tr>
+  <tr><td>Mac Mini M4</td><td>5</td><td>15–20</td><td>14.4</td><td class="price">$2.16</td></tr>
+  <tr><td>Mac Mini M4 Pro</td><td>7</td><td>25–35</td><td>25.2</td><td class="price">$3.78</td></tr>
+  <tr><td>Framework Desktop</td><td>10</td><td>45–65</td><td>46.8</td><td class="price">$7.02</td></tr>
+  <tr><td>Десктоп + RTX 3090</td><td>60</td><td>200–350</td><td>252</td><td class="price">$37.80</td></tr>
+  <tr><td>Десктоп + RTX 4090</td><td>50</td><td>250–450</td><td>324</td><td class="price">$48.60</td></tr>
+  <tr><td>4× Pi 5 кластер</td><td>12</td><td>32–40</td><td>28.8</td><td class="price">$4.32</td></tr>
+  <tr><td>4× Mac Mini M4 Pro</td><td>28</td><td>100–140</td><td>100.8</td><td class="price">$15.12</td></tr>
+</table>
+
+<h3>UPS: защита от отключений</h3>
+<table>
+  <tr><th>Кластер</th><th>Нагрузка</th><th>Мин. UPS (ВА)</th><th>Рекомендация</th><th>Цена</th></tr>
+  <tr><td>4× Pi 5</td><td>40 Вт</td><td>300 ВА</td><td>APC BE425M</td><td class="price">$60</td></tr>
+  <tr><td>Mac Mini M4 Pro</td><td>35 Вт</td><td>400 ВА</td><td>APC BE600M1</td><td class="price">$80</td></tr>
+  <tr><td>Framework Desktop</td><td>65 Вт</td><td>500 ВА</td><td>CyberPower CP685AVR</td><td class="price">$90</td></tr>
+  <tr><td>Десктоп + RTX 3090</td><td>350 Вт</td><td>1000 ВА</td><td>APC BR1000MS</td><td class="price">$180</td></tr>
+</table>
+
+<h3>Мониторинг питания</h3>
+<div class="cmd"># Smart plug с мониторингом (Shelly Plug S):
+# Цена: $15–25. Мониторит: ватты, кВт·ч, напряжение.
+# MQTT или REST API → интеграция с Grafana.
+
+# Пример запроса к Shelly:
+curl http://192.168.1.200/status
+# {"power": 42.5, "total": 156.7, "voltage": 230.5}
+
+# Prometheus exporter для Shelly:
+# shelly-plug-exporter → scrape_configs в prometheus.yml</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 10 ==================== -->
+<h2 id="security">10. Безопасность</h2>
+<div class="s">
+
+<h3>Firewall (ufw)</h3>
+<div class="cmd"># Базовая настройка:
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Разрешить SSH:
+sudo ufw allow ssh
+
+# Разрешить LLM API только из локальной сети:
+sudo ufw allow from 192.168.1.0/24 to any port 8080
+
+# Разрешить мониторинг из локальной сети:
+sudo ufw allow from 192.168.1.0/24 to any port 3000  # Grafana
+sudo ufw allow from 192.168.1.0/24 to any port 9090  # Prometheus
+
+# Кластерный трафик (prima.cpp workers):
+sudo ufw allow from 192.168.1.0/24 to any port 8888
+
+# Включить:
+sudo ufw enable
+sudo ufw status verbose</div>
+
+<h3>VPN для удалённого доступа (WireGuard)</h3>
+<div class="cmd"># Установка:
+sudo apt install -y wireguard
+
+# Генерация ключей (на сервере):
+wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+
+# /etc/wireguard/wg0.conf (сервер):
+[Interface]
+Address = 10.200.0.1/24
+ListenPort = 51820
+PrivateKey = SERVER_PRIVATE_KEY
+
+[Peer]
+PublicKey = CLIENT_PUBLIC_KEY
+AllowedIPs = 10.200.0.2/32
+
+# Запуск:
+sudo systemctl enable wg-quick@wg0
+sudo systemctl start wg-quick@wg0
+sudo ufw allow 51820/udp
+
+# Теперь LLM API доступен через VPN: http://10.200.0.1:8080</div>
+
+<h3>API аутентификация</h3>
+<div class="cmd"># llama.cpp server поддерживает --api-key:
+./llama-server --model model.gguf --api-key "your-secret-key-here"
+
+# Клиент:
+curl http://localhost:8080/v1/chat/completions \
+  -H "Authorization: Bearer your-secret-key-here" \
+  -d '{"model":"llama","messages":[{"role":"user","content":"Hi"}]}'
+
+# NGINX rate limiting (/etc/nginx/conf.d/llm.conf):
+limit_req_zone $binary_remote_addr zone=llm:10m rate=10r/s;
+
+server {
+    listen 443 ssl;
+    server_name ai.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/ai.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/ai.example.com/privkey.pem;
+
+    location /v1/ {
+        limit_req zone=llm burst=20 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_read_timeout 300s;
+    }
+}</div>
+
+<div class="red">
+<strong>Никогда не делайте:</strong><br>
+- Не открывайте порт 8080 в интернет без аутентификации<br>
+- Не запускайте LLM-сервер от root<br>
+- Не используйте пустой --api-key<br>
+- Не отключайте файрвол «для удобства»
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 11 ==================== -->
+<h2 id="ansible">11. Автоматизация с Ansible</h2>
+<div class="s">
+
+<h3>Inventory файл</h3>
+<div class="cmd"># inventory.yml
+all:
+  children:
+    master:
+      hosts:
+        node1:
+          ansible_host: 192.168.1.100
+    workers:
+      hosts:
+        node2:
+          ansible_host: 192.168.1.101
+        node3:
+          ansible_host: 192.168.1.102
+        node4:
+          ansible_host: 192.168.1.103
+  vars:
+    ansible_user: llm
+    ansible_ssh_private_key_file: ~/.ssh/id_cluster
+    model_path: /models/llama-3.3-70b-Q4_K_M.gguf</div>
+
+<h3>Playbook: развёртывание кластера</h3>
+<div class="cmd"># deploy-cluster.yml
+---
+- name: Configure all nodes
+  hosts: all
+  become: yes
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: [build-essential, cmake, git, python3-pip, iperf3]
+        state: present
+        update_cache: yes
+
+    - name: Clone llama.cpp
+      git:
+        repo: https://github.com/ggerganov/llama.cpp.git
+        dest: /opt/llama.cpp
+        version: master
+
+    - name: Build llama.cpp
+      shell: |
+        cd /opt/llama.cpp && mkdir -p build && cd build
+        cmake .. -DGGML_VULKAN=ON
+        cmake --build . --config Release -j$(nproc)
+
+    - name: Apply TCP tuning
+      copy:
+        dest: /etc/sysctl.d/99-ai-cluster.conf
+        content: |
+          net.core.rmem_max = 67108864
+          net.core.wmem_max = 67108864
+          net.ipv4.tcp_rmem = 4096 1048576 67108864
+          net.ipv4.tcp_wmem = 4096 1048576 67108864
+
+    - name: Apply sysctl
+      command: sysctl -p /etc/sysctl.d/99-ai-cluster.conf
+
+    - name: Install node exporter
+      apt:
+        name: prometheus-node-exporter
+        state: present
+
+- name: Deploy master
+  hosts: master
+  become: yes
+  tasks:
+    - name: Copy llama-server service
+      template:
+        src: templates/llama-server.service.j2
+        dest: /etc/systemd/system/llama-server.service
+      notify: Restart llama-server
+
+  handlers:
+    - name: Restart llama-server
+      systemd:
+        name: llama-server
+        state: restarted
+        daemon_reload: yes
+        enabled: yes</div>
+
+<div class="cmd"># Запуск:
+ansible-playbook -i inventory.yml deploy-cluster.yml
+
+# Проверить статус всех узлов:
+ansible all -i inventory.yml -m shell -a "systemctl status llama-server || echo 'Not master'"
+
+# Rolling restart (по одному узлу):
+ansible workers -i inventory.yml -m systemd -a "name=prima-worker state=restarted" --forks 1</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 12 ==================== -->
+<h2 id="troubleshooting">12. Типичные проблемы 24/7 работы</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Проблема</th>
+    <th>Симптомы</th>
+    <th>Решение</th>
+  </tr>
+  <tr>
+    <td><strong>OOM Killer</strong></td>
+    <td>Процесс внезапно убит. <code>dmesg | grep oom</code></td>
+    <td>Установить <code>MemoryMax=</code> в systemd. Использовать <code>--mlock</code>. Уменьшить ctx-size</td>
+  </tr>
+  <tr>
+    <td><strong>Memory leak</strong></td>
+    <td>RAM медленно растёт, через дни — OOM</td>
+    <td>Автоматический перезапуск по расписанию: <code>systemctl restart llama-server</code> через timer</td>
+  </tr>
+  <tr>
+    <td><strong>GPU memory frag</strong></td>
+    <td>CUDA out of memory при достаточном VRAM</td>
+    <td>Перезапуск процесса. Установить <code>CUDA_LAUNCH_BLOCKING=1</code> для отладки</td>
+  </tr>
+  <tr>
+    <td><strong>NVMe износ</strong></td>
+    <td>S.M.A.R.T. предупреждения</td>
+    <td>Мониторить <code>smartctl -a /dev/nvme0</code>. Типичный TBW: 600 ТБ для 1 ТБ SSD. При mmap: ~10 ТБ/мес → 5 лет</td>
+  </tr>
+  <tr>
+    <td><strong>Диск заполнен</strong></td>
+    <td>Логи, кеш моделей, core dumps</td>
+    <td>Logrotate для журналов. <code>journalctl --vacuum-size=500M</code>. Cron для очистки</td>
+  </tr>
+  <tr>
+    <td><strong>Сеть отвалилась</strong></td>
+    <td>Worker недоступен, prima.cpp зависает</td>
+    <td>NetworkManager + auto-reconnect. Systemd Restart=on-failure. Health check скрипт</td>
+  </tr>
+  <tr>
+    <td><strong>Thermal throttling</strong></td>
+    <td>tok/s падает через 30–60 мин</td>
+    <td>Мониторить температуру. Улучшить охлаждение. Ограничить TDP в BIOS</td>
+  </tr>
+</table>
+
+<h3>Скрипт health check</h3>
+<div class="cmd">#!/bin/bash
+# /opt/scripts/health-check.sh
+# Запускать через cron каждые 5 минут
+
+ENDPOINT="http://localhost:8080/health"
+RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$ENDPOINT")
+
+if [ "$RESPONSE" != "200" ]; then
+  echo "$(date): LLM server unhealthy (HTTP $RESPONSE), restarting..."
+  systemctl restart llama-server
+  # Опционально: отправить в Telegram
+  curl -s "https://api.telegram.org/bot$TOKEN/sendMessage" \
+    -d "chat_id=$CHAT_ID" \
+    -d "text=LLM server restarted at $(date)"
+fi</div>
+
+<div class="cmd"># Crontab:
+# crontab -e
+*/5 * * * * /opt/scripts/health-check.sh >> /var/log/health-check.log 2>&1
+
+# Автоматический перезапуск раз в неделю (для memory leaks):
+0 4 * * 0 systemctl restart llama-server</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 13 ==================== -->
+<h2 id="tco">13. Калькулятор TCO (Total Cost of Ownership)</h2>
+<div class="s">
+
+<h3>Формула годового TCO</h3>
+<div class="diagram">TCO_год = (Hardware / Срок_амортизации) + Электричество_год + Обслуживание_год
+
+Где:
+  Электричество_год = Мощность_Вт × 24 × 365 / 1000 × Тариф_$/кВт·ч
+  Обслуживание ≈ 2–4 часа/месяц × ваша_часовая_ставка (или $0 для хобби)</div>
+
+<h3>Сравнение с облачными API</h3>
+<table>
+  <tr>
+    <th>Конфигурация</th>
+    <th>Hardware</th>
+    <th>Эл-во/год</th>
+    <th>TCO 3 года</th>
+    <th>tok/s (70B)</th>
+    <th>М токенов/мес*</th>
+    <th>Экв. API $/мес**</th>
+  </tr>
+  <tr>
+    <td>Mac Mini M4 Pro 64 ГБ</td>
+    <td class="price">$2 199</td>
+    <td>$45</td>
+    <td>$2 334</td>
+    <td class="speed">4–5</td>
+    <td>86M</td>
+    <td>$77 (Together.ai)</td>
+  </tr>
+  <tr>
+    <td>Framework Desktop 128 ГБ</td>
+    <td class="price">$1 999</td>
+    <td>$84</td>
+    <td>$2 251</td>
+    <td class="speed">4–5</td>
+    <td>86M</td>
+    <td>$77</td>
+  </tr>
+  <tr>
+    <td>RTX 3090 десктоп (б/у)</td>
+    <td class="price">$900</td>
+    <td>$454</td>
+    <td>$2 262</td>
+    <td>-***</td>
+    <td>-</td>
+    <td>-</td>
+  </tr>
+  <tr>
+    <td>4× Mac Mini M4 Pro + EXO</td>
+    <td class="price">$8 800</td>
+    <td>$181</td>
+    <td>$9 343</td>
+    <td class="speed">32</td>
+    <td>691M</td>
+    <td>$622</td>
+  </tr>
+</table>
+<p style="font-size:0.8em; color:#607080;">* При 8 часах активной работы/день.<br>** Together.ai Llama 70B: $0.90/1M токенов.<br>*** RTX 3090 не влезает 70B в VRAM без кластера.</p>
+
+<div class="good">
+<strong>Break-even точка:</strong><br>
+Mac Mini M4 Pro ($2 199) при 86M токенов/мес vs Together.ai API ($77/мес):<br>
+Окупаемость = $2 199 / ($77 - $3.78) = <strong>30 месяцев (2.5 года)</strong>.<br><br>
+4× Mac Mini кластер ($8 800) при 691M токенов/мес vs API ($622/мес):<br>
+Окупаемость = $8 800 / ($622 - $15.12) = <strong>14.5 месяцев</strong>.<br><br>
+Чем больше используете — тем быстрее окупается!
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 14 ==================== -->
+<h2 id="verdict">14. Итоговые рекомендации</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Сценарий</th>
+    <th>Простой вариант</th>
+    <th>Продвинутый вариант</th>
+  </tr>
+  <tr>
+    <td><strong>Личный ассистент (1 юзер)</strong></td>
+    <td>Ollama + Open WebUI. Один systemd сервис. Мониторинг — htop.</td>
+    <td>llama.cpp server + NGINX + Prometheus. WireGuard для мобильного доступа.</td>
+  </tr>
+  <tr>
+    <td><strong>Семья/команда (2–5 юзеров)</strong></td>
+    <td>llama.cpp server --parallel 4. Open WebUI с аккаунтами. UPS.</td>
+    <td>Docker Compose полный стек. Grafana дашборды. Telegram алерты.</td>
+  </tr>
+  <tr>
+    <td><strong>Хакерспейс (10+ юзеров)</strong></td>
+    <td>Ollama + LiteLLM. Несколько моделей. Rate limiting.</td>
+    <td>prima.cpp кластер. Ansible для управления. Полный мониторинг. VPN.</td>
+  </tr>
+</table>
+
+<div class="highlight">
+<strong>Минимальный продакшн-сетап (30 минут):</strong><br><br>
+1. <code>sudo apt install -y ollama</code><br>
+2. <code>ollama pull llama3.1:8b</code><br>
+3. Создать systemd override с <code>OLLAMA_HOST=0.0.0.0</code><br>
+4. Запустить Open WebUI в Docker<br>
+5. Настроить ufw (порты 3000, 11434 — только из LAN)<br><br>
+<strong>Полный продакшн-сетап (2–4 часа):</strong><br>
+Добавить: llama.cpp server с --metrics, Prometheus, Grafana, NGINX с SSL, WireGuard, health check cron, UPS, Telegram алерты.
+</div>
+</div>
+
+<div class="footer">
+  Часть 10 серии «Домашние AI-кластеры 2026». Февраль 2026.<br>
+  Источники: llama.cpp docs, Ollama docs, Prometheus/Grafana, Open WebUI, WireGuard.<br>
+  <a href="model-quantization-guide-ru.html">← Часть 9 (Модели)</a> ·
+  <a href="networking-deep-dive-ru.html">← Часть 8 (Сети)</a> ·
+  <a href="cost-performance-calculator-ru.html">→ Часть 11 (Калькулятор)</a>
+</div>
+
+</body>
+</html>

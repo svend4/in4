@@ -1,0 +1,1639 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сетевая инфраструктура для AI-кластеров: полное руководство</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;600;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #0a0e14; color: #c8ccd4; padding: 20px; line-height: 1.75; max-width: 1140px; margin: 0 auto; }
+  h1 { font-size: 1.7em; color: #73d0ff; margin-bottom: 6px; font-weight: 800; }
+  h2 { font-size: 1.25em; color: #bae67e; margin: 32px 0 14px 0; padding-bottom: 6px; border-bottom: 2px solid #1f2430; font-weight: 800; }
+  h3 { font-size: 1.05em; color: #ffd580; margin: 20px 0 10px 0; font-weight: 600; }
+  .sub { color: #607080; font-size: 0.9em; margin-bottom: 20px; }
+  .s { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.82em; }
+  th { background: #1a1f2e; color: #73d0ff; text-align: left; padding: 8px 10px; border: 1px solid #1f2430; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #1f2430; vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1419; }
+  tr:nth-child(odd) td { background: #0a0e14; }
+  .note { background: #0d1a2a; border-left: 3px solid #73d0ff; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .warn { background: #1a1505; border-left: 3px solid #ffd580; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .good { background: #0a1a0d; border-left: 3px solid #bae67e; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .red { background: #1a0a0a; border-left: 3px solid #ff6b6b; padding: 12px 16px; margin: 12px 0; border-radius: 0 8px 8px 0; font-size: 0.9em; }
+  .highlight { background: linear-gradient(135deg, #0d1a2a 0%, #1a0d2a 100%); border: 1px solid #5c6ac4; border-radius: 10px; padding: 16px; margin: 14px 0; }
+  .price { color: #ffd580; font-weight: 600; }
+  .speed { color: #bae67e; font-weight: 600; }
+  a { color: #73d0ff; text-decoration: none; }
+  strong { color: #e6e9ef; }
+  code { font-family: 'JetBrains Mono', monospace; background: #1a1f2e; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; color: #ffcc66; }
+  .cmd { background: #0f1419; border: 1px solid #1f2430; border-radius: 8px; padding: 14px; margin: 10px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.8em; color: #bae67e; overflow-x: auto; white-space: pre-wrap; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  .vs > div { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 14px; }
+  @media (max-width: 700px) { .vs { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75em; font-weight: 600; margin-right: 4px; }
+  .badge-green { background: #1a3a1a; color: #bae67e; }
+  .badge-blue { background: #0d1a2a; color: #73d0ff; }
+  .badge-orange { background: #2a1a05; color: #ffd580; }
+  .badge-red { background: #2a0d0d; color: #ff6b6b; }
+  .toc { background: #0f1419; border: 1px solid #1f2430; border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .toc a { display: block; padding: 3px 0; color: #607080; }
+  .toc a:hover { color: #73d0ff; }
+  .diagram { background: #0a0e14; border: 2px solid #73d0ff; border-radius: 12px; padding: 16px; margin: 14px 0; font-family: 'JetBrains Mono', monospace; font-size: 0.78em; color: #c8ccd4; line-height: 1.5; white-space: pre-wrap; }
+  .footer { margin-top: 30px; color: #3d4455; font-size: 0.78em; text-align: center; padding-top: 16px; border-top: 1px solid #1f2430; }
+</style>
+</head>
+<body>
+
+<h1>Сетевая инфраструктура для AI-кластеров: полное руководство</h1>
+<p class="sub">Часть 8 серии исследований. Февраль 2026. От Gigabit Ethernet до InfiniBand: пошаговая настройка, расчёты, бенчмарки</p>
+
+<div class="highlight">
+<strong>Зачем этот гайд?</strong> В предыдущих частях мы рассматривали сетевые технологии поверхностно. Здесь — <strong>полное погружение</strong>: каждый протокол, каждая технология, пошаговая настройка, точные расчёты пропускной способности для каждого фреймворка и модели. Сеть — это <strong>главное узкое место</strong> распределённого инференса, и правильный выбор может дать 10-кратное ускорение.
+</div>
+
+<div class="toc">
+<strong>Содержание:</strong>
+<a href="#bottleneck">1. Почему сеть — узкое место распределённого инференса</a>
+<a href="#hierarchy">2. Полная иерархия сетевых технологий</a>
+<a href="#rdma">3. RDMA: что это и почему важно</a>
+<a href="#setup-gbe">4. Пошаговая настройка: Gigabit Ethernet</a>
+<a href="#setup-25g">5. Пошаговая настройка: 2.5/5/10 GbE</a>
+<a href="#setup-tb5">6. Пошаговая настройка: Thunderbolt 5</a>
+<a href="#setup-roce">7. Пошаговая настройка: RoCE v2</a>
+<a href="#topology">8. Топологии сети для кластеров</a>
+<a href="#tcp-tuning">9. Оптимизация TCP для AI-трафика</a>
+<a href="#benchmarks">10. Замеры и бенчмарки</a>
+<a href="#bandwidth-calc">11. Расчёт пропускной способности для каждой модели</a>
+<a href="#framework-impact">12. Влияние сети на конкретные фреймворки</a>
+<a href="#hardware">13. Оборудование: конкретные модели и цены</a>
+<a href="#troubleshooting">14. Типичные проблемы и диагностика</a>
+<a href="#budget">15. Рекомендации по бюджету</a>
+<a href="#matrix">16. Итоговая матрица: сеть × фреймворк × модель</a>
+</div>
+
+<!-- ==================== РАЗДЕЛ 1 ==================== -->
+<h2 id="bottleneck">1. Почему сеть — узкое место распределённого инференса</h2>
+<div class="s">
+
+<p>Генерация токенов в LLM — операция, ограниченная <strong>пропускной способностью памяти</strong> (memory-bandwidth bound). Каждый токен требует прочитать все веса модели из RAM. Но при распределённом инференсе появляется ещё одно ограничение — <strong>сеть</strong>.</p>
+
+<h3>Что передаётся по сети</h3>
+<p>При каждой генерации токена устройства должны обменяться <strong>промежуточными активациями</strong> (hidden states). Размер зависит от типа параллелизма:</p>
+
+<table>
+  <tr>
+    <th>Тип параллелизма</th>
+    <th>Что передаётся</th>
+    <th>Формула (байт на синхронизацию)</th>
+    <th>Llama 70B (hidden=8192)</th>
+  </tr>
+  <tr>
+    <td><strong>Pipeline (PP)</strong></td>
+    <td>Hidden state между сегментами</td>
+    <td><code>hidden_size × 2 байта (FP16)</code></td>
+    <td class="speed">16 КБ</td>
+  </tr>
+  <tr>
+    <td><strong>Tensor (TP)</strong></td>
+    <td>All-reduce после каждого слоя</td>
+    <td><code>hidden_size × 2 × 2 (reduce-scatter + all-gather)</code></td>
+    <td class="speed">32 КБ × 80 слоёв = 2.5 МБ</td>
+  </tr>
+  <tr>
+    <td><strong>PRP (prima.cpp)</strong></td>
+    <td>Hidden state при каждом ring-шаге</td>
+    <td><code>hidden_size × 2 × k_оборотов</code></td>
+    <td class="speed">16 КБ × (N_устройств × k)</td>
+  </tr>
+</table>
+
+<h3>Расчёт сетевого overhead для Llama 70B</h3>
+<div class="diagram">Pipeline Parallelism (4 узла):
+  Синхронизаций на токен: 3 (между каждой парой)
+  Данных на синхронизацию: 16 КБ
+  Итого на токен: 48 КБ
+
+  При 1 GbE (реально ~110 МБ/с):
+    Передача: 48 КБ / 110 МБ/с = 0.44 мс
+    Латентность TCP: ~300 мкс × 3 = 0.9 мс
+    Итого сетевой overhead: ~1.3 мс на токен ← НЕЗНАЧИТЕЛЬНО
+
+  НО! Pipeline bubble: 3 устройства простаивают пока 1 считает
+    Если вычисление = 150 мс/сегмент → 3 × 150 = 450 мс простоя
+    Итого: ~600 мс/токен → 1.7 tok/s (вместо теоретических 6.8)
+
+Tensor Parallelism (4 узла):
+  All-reduce на слой: 32 КБ
+  Слоёв: 80
+  Итого на токен: 2.5 МБ
+
+  При 1 GbE (110 МБ/с):
+    Передача: 2.5 МБ / 110 МБ/с = 22.7 мс
+    Латентность: 300 мкс × 80 = 24 мс
+    Итого: ~47 мс overhead × каждый токен
+
+  При Thunderbolt 5 RDMA (5 ГБ/с, 3 мкс):
+    Передача: 2.5 МБ / 5000 МБ/с = 0.5 мс
+    Латентность: 3 мкс × 80 = 0.24 мс
+    Итого: ~0.74 мс ← ПРАКТИЧЕСКИ БЕСПЛАТНО
+
+PRP (prima.cpp, 4 узла, k=2):
+  Ring-шагов на токен: 4 × 2 = 8
+  Данных на шаг: 16 КБ
+  Итого: 128 КБ
+
+  При 1 GbE:
+    Передача: 128 КБ / 110 МБ/с = 1.16 мс
+    Латентность: 300 мкс × 8 = 2.4 мс
+    Итого: ~3.6 мс — умеренный overhead
+    + PRP перекрывает disk I/O, компенсируя overhead</div>
+
+<div class="red">
+<strong>Главный вывод:</strong><br>
+- <strong>Pipeline parallelism</strong>: сеть не узкое место (48 КБ/токен), но pipeline bubble огромен<br>
+- <strong>Tensor parallelism</strong>: на 1 GbE — <strong>47 мс overhead на токен</strong>. На TB5 RDMA — 0.74 мс. Разница в <strong>63×</strong>!<br>
+- <strong>PRP</strong>: умеренный overhead (3.6 мс на 1 GbE), компенсируется перекрытием disk I/O<br>
+- Для tensor parallelism <strong>быстрая сеть критична</strong>. Для pipeline и PRP — менее важна.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 2 ==================== -->
+<h2 id="hierarchy">2. Полная иерархия сетевых технологий</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Технология</th>
+    <th>Теор. bandwidth</th>
+    <th>Реальная throughput</th>
+    <th>Латентность</th>
+    <th>RDMA</th>
+    <th>Стоимость (свитч+NIC)</th>
+    <th>Для дома</th>
+  </tr>
+  <tr>
+    <td>Wi-Fi 5 (802.11ac)</td>
+    <td>866 Мбит/с</td>
+    <td>~200–400 Мбит/с</td>
+    <td>2–10 мс</td>
+    <td>-</td>
+    <td class="price">$0 (встроено)</td>
+    <td><span class="badge badge-red">Плохо</span></td>
+  </tr>
+  <tr>
+    <td>Wi-Fi 6 (802.11ax)</td>
+    <td>2.4 Гбит/с</td>
+    <td>~500–900 Мбит/с</td>
+    <td>2–8 мс</td>
+    <td>-</td>
+    <td class="price">$0 (встроено)</td>
+    <td><span class="badge badge-orange">Терпимо</span></td>
+  </tr>
+  <tr>
+    <td>Wi-Fi 6E</td>
+    <td>2.4 Гбит/с</td>
+    <td>~800–1200 Мбит/с</td>
+    <td>1–5 мс</td>
+    <td>-</td>
+    <td class="price">$0 (встроено)</td>
+    <td><span class="badge badge-orange">Терпимо</span></td>
+  </tr>
+  <tr>
+    <td>Wi-Fi 7 (802.11be)</td>
+    <td>5.8 Гбит/с</td>
+    <td>~2–3 Гбит/с</td>
+    <td>1–3 мс</td>
+    <td>-</td>
+    <td class="price">Роутер $150–300</td>
+    <td><span class="badge badge-blue">Нормально</span></td>
+  </tr>
+  <tr>
+    <td><strong>Gigabit Ethernet (1G)</strong></td>
+    <td>1 Гбит/с</td>
+    <td>~940 Мбит/с (117 МБ/с)</td>
+    <td>150–500 мкс</td>
+    <td>-</td>
+    <td class="price">Свитч $15–30</td>
+    <td><span class="badge badge-green">Хорошо</span></td>
+  </tr>
+  <tr>
+    <td><strong>2.5 GbE</strong></td>
+    <td>2.5 Гбит/с</td>
+    <td>~2.35 Гбит/с (294 МБ/с)</td>
+    <td>100–300 мкс</td>
+    <td>-</td>
+    <td class="price">Свитч $30–60</td>
+    <td><span class="badge badge-green">Хорошо</span></td>
+  </tr>
+  <tr>
+    <td>5 GbE</td>
+    <td>5 Гбит/с</td>
+    <td>~4.7 Гбит/с (588 МБ/с)</td>
+    <td>80–200 мкс</td>
+    <td>-</td>
+    <td class="price">Свитч $60–120</td>
+    <td><span class="badge badge-green">Хорошо</span></td>
+  </tr>
+  <tr>
+    <td><strong>10 GbE (SFP+)</strong></td>
+    <td>10 Гбит/с</td>
+    <td>~9.4 Гбит/с (1175 МБ/с)</td>
+    <td>30–100 мкс</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price">Свитч $80–200 (б/у), NIC $20–40</td>
+    <td><span class="badge badge-green">Отлично</span></td>
+  </tr>
+  <tr>
+    <td><strong>25 GbE (SFP28)</strong></td>
+    <td>25 Гбит/с</td>
+    <td>~23.5 Гбит/с (2.94 ГБ/с)</td>
+    <td>10–50 мкс</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price">Свитч $150–400 (б/у), NIC $30–80</td>
+    <td><span class="badge badge-green">Отлично</span></td>
+  </tr>
+  <tr>
+    <td>40 GbE (QSFP)</td>
+    <td>40 Гбит/с</td>
+    <td>~37 Гбит/с (4.7 ГБ/с)</td>
+    <td>5–30 мкс</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price">Свитч $200–600 (б/у), NIC $40–100</td>
+    <td><span class="badge badge-blue">Возможно</span></td>
+  </tr>
+  <tr>
+    <td>100 GbE (QSFP28)</td>
+    <td>100 Гбит/с</td>
+    <td>~93 Гбит/с (11.6 ГБ/с)</td>
+    <td>2–10 мкс</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price">Свитч $500–2000, NIC $80–200</td>
+    <td><span class="badge badge-orange">Дорого</span></td>
+  </tr>
+  <tr>
+    <td><strong>Thunderbolt 4</strong></td>
+    <td>40 Гбит/с (32 Гбит/с данные)</td>
+    <td>~3 ГБ/с</td>
+    <td>5–15 мкс</td>
+    <td>-</td>
+    <td class="price">Кабель $20–50</td>
+    <td><span class="badge badge-green">Отлично</span></td>
+  </tr>
+  <tr>
+    <td><strong>Thunderbolt 5</strong></td>
+    <td>120 Гбит/с (80 Гбит/с симм.)</td>
+    <td>~8 ГБ/с (асимм.)</td>
+    <td><strong>~3 мкс</strong></td>
+    <td><strong>EXO RDMA</strong></td>
+    <td class="price">Кабель $30–80</td>
+    <td><span class="badge badge-green">Отлично (Mac)</span></td>
+  </tr>
+  <tr>
+    <td>USB4 v2</td>
+    <td>80 Гбит/с</td>
+    <td>~6–8 ГБ/с</td>
+    <td>5–15 мкс</td>
+    <td>-</td>
+    <td class="price">Кабель $30–60</td>
+    <td><span class="badge badge-blue">Нормально</span></td>
+  </tr>
+  <tr>
+    <td><strong>InfiniBand FDR</strong></td>
+    <td>56 Гбит/с</td>
+    <td>~6.5 ГБ/с</td>
+    <td><strong>1–2 мкс</strong></td>
+    <td><strong>Native RDMA</strong></td>
+    <td class="price">Свитч $100–300 (б/у), HCA $30–60</td>
+    <td><span class="badge badge-blue">Возможно (б/у)</span></td>
+  </tr>
+  <tr>
+    <td><strong>InfiniBand HDR</strong></td>
+    <td>200 Гбит/с</td>
+    <td>~24 ГБ/с</td>
+    <td><strong>0.6–1 мкс</strong></td>
+    <td><strong>Native RDMA</strong></td>
+    <td class="price">$500+ (б/у)</td>
+    <td><span class="badge badge-orange">Дорого</span></td>
+  </tr>
+  <tr>
+    <td>InfiniBand NDR</td>
+    <td>400 Гбит/с</td>
+    <td>~48 ГБ/с</td>
+    <td><strong>0.5 мкс</strong></td>
+    <td><strong>Native RDMA</strong></td>
+    <td class="price">$2000+</td>
+    <td><span class="badge badge-red">Датацентр</span></td>
+  </tr>
+  <tr>
+    <td>NVLink 4 (H100)</td>
+    <td>900 ГБ/с</td>
+    <td>~800 ГБ/с</td>
+    <td><strong>~0.1 мкс</strong></td>
+    <td>P2P</td>
+    <td class="price">Только в серверах</td>
+    <td><span class="badge badge-red">Датацентр</span></td>
+  </tr>
+  <tr>
+    <td>CXL 2.0</td>
+    <td>64 ГБ/с (PCIe 5.0 x16)</td>
+    <td>~50 ГБ/с</td>
+    <td><strong>~80–150 нс</strong></td>
+    <td>Когерентный</td>
+    <td class="price">Только в серверах</td>
+    <td><span class="badge badge-red">Датацентр</span></td>
+  </tr>
+</table>
+
+<div class="warn">
+<strong>Ключевое наблюдение:</strong> Латентность имеет большее значение, чем пропускная способность для tensor parallelism. Даже 100 GbE Ethernet с латентностью 5 мкс проигрывает Thunderbolt 5 с 3 мкс, потому что all-reduce требует <strong>множество мелких синхронизаций</strong>. Для pipeline parallelism (prima.cpp PRP, llama.cpp RPC) пропускная способность важнее латентности.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 3 ==================== -->
+<h2 id="rdma">3. RDMA: что это и почему важно</h2>
+<div class="s">
+
+<p><strong>RDMA (Remote Direct Memory Access)</strong> — технология, позволяющая одному компьютеру читать/писать память другого компьютера <strong>напрямую</strong>, без участия CPU и операционной системы удалённой машины.</p>
+
+<h3>Обычный TCP vs RDMA</h3>
+<div class="diagram">Обычный TCP/IP (путь данных):
+  Приложение → Системный вызов send() → Копирование в kernel buffer →
+  → TCP/IP стек (заголовки, контрольные суммы) → Драйвер NIC →
+  → NIC DMA → Провод → NIC DMA →
+  → Драйвер NIC → Копирование из kernel buffer → Прерывание CPU →
+  → Системный вызов recv() → Приложение
+
+  Копирований памяти: 2–4
+  Переключений контекста: 4+
+  Участие CPU: на обеих сторонах
+  Латентность: 100–500 мкс
+
+RDMA (путь данных):
+  Приложение → ibv_post_send() → NIC DMA (из user-space напрямую!) →
+  → Провод → NIC DMA (в память удалённого приложения напрямую!) →
+  → Completion Queue уведомляет приложение
+
+  Копирований памяти: 0 (zero-copy)
+  Переключений контекста: 0 (kernel bypass)
+  Участие CPU: минимальное (только на инициацию)
+  Латентность: 1–5 мкс</div>
+
+<h3>Три типа RDMA</h3>
+<table>
+  <tr>
+    <th>Тип</th>
+    <th>Транспорт</th>
+    <th>Латентность</th>
+    <th>Требования</th>
+    <th>Доступность для дома</th>
+  </tr>
+  <tr>
+    <td><strong>InfiniBand RDMA</strong></td>
+    <td>InfiniBand (специальный протокол)</td>
+    <td class="speed">0.6–2 мкс</td>
+    <td>InfiniBand HCA + IB свитч</td>
+    <td>Б/у FDR — $100–300 за пару HCA + свитч</td>
+  </tr>
+  <tr>
+    <td><strong>RoCE v2</strong></td>
+    <td>Ethernet (UDP/IP)</td>
+    <td class="speed">2–10 мкс</td>
+    <td>Mellanox ConnectX-4+ NIC + свитч с ECN/PFC</td>
+    <td>Б/у 10–25G Mellanox — $50–150 за пару NIC</td>
+  </tr>
+  <tr>
+    <td><strong>iWARP</strong></td>
+    <td>Ethernet (TCP/IP)</td>
+    <td>5–20 мкс</td>
+    <td>iWARP NIC (Chelsio)</td>
+    <td>Редко, малая экосистема</td>
+  </tr>
+  <tr>
+    <td><strong>EXO RDMA (macOS)</strong></td>
+    <td>Thunderbolt 5</td>
+    <td class="speed">~3 мкс</td>
+    <td>Mac Mini M4 Pro + TB5 кабель</td>
+    <td>$30–80 за кабель</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>EXO RDMA на Mac:</strong> Фреймворк EXO реализовал RDMA поверх Thunderbolt 5, используя технологию Apple <code>IOPCIFamily</code> для прямого доступа к памяти через TB5-контроллер. Это позволяет достичь <strong>~3 мкс латентности</strong> и <strong>~5 ГБ/с пропускной способности</strong> между Mac Mini M4 Pro — сравнимо с InfiniBand FDR. Именно поэтому кластер 4× Mac Mini + EXO даёт 32 tok/s на 70B.
+</div>
+
+<h3>Когда RDMA реально нужен</h3>
+<div class="vs">
+<div>
+<strong>RDMA необходим:</strong><br>
+- Tensor Parallelism (all-reduce на каждом слое)<br>
+- EXO на Mac-кластерах<br>
+- distributed-llama с быстрым интерконнектом<br>
+- Любой сценарий с &gt;50 синхронизациями на токен
+</div>
+<div>
+<strong>RDMA НЕ нужен:</strong><br>
+- Pipeline Parallelism (llama.cpp RPC) — 3 синхронизации/токен<br>
+- PRP (prima.cpp) — умеренное количество<br>
+- Одиночный узел<br>
+- Модели &lt;14B (не нужен кластер)
+</div>
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 4 ==================== -->
+<h2 id="setup-gbe">4. Пошаговая настройка: Gigabit Ethernet кластер</h2>
+<div class="s">
+
+<h3>Топология: Star (звезда)</h3>
+<div class="diagram">                    ┌───────────────────┐
+                    │  Gigabit Switch   │
+                    │  TP-Link LS1008G  │
+                    │  (8 портов, $20)  │
+                    └─┬───┬───┬───┬───┘
+                      │   │   │   │
+              ┌───────┘   │   │   └───────┐
+              │           │   │           │
+         ┌────┴────┐ ┌───┴───┴┐ ┌───┴────┐ ┌────┴────┐
+         │ Node 1  │ │ Node 2 │ │ Node 3 │ │ Node 4  │
+         │ Master  │ │ Worker │ │ Worker │ │ Worker  │
+         │10.0.0.1 │ │10.0.0.2│ │10.0.0.3│ │10.0.0.4│
+         └─────────┘ └────────┘ └────────┘ └─────────┘
+         Cat6 кабели 0.3–1.0 м (Cat5e тоже работает)</div>
+
+<h3>Шаг 1: Статические IP-адреса (на каждом узле)</h3>
+<div class="cmd"># Ubuntu/Debian — через netplan (/etc/netplan/01-cluster.yaml)
+network:
+  version: 2
+  ethernets:
+    eth0:
+      addresses:
+        - 10.0.0.1/24    # Менять на .2, .3, .4 для каждого узла
+      mtu: 1500
+      nameservers:
+        addresses: [8.8.8.8, 1.1.1.1]
+
+# Применить:
+sudo netplan apply
+
+# Raspberry Pi OS (через dhcpcd):
+# /etc/dhcpcd.conf
+interface eth0
+static ip_address=10.0.0.1/24
+static routers=10.0.0.1</div>
+
+<h3>Шаг 2: Проверка связности</h3>
+<div class="cmd"># С мастер-узла (10.0.0.1):
+ping -c 3 10.0.0.2
+ping -c 3 10.0.0.3
+ping -c 3 10.0.0.4
+
+# Ожидаемый результат:
+# 64 bytes from 10.0.0.2: icmp_seq=1 ttl=64 time=0.312 ms</div>
+
+<h3>Шаг 3: SSH без пароля</h3>
+<div class="cmd"># На мастер-узле:
+ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_cluster
+
+# Скопировать ключ на все worker-узлы:
+ssh-copy-id -i ~/.ssh/id_cluster.pub user@10.0.0.2
+ssh-copy-id -i ~/.ssh/id_cluster.pub user@10.0.0.3
+ssh-copy-id -i ~/.ssh/id_cluster.pub user@10.0.0.4
+
+# Проверка:
+ssh user@10.0.0.2 "hostname"</div>
+
+<h3>Шаг 4: Jumbo Frames (MTU 9000)</h3>
+<div class="cmd"># Увеличение MTU снижает overhead заголовков TCP/IP
+# ВАЖНО: свитч тоже должен поддерживать jumbo frames!
+
+# Временно (до перезагрузки):
+sudo ip link set eth0 mtu 9000
+
+# Постоянно (netplan):
+# В /etc/netplan/01-cluster.yaml добавить:
+#   mtu: 9000
+
+# Проверка:
+ping -M do -s 8972 10.0.0.2
+# Если проходит — jumbo frames работают
+# Если "Message too long" — свитч не поддерживает</div>
+
+<div class="note">
+<strong>Эффект jumbo frames:</strong> MTU 1500 → MTU 9000 даёт +5–15% throughput за счёт меньшего числа пакетов. На TP-Link LS1008G jumbo frames <strong>не поддерживаются</strong> (неуправляемый свитч). Для jumbo frames нужен управляемый свитч (TP-Link TL-SG108E, ~$35).
+</div>
+
+<h3>Шаг 5: Бенчмарк iperf3</h3>
+<div class="cmd"># На одном узле — сервер:
+iperf3 -s
+
+# На другом — клиент:
+iperf3 -c 10.0.0.2 -t 10 -P 4
+
+# Ожидаемый результат для 1 GbE:
+# [SUM]   0.00-10.00  sec  1.10 GBytes   941 Mbits/sec
+# Латентность: ~0.3 мс (можно проверить через ping)</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 5 ==================== -->
+<h2 id="setup-25g">5. Пошаговая настройка: 2.5G / 5G / 10 GbE</h2>
+<div class="s">
+
+<h3>2.5 GbE: самый доступный апгрейд</h3>
+<p>Многие современные мини-ПК (Orange Pi 5 Plus, Minisforum) уже имеют <strong>встроенный 2.5G порт</strong> (Realtek RTL8125). Нужен только 2.5G свитч.</p>
+
+<div class="cmd"># Проверить, какой NIC установлен:
+ethtool eth0 | grep Speed
+# Ожидание: Speed: 2500Mb/s
+
+# Если показывает 1000Mb/s — свитч ограничивает
+# Проверить link capabilities:
+ethtool eth0 | grep -i "supported link modes"</div>
+
+<h3>10 GbE: с б/у Mellanox ConnectX-3</h3>
+<p>Самый выгодный способ получить 10G — б/у карты <strong>Mellanox ConnectX-3</strong> (MCX311A-XCAT). На eBay — <span class="price">$15–25 за штуку</span>. Свитч б/у — <span class="price">$80–150</span>.</p>
+
+<div class="cmd"># Установка Mellanox ConnectX-3 (PCIe x8):
+# 1. Физически вставить карту в PCIe слот
+
+# 2. Установить драйвер:
+sudo apt install -y rdma-core infiniband-diags libibverbs1 librdmacm1
+
+# Для новых ядер (5.x+) драйвер mlx4 уже встроен:
+sudo modprobe mlx4_core
+sudo modprobe mlx4_en
+
+# 3. Проверить:
+ibstat
+# Должно показать порт в состоянии Active
+
+# 4. Настроить IP:
+sudo ip addr add 10.10.0.1/24 dev enp1s0f0
+sudo ip link set enp1s0f0 up
+sudo ethtool -s enp1s0f0 speed 10000 autoneg on
+
+# 5. Бенчмарк:
+iperf3 -c 10.10.0.2 -t 10 -P 4
+# Ожидание: ~9.3 Gbits/sec = ~1160 МБ/с</div>
+
+<h3>Кабели для 10G SFP+</h3>
+<table>
+  <tr>
+    <th>Тип</th>
+    <th>Длина</th>
+    <th>Цена</th>
+    <th>Рекомендация</th>
+  </tr>
+  <tr>
+    <td><strong>DAC (Direct Attach Copper)</strong></td>
+    <td>0.5–5 м</td>
+    <td class="price">$8–20</td>
+    <td><span class="badge badge-green">Лучший выбор для кластера</span> — дёшево, низкая латентность, пассивный</td>
+  </tr>
+  <tr>
+    <td>Оптика (SFP+ трансиверы + LC волокно)</td>
+    <td>до 10 км</td>
+    <td class="price">$15–40 за пару</td>
+    <td>Для длинных расстояний. Дома не нужно</td>
+  </tr>
+  <tr>
+    <td>RJ45 SFP+ модуль</td>
+    <td>до 30 м (Cat6a)</td>
+    <td class="price">$15–25</td>
+    <td>Если нужен RJ45 вместо DAC. Греется! Больше латентность</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Оптимальный 10G сетап для 4-узлового кластера:</strong><br>
+- 4× Mellanox ConnectX-3 MCX311A-XCAT (б/у) — <span class="price">4 × $20 = $80</span><br>
+- 1× Свитч б/у (MikroTik CRS305-1G-4S+IN или Ubiquiti USW-Aggregation) — <span class="price">$80–150</span><br>
+- 4× DAC SFP+ кабели 1м — <span class="price">4 × $10 = $40</span><br>
+- <strong>Итого: $200–270</strong> за полный 10G кластер!
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 6 ==================== -->
+<h2 id="setup-tb5">6. Пошаговая настройка: Thunderbolt 5 (Mac кластер)</h2>
+<div class="s">
+
+<h3>Топология: Daisy-chain</h3>
+<div class="diagram">Mac Mini #1 ──TB5──► Mac Mini #2 ──TB5──► Mac Mini #3 ──TB5──► Mac Mini #4
+(Master)              (Worker 1)             (Worker 2)             (Worker 3)
+
+Каждый Mac Mini M4 Pro имеет 3× Thunderbolt 5 порта.
+TB5: 120 Гбит/с (80 Гбит/с симметричный, 120 Гбит/с асимметричный)
+Латентность: ~3 мкс (с RDMA через EXO)</div>
+
+<h3>Настройка EXO с TB5 RDMA</h3>
+<div class="cmd"># 1. Соединить Mac Mini TB5-кабелями (daisy-chain)
+# 2. macOS автоматически создаёт bridge-интерфейс
+
+# 3. Проверить TB5 соединение:
+system_profiler SPThunderboltDataType
+
+# 4. Установить EXO:
+pip install exo-inference
+
+# 5. Запуск на каждом узле:
+# Mac Mini #1 (Master):
+exo run llama-3.1-70b --discovery-module manual \
+  --node-addresses 192.168.1.101,192.168.1.102,192.168.1.103
+
+# Mac Mini #2–4 (Workers):
+exo join --master 192.168.1.100
+
+# EXO автоматически определяет TB5 RDMA и использует его
+# вместо обычного TCP. Проверка:
+exo status
+# Должно показать: "Transport: RDMA (Thunderbolt 5)"</div>
+
+<div class="warn">
+<strong>Требования для TB5 RDMA в EXO:</strong><br>
+- macOS 15.0+ (Sequoia)<br>
+- Mac Mini M4 Pro или M4 Max (M4 базовый — только TB4)<br>
+- Кабели Thunderbolt 5 (USB4 v2 не даёт RDMA)<br>
+- EXO версии 0.5+ (с поддержкой RDMA)<br>
+- <strong>Не работает</strong> на Linux/Windows — только macOS
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 7 ==================== -->
+<h2 id="setup-roce">7. Пошаговая настройка: RoCE v2 (RDMA over Ethernet)</h2>
+<div class="s">
+
+<p>RoCE v2 позволяет получить RDMA-производительность <strong>поверх обычного Ethernet</strong>. Требуются Mellanox ConnectX-4+ и свитч с поддержкой ECN/PFC (Priority Flow Control).</p>
+
+<h3>Требования к оборудованию</h3>
+<table>
+  <tr>
+    <th>Компонент</th>
+    <th>Минимум</th>
+    <th>Рекомендация</th>
+    <th>Цена (б/у)</th>
+  </tr>
+  <tr>
+    <td>NIC</td>
+    <td>Mellanox ConnectX-4 Lx (25G)</td>
+    <td>ConnectX-5 (25/100G)</td>
+    <td class="price">$30–80</td>
+  </tr>
+  <tr>
+    <td>Свитч</td>
+    <td>С поддержкой PFC/ECN</td>
+    <td>Mellanox SN2100 или Arista 7050</td>
+    <td class="price">$150–400 (б/у)</td>
+  </tr>
+  <tr>
+    <td>Кабели</td>
+    <td>DAC SFP28</td>
+    <td>Passive DAC 1–3м</td>
+    <td class="price">$10–20</td>
+  </tr>
+</table>
+
+<div class="cmd"># === Настройка RoCE v2 на Linux ===
+
+# 1. Установить пакеты:
+sudo apt install -y rdma-core ibverbs-utils perftest libibverbs-dev
+
+# 2. Загрузить модули:
+sudo modprobe mlx5_core
+sudo modprobe rdma_cm
+sudo modprobe rdma_ucm
+
+# 3. Проверить RDMA-устройства:
+ibv_devices
+# Ожидание:
+#   device                 node GUID
+#   ------              ----------------
+#   mlx5_0              248a07030012abcd
+
+# 4. Детали устройства:
+ibv_devinfo mlx5_0
+# Должно показать:
+#   transport: InfiniBand (0)  или  Ethernet (1)
+#   active_mtu: 4096
+
+# 5. Настроить RoCE v2 (GID index):
+# Проверить GID таблицу:
+cat /sys/class/infiniband/mlx5_0/ports/1/gids/0
+# Должен быть IPv4 mapped адрес: 0000:0000:0000:0000:0000:ffff:0a0a:0001
+
+# 6. Настроить PFC на свитче (зависит от модели):
+# Для Mellanox SN2100:
+#   interface ethernet 1/1
+#     priority-flow-control mode on
+#     traffic-class 3 congestion-control ecn minimum-absolute 150
+#
+# Без PFC — RoCE v2 работает, но при congestion возможны потери
+
+# 7. Бенчмарк RDMA:
+# Сервер:
+ib_write_bw -d mlx5_0 -F --report_gbits
+
+# Клиент:
+ib_write_bw -d mlx5_0 -F --report_gbits 10.10.0.1
+
+# Ожидание (25 GbE):
+#   BW peak[Gb/sec]: 23.8
+#   BW average[Gb/sec]: 23.5
+
+# Латентность:
+# Сервер:
+ib_write_lat -d mlx5_0
+
+# Клиент:
+ib_write_lat -d mlx5_0 10.10.0.1
+# Ожидание: ~2-5 мкс</div>
+
+<div class="note">
+<strong>Важно:</strong> RoCE v2 по-настоящему полезен, только если ваш AI-фреймворк <strong>поддерживает RDMA</strong>. Из домашних фреймворков: EXO (Mac TB5 RDMA), NCCL (для PyTorch). llama.cpp, prima.cpp, distributed-llama — используют TCP-сокеты, даже если RDMA доступен. Для этих фреймворков RoCE v2 не даёт преимущества.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 8 ==================== -->
+<h2 id="topology">8. Топологии сети для кластеров</h2>
+<div class="s">
+
+<h3>Star (Звезда) — через коммутатор</h3>
+<div class="diagram">       ┌──────────┐
+       │  Switch  │
+       └─┬──┬──┬─┘
+         │  │  │
+    ┌────┘  │  └────┐
+    D1      D2      D3
+
+Плюсы: простота, любое количество узлов
+Минусы: свитч — единая точка отказа, общий bandwidth
+Для кого: llama.cpp RPC, distributed-llama, prima.cpp
+Стоимость: свитч $15–200 (зависит от скорости)</div>
+
+<h3>Daisy-chain (Цепочка)</h3>
+<div class="diagram">D1 ──── D2 ──── D3 ──── D4
+
+Плюсы: нет свитча, низкая латентность между соседями
+Минусы: D1→D4 = 3 хопа, общая латентность растёт
+Для кого: Thunderbolt 5 (Mac кластер + EXO)
+Стоимость: только кабели ($30–80 каждый)</div>
+
+<h3>Ring (Кольцо) — для PRP</h3>
+<div class="diagram">D1 ──── D2
+│              │
+D4 ──── D3
+
+Плюсы: каждый узел имеет 2 соседей, параллельные пути
+Минусы: нужно 2 NIC на узел (или свитч с LACP)
+Для кого: prima.cpp PRP (native ring topology)
+Стоимость: 2× NIC на узел или 1 свитч</div>
+
+<h3>Full Mesh (Полная сетка)</h3>
+<div class="diagram">D1 ──── D2
+│ ╲          ╱ │
+│   ╲      ╱   │
+│     ╲  ╱     │
+│      ╳      │
+│    ╱    ╲    │
+│  ╱        ╲  │
+D4 ──── D3
+
+Плюсы: прямое соединение между любой парой, отказоустойчивость
+Минусы: N×(N-1)/2 соединений, сложная настройка
+Для кого: малые кластеры (4 узла), TB5 (3 порта на Mac Mini)
+Стоимость: много кабелей, но нет свитча</div>
+
+<div class="good">
+<strong>Рекомендация по топологии:</strong><br>
+- <strong>2–4 узла, Ethernet</strong> → Star (звезда) через свитч. Просто и надёжно.<br>
+- <strong>2–4 узла, Thunderbolt 5</strong> → Daisy-chain или mesh (Mac Mini).<br>
+- <strong>4 узла, prima.cpp</strong> → Star через свитч (prima.cpp сама формирует ring поверх).<br>
+- <strong>8+ узлов</strong> → Star с управляемым свитчом + VLAN для изоляции трафика.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 9 ==================== -->
+<h2 id="tcp-tuning">9. Оптимизация TCP для AI-трафика</h2>
+<div class="s">
+
+<p>Все основные фреймворки (llama.cpp RPC, prima.cpp, distributed-llama) используют <strong>TCP-сокеты</strong>. Правильная настройка TCP может дать <strong>+10–30% throughput</strong> и <strong>-30–50% латентности</strong>.</p>
+
+<h3>Sysctl параметры</h3>
+<div class="cmd"># /etc/sysctl.d/99-ai-cluster.conf
+
+# === Буферы сокетов ===
+# Увеличиваем максимальный размер буферов (по умолчанию ~208 КБ)
+net.core.rmem_max = 67108864      # 64 МБ
+net.core.wmem_max = 67108864      # 64 МБ
+net.core.rmem_default = 1048576   # 1 МБ
+net.core.wmem_default = 1048576   # 1 МБ
+
+# TCP auto-tuning буферы (мин, по-умолчанию, макс)
+net.ipv4.tcp_rmem = 4096 1048576 67108864
+net.ipv4.tcp_wmem = 4096 1048576 67108864
+
+# === Очередь ===
+net.core.netdev_max_backlog = 30000    # Очередь входящих пакетов
+net.core.somaxconn = 65535             # Макс. соединений в очереди
+
+# === TCP параметры ===
+net.ipv4.tcp_no_metrics_save = 1       # Не кешировать метрики
+net.ipv4.tcp_moderate_rcvbuf = 1       # Авто-подстройка буферов
+net.ipv4.tcp_window_scaling = 1        # Масштабирование окна TCP
+net.ipv4.tcp_timestamps = 1            # Для точного RTT
+net.ipv4.tcp_sack = 1                  # Selective ACK
+
+# === Уменьшение латентности ===
+net.ipv4.tcp_low_latency = 1           # Приоритет латентности
+net.ipv4.tcp_fastopen = 3              # TCP Fast Open (клиент+сервер)
+
+# Применить:
+# sudo sysctl -p /etc/sysctl.d/99-ai-cluster.conf</div>
+
+<h3>TCP_NODELAY и TCP_QUICKACK</h3>
+<div class="cmd"># TCP_NODELAY отключает алгоритм Nagle — отправляет данные сразу,
+# без ожидания заполнения пакета. Критично для AI-инференса!
+#
+# В коде (C/C++):
+#   int flag = 1;
+#   setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
+#
+# distributed-llama и prima.cpp УЖЕ используют TCP_NODELAY.
+# llama.cpp RPC — тоже.
+#
+# TCP_QUICKACK отправляет ACK немедленно (без delayed ACK):
+#   setsockopt(sock, IPPROTO_TCP, TCP_QUICKACK, &flag, sizeof(flag));
+# Нужно устанавливать после каждого recv() — не sticky.</div>
+
+<h3>IRQ Affinity и CPU Pinning</h3>
+<div class="cmd"># Привязать прерывания NIC к определённым CPU ядрам
+# чтобы избежать конкуренции с AI-вычислениями
+
+# Найти IRQ вашего NIC:
+cat /proc/interrupts | grep eth0
+# Например: 45: ... eth0-TxRx-0
+
+# Привязать IRQ 45 к CPU 0:
+echo 1 > /proc/irq/45/smp_affinity
+
+# Для мульти-очередных NIC (10G+):
+# Установить irqbalance:
+sudo apt install irqbalance
+# Или вручную через set_irq_affinity.sh (из Mellanox tools)</div>
+
+<h3>Ring Buffer и Coalescing</h3>
+<div class="cmd"># Увеличить ring buffer NIC:
+sudo ethtool -G eth0 rx 4096 tx 4096
+
+# Настроить interrupt coalescing (баланс throughput/latency):
+# Для НИЗКОЙ ЛАТЕНТНОСТИ (AI-инференс):
+sudo ethtool -C eth0 rx-usecs 0 tx-usecs 0 rx-frames 1 tx-frames 1
+
+# Для ВЫСОКОГО THROUGHPUT (передача больших моделей):
+sudo ethtool -C eth0 rx-usecs 50 tx-usecs 50 rx-frames 64 tx-frames 64
+
+# Проверить текущие настройки:
+ethtool -c eth0
+ethtool -g eth0</div>
+
+<div class="warn">
+<strong>Результат TCP-оптимизации:</strong><br>
+- 1 GbE: 940 Мбит/с → 941 Мбит/с (потолок почти достигнут — мало что можно улучшить)<br>
+- 10 GbE: 8.5 → 9.3 Гбит/с (+10%) с правильными буферами<br>
+- Латентность: 300 мкс → 150–200 мкс с TCP_NODELAY + coalescing=0<br>
+- <strong>Главный эффект</strong>: не throughput, а <strong>снижение jitter</strong> (дрожания). Стабильная латентность важнее средней.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 10 ==================== -->
+<h2 id="benchmarks">10. Замеры и бенчмарки</h2>
+<div class="s">
+
+<h3>iperf3: базовый тест пропускной способности</h3>
+<div class="cmd"># TCP throughput (основной тест):
+# Сервер:
+iperf3 -s -p 5201
+
+# Клиент (однопоточный):
+iperf3 -c 10.0.0.2 -p 5201 -t 30
+
+# Клиент (многопоточный — ближе к реальной нагрузке):
+iperf3 -c 10.0.0.2 -p 5201 -t 30 -P 4
+
+# UDP тест (для оценки потерь):
+iperf3 -c 10.0.0.2 -u -b 1G -t 10
+
+# С разными размерами окна:
+iperf3 -c 10.0.0.2 -w 256K -t 10
+iperf3 -c 10.0.0.2 -w 1M -t 10
+iperf3 -c 10.0.0.2 -w 4M -t 10</div>
+
+<h3>Ожидаемые результаты iperf3</h3>
+<table>
+  <tr>
+    <th>Сеть</th>
+    <th>iperf3 TCP (1 поток)</th>
+    <th>iperf3 TCP (4 потока)</th>
+    <th>Ping (мс)</th>
+  </tr>
+  <tr>
+    <td>1 GbE (Cat6)</td>
+    <td>940 Мбит/с</td>
+    <td>941 Мбит/с</td>
+    <td>0.2–0.5</td>
+  </tr>
+  <tr>
+    <td>2.5 GbE (Cat6)</td>
+    <td>2.35 Гбит/с</td>
+    <td>2.36 Гбит/с</td>
+    <td>0.1–0.3</td>
+  </tr>
+  <tr>
+    <td>10 GbE SFP+ (DAC)</td>
+    <td>9.3 Гбит/с</td>
+    <td>9.4 Гбит/с</td>
+    <td>0.03–0.1</td>
+  </tr>
+  <tr>
+    <td>25 GbE SFP28 (DAC)</td>
+    <td>20 Гбит/с</td>
+    <td>23.5 Гбит/с</td>
+    <td>0.02–0.08</td>
+  </tr>
+  <tr>
+    <td>TB5 (Mac-to-Mac)</td>
+    <td>~35 Гбит/с</td>
+    <td>~60 Гбит/с</td>
+    <td>0.005–0.015</td>
+  </tr>
+  <tr>
+    <td>Wi-Fi 6 (5 ГГц)</td>
+    <td>400–700 Мбит/с</td>
+    <td>500–800 Мбит/с</td>
+    <td>1–5</td>
+  </tr>
+</table>
+
+<h3>sockperf: измерение латентности</h3>
+<div class="cmd"># Установка:
+sudo apt install -y sockperf
+
+# Сервер:
+sockperf server --port 12345 --ip 10.0.0.2
+
+# Клиент (ping-pong latency):
+sockperf ping-pong --ip 10.0.0.2 --port 12345 -t 10
+
+# Клиент (under-load latency):
+sockperf under-load --ip 10.0.0.2 --port 12345 -t 10 --mps 10000
+
+# Ожидаемые результаты:
+# 1 GbE:  avg latency: 35–50 мкс (sockperf), 200–500 мкс (реальный TCP)
+# 10 GbE: avg latency: 15–25 мкс (sockperf)
+# IB FDR: avg latency: 1–2 мкс</div>
+
+<h3>qperf: RDMA-бенчмарк</h3>
+<div class="cmd"># Установка:
+sudo apt install -y qperf
+
+# Сервер:
+qperf
+
+# Клиент (TCP):
+qperf 10.10.0.2 tcp_bw tcp_lat
+
+# Клиент (RDMA):
+qperf 10.10.0.2 rc_rdma_write_bw rc_rdma_write_lat
+
+# Ожидаемые результаты (25 GbE RoCE v2):
+# tcp_bw:           2.7 GB/sec
+# tcp_lat:          15.2 us
+# rc_rdma_write_bw: 2.9 GB/sec
+# rc_rdma_write_lat: 2.8 us  ← в 5× меньше!</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 11 ==================== -->
+<h2 id="bandwidth-calc">11. Расчёт пропускной способности для каждой модели</h2>
+<div class="s">
+
+<h3>Формулы</h3>
+<div class="diagram">Pipeline Parallelism (PP):
+  Данных на токен = hidden_size × 2 байта × (N_узлов - 1)
+  Где hidden_size: Llama 8B=4096, 70B=8192, 405B=16384
+
+Tensor Parallelism (TP):
+  Данных на токен = hidden_size × 2 × 2 × num_layers
+  (all-reduce = reduce-scatter + all-gather на каждом слое)
+
+PRP (prima.cpp):
+  Данных на токен = hidden_size × 2 × N_узлов × k_оборотов
+  k обычно = 2 для моделей 60B+</div>
+
+<h3>Расчёт для конкретных моделей</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>hidden_size</th>
+    <th>Слоёв</th>
+    <th>PP данные/ток (4 узла)</th>
+    <th>TP данные/ток (4 узла)</th>
+    <th>PRP данные/ток (4 узла, k=2)</th>
+  </tr>
+  <tr>
+    <td>Llama 3.2 3B</td>
+    <td>3072</td>
+    <td>28</td>
+    <td class="speed">18 КБ</td>
+    <td>336 КБ</td>
+    <td>48 КБ</td>
+  </tr>
+  <tr>
+    <td>Llama 3 8B</td>
+    <td>4096</td>
+    <td>32</td>
+    <td class="speed">24 КБ</td>
+    <td>512 КБ</td>
+    <td>64 КБ</td>
+  </tr>
+  <tr>
+    <td>QwQ-32B</td>
+    <td>5120</td>
+    <td>64</td>
+    <td class="speed">30 КБ</td>
+    <td>1.25 МБ</td>
+    <td>80 КБ</td>
+  </tr>
+  <tr>
+    <td><strong>Llama 3 70B</strong></td>
+    <td>8192</td>
+    <td>80</td>
+    <td class="speed">48 КБ</td>
+    <td><strong>2.5 МБ</strong></td>
+    <td>128 КБ</td>
+  </tr>
+  <tr>
+    <td>Llama 3 405B</td>
+    <td>16384</td>
+    <td>126</td>
+    <td class="speed">96 КБ</td>
+    <td><strong>8 МБ</strong></td>
+    <td>256 КБ</td>
+  </tr>
+  <tr>
+    <td>DeepSeek V3 671B</td>
+    <td>7168</td>
+    <td>61</td>
+    <td class="speed">42 КБ</td>
+    <td>1.7 МБ</td>
+    <td>112 КБ</td>
+  </tr>
+</table>
+
+<h3>Сетевой overhead (мс) для Llama 70B при разных сетях</h3>
+<table>
+  <tr>
+    <th>Сеть</th>
+    <th>Throughput</th>
+    <th>PP overhead</th>
+    <th>TP overhead</th>
+    <th>PRP overhead</th>
+  </tr>
+  <tr>
+    <td>Wi-Fi 6 (600 Мбит/с, 3 мс)</td>
+    <td>75 МБ/с</td>
+    <td>9.6 мс</td>
+    <td>273 мс</td>
+    <td>25 мс</td>
+  </tr>
+  <tr>
+    <td>1 GbE (117 МБ/с, 0.3 мс)</td>
+    <td>117 МБ/с</td>
+    <td>1.3 мс</td>
+    <td>47 мс</td>
+    <td>3.5 мс</td>
+  </tr>
+  <tr>
+    <td>2.5 GbE (294 МБ/с, 0.2 мс)</td>
+    <td>294 МБ/с</td>
+    <td>0.8 мс</td>
+    <td>19 мс</td>
+    <td>2.0 мс</td>
+  </tr>
+  <tr>
+    <td>10 GbE (1175 МБ/с, 0.05 мс)</td>
+    <td>1175 МБ/с</td>
+    <td>0.2 мс</td>
+    <td><strong>6.1 мс</strong></td>
+    <td>0.5 мс</td>
+  </tr>
+  <tr>
+    <td>25 GbE (2940 МБ/с, 0.03 мс)</td>
+    <td>2940 МБ/с</td>
+    <td>0.1 мс</td>
+    <td><strong>3.3 мс</strong></td>
+    <td>0.3 мс</td>
+  </tr>
+  <tr>
+    <td>TB5 RDMA (5000 МБ/с, 0.003 мс)</td>
+    <td>5000 МБ/с</td>
+    <td>0.01 мс</td>
+    <td><strong>0.7 мс</strong></td>
+    <td>0.05 мс</td>
+  </tr>
+  <tr>
+    <td>IB FDR (6500 МБ/с, 0.001 мс)</td>
+    <td>6500 МБ/с</td>
+    <td>0.01 мс</td>
+    <td><strong>0.5 мс</strong></td>
+    <td>0.03 мс</td>
+  </tr>
+</table>
+
+<div class="red">
+<strong>Критический вывод:</strong> Для <strong>Tensor Parallelism</strong> на Llama 70B:<br>
+- Wi-Fi 6: <strong>273 мс overhead</strong> — полностью убивает производительность<br>
+- 1 GbE: <strong>47 мс</strong> — значительный overhead (при вычислении ~150 мс/токен = +31%)<br>
+- 10 GbE: <strong>6.1 мс</strong> — терпимо (4% overhead)<br>
+- TB5 RDMA: <strong>0.7 мс</strong> — пренебрежимо (0.5% overhead)<br><br>
+Для <strong>PRP</strong> на Llama 70B:<br>
+- 1 GbE: <strong>3.5 мс</strong> — минимальный overhead, вполне работоспособно<br>
+- prima.cpp оптимизирована для медленных сетей!
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 12 ==================== -->
+<h2 id="framework-impact">12. Влияние сети на конкретные фреймворки</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Фреймворк</th>
+    <th>Протокол</th>
+    <th>Паттерн трафика</th>
+    <th>Оптимальная сеть</th>
+    <th>Минимальная сеть</th>
+  </tr>
+  <tr>
+    <td><strong>llama.cpp RPC</strong></td>
+    <td>TCP, pipeline</td>
+    <td>Мало данных (16–48 КБ/токен), но pipeline bubble доминирует</td>
+    <td>1–2.5 GbE достаточно</td>
+    <td>Wi-Fi 6</td>
+  </tr>
+  <tr>
+    <td><strong>distributed-llama</strong></td>
+    <td>TCP, tensor parallel</td>
+    <td>Много мелких all-reduce (0.5–2.5 МБ/токен, 80 синхронизаций)</td>
+    <td>10 GbE+</td>
+    <td>1 GbE (с деградацией)</td>
+  </tr>
+  <tr>
+    <td><strong>prima.cpp PRP</strong></td>
+    <td>TCP, ring pipeline</td>
+    <td>Умеренно (64–256 КБ/токен), 8–16 ring-шагов</td>
+    <td>2.5–10 GbE</td>
+    <td>Wi-Fi 6 (тестировано)</td>
+  </tr>
+  <tr>
+    <td><strong>EXO</strong></td>
+    <td>RDMA (Mac TB5) / TCP</td>
+    <td>Tensor parallel с all-reduce, zero-copy на RDMA</td>
+    <td>TB5 RDMA (обязательно)</td>
+    <td>TB5 (только Mac)</td>
+  </tr>
+  <tr>
+    <td><strong>Petals</strong></td>
+    <td>TCP (интернет)</td>
+    <td>Pipeline через интернет, высокая латентность</td>
+    <td>Любое подключение</td>
+    <td>Домашний интернет</td>
+  </tr>
+</table>
+
+<h3>Формула: tok/s с учётом сетевого overhead</h3>
+<div class="diagram">Реальные tok/s = 1 / (T_compute + T_network + T_sync)
+
+Где:
+  T_compute = model_size_bytes / (memory_bandwidth × num_devices)
+  T_network = data_per_token / network_throughput + num_syncs × latency
+  T_sync    = overhead синхронизации (barrier, etc.)
+
+Пример: Llama 70B Q4_K_M (40 ГБ), 4 узла, 1 GbE
+
+  llama.cpp RPC (Pipeline):
+    T_compute = 40 ГБ / 273 ГБ/с = 146 мс (на самом медленном узле)
+    T_pipeline_bubble = 146 × 3 = 438 мс (3 узла простаивают)
+    T_network = 1.3 мс (незначительно)
+    Итого: ~585 мс → 1.7 tok/s
+    Сеть: 0.2% от общего времени — не bottleneck
+
+  distributed-llama (Tensor Parallel):
+    T_compute = 40 ГБ / (4 × 34 ГБ/с) = 294 мс (Pi 5, 34 ГБ/с каждый)
+    T_network = 47 мс (all-reduce через 1 GbE)
+    Итого: ~341 мс → 2.9 tok/s
+    Сеть: 14% от общего времени — заметно!
+    С 10 GbE: 294 + 6 = 300 мс → 3.3 tok/s (+14%)
+
+  prima.cpp PRP:
+    T_compute = 40 ГБ / (4 × memory_bw) — распределено
+    T_network = 3.5 мс
+    T_disk_prefetch = перекрывается (скрытая)
+    Итого зависит от конфигурации — 500–700 мс → 1.4–2 tok/s
+    Сеть: 0.5–0.7% — не bottleneck</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 13 ==================== -->
+<h2 id="hardware">13. Оборудование: конкретные модели и цены (февраль 2026)</h2>
+<div class="s">
+
+<h3>Коммутаторы (свитчи)</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Скорость</th>
+    <th>Порты</th>
+    <th>Управляемый</th>
+    <th>Jumbo</th>
+    <th>Цена</th>
+  </tr>
+  <tr>
+    <td>TP-Link LS1008G</td>
+    <td>1G</td>
+    <td>8× RJ45</td>
+    <td>Нет</td>
+    <td>Нет</td>
+    <td class="price">$17</td>
+  </tr>
+  <tr>
+    <td>TP-Link TL-SG108E</td>
+    <td>1G</td>
+    <td>8× RJ45</td>
+    <td>Да (Easy Smart)</td>
+    <td>Да (9216)</td>
+    <td class="price">$35</td>
+  </tr>
+  <tr>
+    <td>TP-Link TL-SG108-M2</td>
+    <td>2.5G</td>
+    <td>8× RJ45</td>
+    <td>Нет</td>
+    <td>Да (9000)</td>
+    <td class="price">$60</td>
+  </tr>
+  <tr>
+    <td>QNAP QSW-1105-5T</td>
+    <td>2.5G</td>
+    <td>5× RJ45</td>
+    <td>Нет</td>
+    <td>Да (9000)</td>
+    <td class="price">$80</td>
+  </tr>
+  <tr>
+    <td><strong>MikroTik CRS305-1G-4S+IN</strong></td>
+    <td><strong>10G</strong></td>
+    <td>4× SFP+ + 1× GbE</td>
+    <td>Да</td>
+    <td>Да (9000)</td>
+    <td class="price"><strong>$130</strong></td>
+  </tr>
+  <tr>
+    <td>MikroTik CRS309-1G-8S+IN</td>
+    <td>10G</td>
+    <td>8× SFP+ + 1× GbE</td>
+    <td>Да</td>
+    <td>Да (9000)</td>
+    <td class="price">$230</td>
+  </tr>
+  <tr>
+    <td>Ubiquiti USW-Aggregation</td>
+    <td>10G</td>
+    <td>8× SFP+</td>
+    <td>Да</td>
+    <td>Да</td>
+    <td class="price">$300</td>
+  </tr>
+  <tr>
+    <td>Mellanox SN2010 (б/у)</td>
+    <td>25G</td>
+    <td>18× SFP28 + 4× QSFP28</td>
+    <td>Да (MLNX-OS)</td>
+    <td>Да</td>
+    <td class="price">$150–300 (б/у)</td>
+  </tr>
+</table>
+
+<h3>Сетевые карты (NIC)</h3>
+<table>
+  <tr>
+    <th>Модель</th>
+    <th>Скорость</th>
+    <th>Интерфейс</th>
+    <th>RDMA</th>
+    <th>Цена (б/у)</th>
+  </tr>
+  <tr>
+    <td>Intel I225-V (встроенный)</td>
+    <td>2.5G</td>
+    <td>RJ45</td>
+    <td>Нет</td>
+    <td>Встроен в мини-ПК</td>
+  </tr>
+  <tr>
+    <td>Realtek RTL8125 (встроенный)</td>
+    <td>2.5G</td>
+    <td>RJ45</td>
+    <td>Нет</td>
+    <td>Встроен в Orange Pi 5+</td>
+  </tr>
+  <tr>
+    <td>Intel X520-DA1 (б/у)</td>
+    <td>10G</td>
+    <td>SFP+</td>
+    <td>Нет</td>
+    <td class="price">$15–25</td>
+  </tr>
+  <tr>
+    <td><strong>Mellanox ConnectX-3 MCX311A</strong></td>
+    <td><strong>10G</strong></td>
+    <td>SFP+</td>
+    <td><strong>IB + RoCE</strong></td>
+    <td class="price"><strong>$15–25</strong></td>
+  </tr>
+  <tr>
+    <td><strong>Mellanox ConnectX-4 Lx MCX4121A</strong></td>
+    <td><strong>25G</strong></td>
+    <td>SFP28</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price"><strong>$30–60</strong></td>
+  </tr>
+  <tr>
+    <td>Mellanox ConnectX-5 MCX516A</td>
+    <td>100G</td>
+    <td>QSFP28</td>
+    <td><strong>RoCE v2</strong></td>
+    <td class="price">$80–150</td>
+  </tr>
+  <tr>
+    <td>Mellanox ConnectX-3 VPI (IB)</td>
+    <td>FDR 56G</td>
+    <td>QSFP</td>
+    <td><strong>Native IB</strong></td>
+    <td class="price">$20–40</td>
+  </tr>
+</table>
+
+<h3>Кабели</h3>
+<table>
+  <tr>
+    <th>Тип</th>
+    <th>Скорость</th>
+    <th>Длина</th>
+    <th>Цена</th>
+  </tr>
+  <tr><td>Cat5e RJ45</td><td>1G</td><td>1м</td><td class="price">$2</td></tr>
+  <tr><td>Cat6 RJ45</td><td>1–2.5G</td><td>1м</td><td class="price">$3</td></tr>
+  <tr><td>Cat6a RJ45</td><td>10G (до 55м)</td><td>1м</td><td class="price">$5</td></tr>
+  <tr><td><strong>DAC SFP+ 10G</strong></td><td>10G</td><td>1м</td><td class="price"><strong>$8–12</strong></td></tr>
+  <tr><td>DAC SFP28 25G</td><td>25G</td><td>1м</td><td class="price">$10–20</td></tr>
+  <tr><td>DAC QSFP 40G</td><td>40G</td><td>1м</td><td class="price">$15–25</td></tr>
+  <tr><td>Thunderbolt 5 (0.8м)</td><td>120 Гбит/с</td><td>0.8м</td><td class="price">$30–80</td></tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 14 ==================== -->
+<h2 id="troubleshooting">14. Типичные проблемы и диагностика</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Проблема</th>
+    <th>Симптомы</th>
+    <th>Диагностика</th>
+    <th>Решение</th>
+  </tr>
+  <tr>
+    <td><strong>MTU mismatch</strong></td>
+    <td>Пинг работает, но большие пакеты теряются. iperf3 показывает 100 Мбит/с вместо 1 Гбит/с</td>
+    <td><code>ping -M do -s 8972 10.0.0.2</code> — если не проходит, MTU не совпадает</td>
+    <td>Установить одинаковый MTU на всех узлах и свитче</td>
+  </tr>
+  <tr>
+    <td><strong>Кабель Cat5e на 2.5G</strong></td>
+    <td>Линк поднимается на 1G вместо 2.5G</td>
+    <td><code>ethtool eth0 | grep Speed</code></td>
+    <td>Использовать Cat6 или Cat6a. Cat5e ненадёжен на 2.5G+ при длине &gt;5м</td>
+  </tr>
+  <tr>
+    <td><strong>IRQ storm на 10G</strong></td>
+    <td>CPU загружен на 100% одним ядром при высоком трафике</td>
+    <td><code>cat /proc/interrupts | grep mlx</code> — все прерывания на одном CPU</td>
+    <td>Настроить irq affinity: <code>set_irq_affinity_bynode.sh 0 mlx5_0</code></td>
+  </tr>
+  <tr>
+    <td><strong>TCP window too small</strong></td>
+    <td>10 GbE даёт только 2–3 Гбит/с</td>
+    <td><code>ss -t -i | grep wscale</code></td>
+    <td>Увеличить <code>net.ipv4.tcp_rmem</code> и <code>tcp_wmem</code></td>
+  </tr>
+  <tr>
+    <td><strong>RoCE не работает</strong></td>
+    <td><code>ibv_devices</code> не показывает устройство</td>
+    <td><code>lspci | grep Mellanox</code> + <code>dmesg | grep mlx</code></td>
+    <td>Загрузить модули: <code>modprobe mlx5_core</code>. Установить <code>rdma-core</code></td>
+  </tr>
+  <tr>
+    <td><strong>Wi-Fi interference</strong></td>
+    <td>Скорость плавает 100–600 Мбит/с</td>
+    <td><code>iwconfig wlan0</code> — проверить SNR и канал</td>
+    <td>Использовать 5 ГГц (DFS каналы), Wi-Fi 6E (6 ГГц) или перейти на Ethernet</td>
+  </tr>
+  <tr>
+    <td><strong>Switch buffer overflow</strong></td>
+    <td>Потери пакетов при burst-трафике (all-reduce)</td>
+    <td><code>ethtool -S eth0 | grep drop</code></td>
+    <td>Управляемый свитч с ECN/PFC. Или свитч с большим буфером (MikroTik)</td>
+  </tr>
+  <tr>
+    <td><strong>Высокий jitter</strong></td>
+    <td>tok/s нестабильный, прыгает ±50%</td>
+    <td><code>ping -c 100 10.0.0.2 | tail -1</code> — смотреть mdev</td>
+    <td>Отключить power saving на NIC: <code>ethtool -s eth0 wol d</code>. Отключить C-states в BIOS</td>
+  </tr>
+</table>
+</div>
+
+<!-- ==================== РАЗДЕЛ 15 ==================== -->
+<h2 id="budget">15. Рекомендации по бюджету</h2>
+<div class="s">
+
+<table>
+  <tr>
+    <th>Бюджет на сеть</th>
+    <th>Что купить</th>
+    <th>Скорость</th>
+    <th>Для каких фреймворков</th>
+  </tr>
+  <tr>
+    <td class="price">&lt;$30</td>
+    <td>TP-Link LS1008G (1G, 8p) + Cat5e кабели</td>
+    <td>940 Мбит/с, 0.3 мс</td>
+    <td>prima.cpp PRP, llama.cpp RPC — сеть НЕ bottleneck</td>
+  </tr>
+  <tr>
+    <td class="price">$30–70</td>
+    <td>TP-Link TL-SG108-M2 (2.5G, 8p) + Cat6 кабели</td>
+    <td>2.35 Гбит/с, 0.2 мс</td>
+    <td>Все TCP-фреймворки. +2.5× bandwidth vs 1G</td>
+  </tr>
+  <tr>
+    <td class="price">$70–150</td>
+    <td>2.5G свитч + USB 2.5G адаптеры (для Pi 5)</td>
+    <td>2.35 Гбит/с</td>
+    <td>SBC-кластеры + distributed-llama</td>
+  </tr>
+  <tr>
+    <td class="price">$150–300</td>
+    <td><strong>MikroTik CRS305 (10G) + 4× б/у ConnectX-3 + DAC</strong></td>
+    <td><strong>9.4 Гбит/с, 0.05 мс</strong></td>
+    <td><span class="badge badge-green">Лучший $/perf</span> Все фреймворки. TP overhead = 6 мс</td>
+  </tr>
+  <tr>
+    <td class="price">$300–600</td>
+    <td>Mellanox SN2010 (б/у 25G) + ConnectX-4 Lx + DAC</td>
+    <td>23.5 Гбит/с, RoCE v2</td>
+    <td>RDMA-ready. Для distributed-llama + будущих фреймворков</td>
+  </tr>
+  <tr>
+    <td class="price">$100–250</td>
+    <td>Thunderbolt 5 кабели (3 шт.) для Mac Mini M4 Pro</td>
+    <td>~60 Гбит/с, 3 мкс RDMA</td>
+    <td><span class="badge badge-green">Идеально для EXO</span> Mac-кластеры</td>
+  </tr>
+  <tr>
+    <td class="price">$200–500</td>
+    <td>Б/у InfiniBand FDR (ConnectX-3 VPI + IB свитч)</td>
+    <td>56 Гбит/с, 1–2 мкс RDMA</td>
+    <td>Энтузиасты. Лучшая латентность за деньги</td>
+  </tr>
+</table>
+
+<div class="good">
+<strong>Золотой стандарт для домашнего AI-кластера:</strong> <strong>MikroTik CRS305 + б/у Mellanox ConnectX-3</strong> = 10 Гбит/с за <span class="price">$200–270</span>. Это в 10× быстрее Gigabit Ethernet, достаточно для ВСЕХ фреймворков, и всего на $150 дороже базового свитча. Лучшее вложение в сетевую инфраструктуру.
+</div>
+</div>
+
+<!-- ==================== РАЗДЕЛ 16 ==================== -->
+<h2 id="matrix">16. Итоговая матрица: сеть * фреймворк * модель</h2>
+<div class="s">
+
+<h3>Llama 70B Q4_K_M — сетевой overhead (мс на токен)</h3>
+<table>
+  <tr>
+    <th>Сеть</th>
+    <th>llama.cpp RPC<br>(Pipeline)</th>
+    <th>distributed-llama<br>(Tensor)</th>
+    <th>prima.cpp PRP<br>(Ring)</th>
+    <th>EXO<br>(Tensor+RDMA)</th>
+  </tr>
+  <tr>
+    <td>Wi-Fi 6</td>
+    <td>9.6 мс (1.6%)</td>
+    <td style="color:#ff6b6b;"><strong>273 мс (65%!)</strong></td>
+    <td>25 мс (3.6%)</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td>1 GbE</td>
+    <td>1.3 мс (0.2%)</td>
+    <td style="color:#ffd580;">47 мс (14%)</td>
+    <td>3.5 мс (0.5%)</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td>2.5 GbE</td>
+    <td>0.8 мс (0.1%)</td>
+    <td>19 мс (6%)</td>
+    <td>2.0 мс (0.3%)</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td><strong>10 GbE</strong></td>
+    <td class="speed">0.2 мс (&lt;0.1%)</td>
+    <td class="speed"><strong>6.1 мс (2%)</strong></td>
+    <td class="speed">0.5 мс (&lt;0.1%)</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td>25 GbE</td>
+    <td class="speed">0.1 мс</td>
+    <td class="speed">3.3 мс (1%)</td>
+    <td class="speed">0.3 мс</td>
+    <td>N/A</td>
+  </tr>
+  <tr>
+    <td><strong>TB5 RDMA</strong></td>
+    <td>0.01 мс</td>
+    <td>N/A</td>
+    <td>0.05 мс</td>
+    <td class="speed"><strong>0.7 мс (0.5%)</strong></td>
+  </tr>
+</table>
+
+<p style="font-size:0.85em; color:#607080;">Процент в скобках = доля сетевого overhead от общего времени генерации токена. Зелёным выделены значения &lt;5% (приемлемый overhead).</p>
+
+<h3>Рекомендация: минимальная сеть для каждого фреймворка</h3>
+<table>
+  <tr>
+    <th>Фреймворк</th>
+    <th>Модели до 14B</th>
+    <th>Модели 30–70B</th>
+    <th>Модели 200B+</th>
+  </tr>
+  <tr>
+    <td>llama.cpp RPC</td>
+    <td>Wi-Fi 6</td>
+    <td>1 GbE</td>
+    <td>2.5 GbE</td>
+  </tr>
+  <tr>
+    <td>distributed-llama</td>
+    <td>1 GbE</td>
+    <td><strong>10 GbE</strong></td>
+    <td>25 GbE</td>
+  </tr>
+  <tr>
+    <td>prima.cpp PRP</td>
+    <td>Wi-Fi 6</td>
+    <td>1 GbE</td>
+    <td>2.5 GbE</td>
+  </tr>
+  <tr>
+    <td>EXO (Mac)</td>
+    <td>TB4</td>
+    <td><strong>TB5 RDMA</strong></td>
+    <td>TB5 RDMA</td>
+  </tr>
+</table>
+
+<div class="highlight">
+<strong>Финальный вывод:</strong><br><br>
+<strong>Для prima.cpp и llama.cpp RPC</strong> — Gigabit Ethernet достаточен для моделей до 70B. Сеть добавляет &lt;1% overhead. Апгрейд на 10G даёт минимальный прирост.<br><br>
+<strong>Для distributed-llama</strong> — 10 GbE критически важен для моделей 30B+. На 1 GbE сетевой overhead = 14%, что ощутимо. Б/у 10G сетап за $200–270 — обязательная инвестиция.<br><br>
+<strong>Для EXO Mac-кластеров</strong> — Thunderbolt 5 с RDMA не имеет альтернатив. Это единственный путь к 32 tok/s на 70B.<br><br>
+<strong>Лучшая инвестиция</strong> — б/у Mellanox ConnectX-3 + MikroTik CRS305 за $200–270. Это 10× ускорение сети за стоимость одного кабеля Thunderbolt 5.
+</div>
+</div>
+
+<div class="footer">
+  Часть 8 серии «Домашние AI-кластеры 2026». Февраль 2026.<br>
+  Источники: Mellanox RDMA documentation, NVIDIA NCCL, iperf3, MikroTik, Jeff Geerling, EXO RDMA paper.<br>
+  <a href="favorites-prima-cpp-ru.html">← Часть 7 (Фавориты)</a> ·
+  <a href="prima-cpp-minipc-guide-ru.html">← Часть 6 (prima.cpp)</a> ·
+  <a href="sbc-clusters-guide-ru.html">← Часть 5 (SBC)</a> ·
+  <a href="model-quantization-guide-ru.html">→ Часть 9 (Модели и квантизация)</a> ·
+  <a href="production-deployment-ru.html">→ Часть 10 (Продакшн)</a> ·
+  <a href="cost-performance-calculator-ru.html">→ Часть 11 (Калькулятор)</a>
+</div>
+
+</body>
+</html>
